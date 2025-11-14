@@ -32,11 +32,11 @@ Import the provided SQL dump from /src/database/mock_data.sql.
 
 Run the main application:
 
-bash
-Copy code
-python src/main.py
-Documentation
-All UML design diagrams, methodology reports, and test documentation are available in the /docs directory. These include:
+•bash
+•Copy code
+•python src/main.py
+•Documentation
+•All UML design diagrams, methodology reports, and test documentation are available in the /docs directory. These include:
 
 Use Case, Class, and Sequence diagrams
 
