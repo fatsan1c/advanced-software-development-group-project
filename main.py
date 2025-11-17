@@ -1,9 +1,6 @@
 from tkinter import *
 from tkinter.ttk import *
 
-from tkinter import *
-from tkinter.ttk import *
-
 # Class for creating a new window
 class NewWindow(Toplevel):
     def __init__(self, master=None):
