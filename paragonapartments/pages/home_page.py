@@ -1,12 +1,23 @@
 from tkinter import *
 from tkinter.ttk import *
-import customtkinter as ctk
+from pathlib import Path
 from PIL import Image
+import customtkinter as ctk
 
 class HomePage(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color="transparent")
         self.controller = controller
+
+        # Resolve icons path relative to this file
+        here = Path(__file__).parent  # paragonapartments/pages
+        icons_dir = here.parent / "icons"  # paragonapartments/icons
+
+        self.theme_icon = ctk.CTkImage(
+            light_image=Image.open(icons_dir / "light_icon.png"),
+            dark_image=Image.open(icons_dir / "dark_icon.png"),
+            size=(50, 27.5)
+        )
 
         # Centered content wrapper
         content = ctk.CTkFrame(self, fg_color="transparent")
@@ -16,12 +27,6 @@ class HomePage(ctk.CTkFrame):
         ctk.CTkButton(content, text="Logout", 
                command=lambda: controller.show_frame("LoginPage")).pack()
                 
-        self.theme_icon = ctk.CTkImage(
-            light_image=Image.open("icons/light_icon.png"),
-            dark_image=Image.open("icons/dark_icon.png"),
-            size=(50, 27.5)
-        )
-
         def toggle_theme():
             mode = ctk.get_appearance_mode()  # "Light" or "Dark"
             ctk.set_appearance_mode("dark" if mode == "Light" else "light")
