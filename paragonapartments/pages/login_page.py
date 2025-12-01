@@ -8,12 +8,28 @@ class LoginPage(ctk.CTkFrame):
         self.controller = controller
         
          # Centered content wrapper
-        content = ctk.CTkFrame(self, fg_color="transparent")
-        content.pack(expand=True)
+        self.content = ctk.CTkFrame(self, fg_color="transparent")
+        self.content.pack(expand=True)
 
-        ctk.CTkLabel(content, text="Login Page").pack(pady=(0, 12))
-        ctk.CTkEntry(content, placeholder_text="Username").pack(pady=(0, 12))
-        ctk.CTkEntry(content, placeholder_text="Password", show="*").pack(pady=(0, 12))
-        ctk.CTkButton(content, text="Login",
-             command=lambda: controller.show_frame("HomePage")).pack()
+        ctk.CTkLabel(self.content, text="Login Page").pack(pady=(0, 12))
+        self.username_entry = ctk.CTkEntry(self.content, placeholder_text="Username")
+        self.username_entry.pack(pady=(0, 12))
+        self.password_entry = ctk.CTkEntry(self.content, placeholder_text="Password", show="*")
+        self.password_entry.pack(pady=(0, 12))
+        ctk.CTkButton(self.content, text="Login",
+             command=lambda: self.authenticate(username=self.username_entry.get(), password=self.password_entry.get())).pack()
+        
+    def authenticate(self, username: str, password: str) -> bool:
+        if username == "admin" and password == "123":
+            self.complete_login()
+        else:
+            ctk.CTkLabel(self.content, text="Invalid credentials, please try again.", text_color="red").pack()
+            print("Login failed (use admin/123)")
+            return False
+
+    def complete_login(self):
+        self.username_entry.delete(0, 'end')
+        self.password_entry.delete(0, 'end')
+        self.content.focus_set()
+        self.controller.show_frame("HomePage")
      
