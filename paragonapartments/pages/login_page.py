@@ -1,11 +1,13 @@
 from tkinter import *
 from tkinter.ttk import *
 import customtkinter as ctk
+from pages.home_page import HomePage
 
 class LoginPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color="transparent")
         self.controller = controller
+        self.parent = parent
         
          # Centered content wrapper
         self.content = ctk.CTkFrame(self, fg_color="transparent")
@@ -21,17 +23,16 @@ class LoginPage(ctk.CTkFrame):
         
     def authenticate(self, username: str, password: str) -> bool:
         if username == "admin" and password == "123":
-            self.complete_login()
+            print("Login successful")
+            self.complete_login("admin")
         else:
-            self.error_label = ctk.CTkLabel(self.content, text="Invalid credentials, please try again.", text_color="red")
+            if not hasattr(self, 'error_label'):
+                self.error_label = ctk.CTkLabel(self.content, text="Invalid credentials, please try again.", text_color="red")
             self.error_label.pack()
             print("Login failed (use admin/123)")
             return False
 
-    def complete_login(self):
-        self.username_entry.delete(0, 'end')
-        self.password_entry.delete(0, 'end')
-        self.error_label.destroy() if hasattr(self, 'error_label') else None
-        self.content.focus_set()
-        self.controller.show_frame("HomePage")
-     
+    def complete_login(self, user_type: str):
+        home_page = HomePage(self.parent, self.controller, user_type)
+        home_page.grid(row=0, column=0, sticky="nsew")
+        home_page.tkraise()

@@ -5,9 +5,11 @@ from PIL import Image
 import customtkinter as ctk
 
 class HomePage(ctk.CTkFrame):
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, user_type: str):
         super().__init__(parent, fg_color="transparent")
         self.controller = controller
+        self.parent = parent
+        self.user_type = user_type
 
         # Resolve icons path relative to this file
         here = Path(__file__).parent  # paragonapartments/pages
@@ -24,8 +26,15 @@ class HomePage(ctk.CTkFrame):
         content.pack(expand=True)
 
         ctk.CTkLabel(content, text="Home Page").pack(pady=(0,12))
+
+        def logout():
+            from pages.login_page import LoginPage
+            login_page = LoginPage(self.parent, self.controller)
+            login_page.grid(row=0, column=0, sticky="nsew")
+            login_page.tkraise()
+
         ctk.CTkButton(content, text="Logout", 
-               command=lambda: controller.show_frame("LoginPage")).pack()
+               command=logout).pack()
                 
         def toggle_theme():
             mode = ctk.get_appearance_mode()  # "Light" or "Dark"
