@@ -1,8 +1,8 @@
 from tkinter import *
 from tkinter.ttk import *
 import customtkinter as ctk
-from home_page import HomePage
-from login_page import LoginPage
+from pages.home_page import HomePage
+from pages.login_page import LoginPage
 
 class App(ctk.CTk):
     def __init__(self, pages):
