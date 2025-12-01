@@ -23,13 +23,15 @@ class LoginPage(ctk.CTkFrame):
         if username == "admin" and password == "123":
             self.complete_login()
         else:
-            ctk.CTkLabel(self.content, text="Invalid credentials, please try again.", text_color="red").pack()
+            self.error_label = ctk.CTkLabel(self.content, text="Invalid credentials, please try again.", text_color="red")
+            self.error_label.pack()
             print("Login failed (use admin/123)")
             return False
 
     def complete_login(self):
         self.username_entry.delete(0, 'end')
         self.password_entry.delete(0, 'end')
+        self.error_label.destroy()
         self.content.focus_set()
         self.controller.show_frame("HomePage")
      
