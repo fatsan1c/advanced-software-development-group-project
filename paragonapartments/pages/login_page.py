@@ -31,7 +31,7 @@ class LoginPage(ctk.CTkFrame):
     def complete_login(self):
         self.username_entry.delete(0, 'end')
         self.password_entry.delete(0, 'end')
-        self.error_label.destroy()
+        self.error_label.destroy() if hasattr(self, 'error_label') else None
         self.content.focus_set()
         self.controller.show_frame("HomePage")
      
