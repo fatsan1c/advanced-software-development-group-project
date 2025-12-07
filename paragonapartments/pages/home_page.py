@@ -7,8 +7,8 @@ import customtkinter as ctk
 class HomePage(ctk.CTkFrame):
     def __init__(self, parent, controller, user_type: str):
         super().__init__(parent, fg_color="transparent")
-        self.controller = controller
         self.parent = parent
+        self.controller = controller
         self.user_type = user_type
 
         # Resolve icons path relative to this file
@@ -25,15 +25,17 @@ class HomePage(ctk.CTkFrame):
         content = ctk.CTkFrame(self, fg_color="transparent")
         content.pack(expand=True)
 
-        ctk.CTkLabel(content, text="Home Page").pack(pady=(0,12))
+        self.homepage_content(content)
+    
+    def homepage_content(self, container):
+        ctk.CTkLabel(container, text="Paragon Apartments Home", font=("Arial", 24)).pack(pady=20)
+
+        ctk.CTkLabel(container, text="Welcome, "+ self.user_type + "!").pack(pady=(0,12))
 
         def logout():
-            from pages.login_page import LoginPage
-            login_page = LoginPage(self.parent, self.controller)
-            login_page.grid(row=0, column=0, sticky="nsew")
-            login_page.tkraise()
+            self.controller.logout()  # Restart the app with login
 
-        ctk.CTkButton(content, text="Logout", 
+        ctk.CTkButton(container, text="Logout", 
                command=logout).pack()
                 
         def toggle_theme():
