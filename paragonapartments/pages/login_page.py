@@ -1,11 +1,13 @@
-from tkinter import *
-from tkinter.ttk import *
 import customtkinter as ctk
 
+
 class LoginPage(ctk.CTkToplevel):
-    def __init__(self, controller):
+    """Login page window for user authentication."""
+    
+    def __init__(self, controller, on_login_success=None):
         super().__init__()
         self.controller = controller
+        self.on_login_success = on_login_success
         
         self.title("Paragon Apartment Login")
         width = 320
@@ -36,20 +38,31 @@ class LoginPage(ctk.CTkToplevel):
         ctk.CTkButton(inner_frame, text="Login",
              command=lambda: self.authenticate(inner_frame, username=self.username_entry.get(), password=self.password_entry.get())).pack()
     
-    def authenticate(self, container,username: str, password: str) -> bool:
-        if username != None and password == "123":
+    def authenticate(self, container, username: str, password: str) -> bool:
+        """Authenticate user credentials."""
+        if username and password == "123":  # TODO: Replace with proper authentication
             print("Login successful")
             self.complete_login(username)
+            return True
         else:
             if not hasattr(self, 'error_label'):
-                self.error_label = ctk.CTkLabel(container, text="Invalid credentials, please try again.", text_color="red")
+                self.error_label = ctk.CTkLabel(
+                    container, 
+                    text="Invalid credentials, please try again.", 
+                    text_color="red"
+                )
             self.error_label.pack()
             print("Login failed (use admin/123)")
             return False
 
     def complete_login(self, user_type: str):
-        # Store the credentials
-        self.username = self.username_entry.get()
-        self.password = self.password_entry.get()
-        self.user_type = user_type
-        self.destroy()  # Close login window, returns to main app
+        """Complete login process and notify controller."""
+        username = self.username_entry.get()
+        password = self.password_entry.get()
+        
+        # Call the success callback if provided
+        if self.on_login_success:
+            self.on_login_success(username, password, user_type)
+        
+        # Close the login window
+        self.destroy()

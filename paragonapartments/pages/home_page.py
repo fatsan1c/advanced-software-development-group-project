@@ -1,8 +1,7 @@
-from tkinter import *
-from tkinter.ttk import *
 from pathlib import Path
 from PIL import Image
 import customtkinter as ctk
+
 
 class HomePage(ctk.CTkFrame):
     def __init__(self, parent, controller, user):
@@ -28,15 +27,31 @@ class HomePage(ctk.CTkFrame):
         self.homepage_content(content)
     
     def homepage_content(self, container):
-        ctk.CTkLabel(container, text="Paragon Apartments Home", font=("Arial", 24)).pack(pady=20)
+        """Initialize and display home page content."""
+        ctk.CTkLabel(
+            container, 
+            text="Paragon Apartments Home", 
+            font=("Arial", 24)
+        ).pack(pady=20)
 
-        ctk.CTkLabel(container, text="Welcome, "+ self.user.role + "!").pack(pady=(0,12))
+        ctk.CTkLabel(
+            container, 
+            text=f"Welcome, {self.user.role}!"
+        ).pack(pady=(0, 12))
 
         def logout():
-            self.controller.logout()  # Restart the app with login
+            """Handle logout button click."""
+            self.destroy()
+            # Call user's logout method
+            self.user.logout()
+            # Notify controller to handle page transition
+            self.controller.handle_logout()
 
-        ctk.CTkButton(container, text="Logout", 
-               command=logout).pack()
+        ctk.CTkButton(
+            container, 
+            text="Logout", 
+            command=logout
+        ).pack()
                 
         def toggle_theme():
             mode = ctk.get_appearance_mode()  # "Light" or "Dark"

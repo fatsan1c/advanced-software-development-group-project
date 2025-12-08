@@ -1,9 +1,8 @@
-from tkinter import *
-from tkinter.ttk import *
 import customtkinter as ctk
 from pages.home_page import HomePage
 from pages.login_page import LoginPage
 from user import create_user
+
 
 class App(ctk.CTk):
     def __init__(self):
@@ -14,20 +13,38 @@ class App(ctk.CTk):
         self.geometry(self.calculate_centered_geometry(width, height))
         
         # Container to hold all frames
-        container = ctk.CTkFrame(self, fg_color="transparent")
-        container.pack(fill="both", expand=True)
-        container.grid_rowconfigure(0, weight=1)
-        container.grid_columnconfigure(0, weight=1)
+        self.container = ctk.CTkFrame(self, fg_color="transparent")
+        self.container.pack(fill="both", expand=True)
+        self.container.grid_rowconfigure(0, weight=1)
+        self.container.grid_columnconfigure(0, weight=1)
 
-        # Get login credentials
-        username, password, user_type = self.get_login_details()
-        if user_type is None:  # Login was cancelled
-            return
-        user = create_user(username, password, user_type, location="bristol")
+        # Store current user and page
+        self.current_user = None
+        
+        # Show login page
+        self.show_login()
 
-        # Open home page with credentials
-        self.open_page("HomePage", parent=container, controller=self, user=user)
-        self.mainloop()
+        if self.current_user is not None:
+            self.mainloop()
+
+    def show_login(self):
+        """Display the login page as a modal dialog."""
+        login_page = self.open_page("LoginPage", controller=self, on_login_success=self.handle_login_success)
+        self.wait_window(login_page)        
+    
+    def handle_login_success(self, username: str, password: str, user_type: str):
+        """Handle successful login by creating user and showing home page.
+        
+        Args:
+            username: The logged-in username
+            password: The user's password
+            user_type: The type/role of the user
+        """
+        # Create user object
+        self.current_user = create_user(username, password, user_type, location="bristol")
+        
+        # Show home page
+        self.open_page("HomePage", parent=self.container, controller=self, user=self.current_user)
 
     def open_page(self, page_name, **kwargs):
         if page_name == "HomePage":
@@ -36,27 +53,33 @@ class App(ctk.CTk):
             home_page.tkraise()
             return home_page
         elif page_name == "LoginPage":
-            login_page = LoginPage(kwargs.get("controller"))
+            login_page = LoginPage(kwargs.get("controller"), on_login_success=kwargs.get("on_login_success"))
             return login_page
     
-    def get_login_details(self):
-        # Open login page and wait for it to close
-        login_page = self.open_page("LoginPage", controller=self)
-        self.wait_window(login_page)  # Wait for login window to close
-
-        # Get credentials from login page
-        if hasattr(login_page, 'user_type'):
-            return login_page.username, login_page.password, login_page.user_type
+    def handle_logout(self):
+        """Handle logout by clearing session and returning to login page."""
+        # Clear current user reference
+        self.current_user = None
+        self.withdraw()
+        
+        # Show login page again
+        self.show_login()
+        
+        if self.current_user is not None:
+            self.deiconify()
         else:
-            # User closed login without logging in
             self.destroy()
-            return None, None, None
-
-    def logout(self):
-        self.destroy()  # Close current app
-        App()  # Create new app instance (will show login again)
     
     def calculate_centered_geometry(self, width: int, height: int) -> str:
+        """Calculate geometry string to center window on screen.
+        
+        Args:
+            width: Window width in pixels
+            height: Window height in pixels
+            
+        Returns:
+            str: Geometry string in format 'widthxheight+x+y'
+        """
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
         x = (screen_width // 2) - (width // 2)
