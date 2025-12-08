@@ -3,6 +3,7 @@ from tkinter.ttk import *
 import customtkinter as ctk
 from pages.home_page import HomePage
 from pages.login_page import LoginPage
+from user import create_user
 
 class App(ctk.CTk):
     def __init__(self):
@@ -22,14 +23,15 @@ class App(ctk.CTk):
         username, password, user_type = self.get_login_details()
         if user_type is None:  # Login was cancelled
             return
+        user = create_user(username, password, user_type, location="bristol")
 
         # Open home page with credentials
-        self.open_page("HomePage", parent=container, controller=self, user_type=user_type)
+        self.open_page("HomePage", parent=container, controller=self, user=user)
         self.mainloop()
 
     def open_page(self, page_name, **kwargs):
         if page_name == "HomePage":
-            home_page = HomePage(kwargs.get("parent"), kwargs.get("controller"), kwargs.get("user_type"))
+            home_page = HomePage(kwargs.get("parent"), kwargs.get("controller"), kwargs.get("user"))
             home_page.grid(row=0, column=0, sticky="nsew")
             home_page.tkraise()
             return home_page

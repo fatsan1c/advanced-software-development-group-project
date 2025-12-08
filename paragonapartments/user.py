@@ -1,3 +1,21 @@
+def create_user(username: str, password: str, user_type: str, location: str = ""):
+    """Factory function to create the appropriate user class based on user type"""
+    user_type_lower = user_type.lower().replace(" ", "")
+    
+    if user_type_lower == "administrator" or user_type_lower == "admin":
+        return Administrator(username, password, location)
+    elif user_type_lower == "manager":
+        return Manager(username, password)
+    elif user_type_lower == "financemanager" or user_type_lower == "finance":
+        return FinanceManager(username, password)
+    elif user_type_lower == "frontdeskstaff" or user_type_lower == "frontdesk":
+        return FrontDeskStaff(username, password, location)
+    elif user_type_lower == "maintenancestaff" or user_type_lower == "maintenance":
+        return MaintenanceStaff(username, password, location)
+    else:
+        return User(username, password, user_type, location)
+
+
 class User:
     def __init__(self, username: str, password: str, role: str, location: str = ""):
         self.username = username

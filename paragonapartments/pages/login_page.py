@@ -37,9 +37,9 @@ class LoginPage(ctk.CTkToplevel):
              command=lambda: self.authenticate(inner_frame, username=self.username_entry.get(), password=self.password_entry.get())).pack()
     
     def authenticate(self, container,username: str, password: str) -> bool:
-        if username == "admin" and password == "123":
+        if username != None and password == "123":
             print("Login successful")
-            self.complete_login("admin")
+            self.complete_login(username)
         else:
             if not hasattr(self, 'error_label'):
                 self.error_label = ctk.CTkLabel(container, text="Invalid credentials, please try again.", text_color="red")
