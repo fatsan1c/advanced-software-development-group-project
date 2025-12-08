@@ -1,3 +1,6 @@
+import customtkinter as ctk
+
+
 def create_user(username: str, password: str, user_type: str, location: str = ""):
     """Factory function to create the appropriate user class based on user type"""
     user_type_lower = user_type.lower().replace(" ", "")
@@ -29,9 +32,30 @@ class User:
         """Return a string representation of the user profile."""
         return f"User(username='{self.username}', role='{self.role}', location='{self.location}')"
     
-    def logout(self):
+    def logout(self, home_page):
         """Log the user out of the system."""
+        home_page.close_page()
         print(f"{self.username} has logged out.")
+
+    def load_homepage_content(self, container, home_page):
+        """Initialize and display home page content."""
+        ctk.CTkLabel(
+            container, 
+            text="Paragon Apartments Home", 
+            font=("Arial", 24)
+        ).pack(pady=20)
+
+        ctk.CTkLabel(
+            container, 
+            text=f"Welcome, {self.role}!"
+        ).pack(pady=(0, 12))
+
+        ctk.CTkButton(
+            container, 
+            text="Logout", 
+            command=lambda: self.logout(home_page)
+        ).pack()
+
 
 class Manager(User):
     """Manager user with business-wide access and control."""

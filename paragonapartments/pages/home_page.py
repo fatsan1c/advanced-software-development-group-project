@@ -1,10 +1,10 @@
 from pathlib import Path
 from PIL import Image
 import customtkinter as ctk
-
+from user import User
 
 class HomePage(ctk.CTkFrame):
-    def __init__(self, parent, controller, user):
+    def __init__(self, parent, controller, user : User):
         super().__init__(parent, fg_color="transparent")
         self.parent = parent
         self.controller = controller
@@ -24,35 +24,6 @@ class HomePage(ctk.CTkFrame):
         content = ctk.CTkFrame(self, fg_color="transparent")
         content.pack(expand=True)
 
-        self.homepage_content(content)
-    
-    def homepage_content(self, container):
-        """Initialize and display home page content."""
-        ctk.CTkLabel(
-            container, 
-            text="Paragon Apartments Home", 
-            font=("Arial", 24)
-        ).pack(pady=20)
-
-        ctk.CTkLabel(
-            container, 
-            text=f"Welcome, {self.user.role}!"
-        ).pack(pady=(0, 12))
-
-        def logout():
-            """Handle logout button click."""
-            self.destroy()
-            # Call user's logout method
-            self.user.logout()
-            # Notify controller to handle page transition
-            self.controller.handle_logout()
-
-        ctk.CTkButton(
-            container, 
-            text="Logout", 
-            command=logout
-        ).pack()
-                
         def toggle_theme():
             mode = ctk.get_appearance_mode()  # "Light" or "Dark"
             ctk.set_appearance_mode("dark" if mode == "Light" else "light")
@@ -69,3 +40,11 @@ class HomePage(ctk.CTkFrame):
             command=toggle_theme
         )
         theme_button.pack(side="bottom", anchor="sw", padx=10, pady=10)
+
+        user.load_homepage_content(content, self)
+    
+    def close_page(self):
+        """Close the home page frame and return to login."""
+        self.destroy()
+        # Notify controller to handle page transition
+        self.controller.handle_logout()
