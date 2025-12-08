@@ -78,6 +78,36 @@ class Manager(User):
     def expand_business(self, new_location: str):
         """Expand business to a new location."""
         print(f"Expanding business to new location: {new_location}")
+    
+    def load_homepage_content(self, container, home_page):
+        """Load Manager-specific homepage content."""
+        # Load base content first
+        super().load_homepage_content(container, home_page)
+        
+        # Add Manager-specific content
+        ctk.CTkLabel(
+            container,
+            text="Manager Functions:",
+            font=("Arial", 16, "bold")
+        ).pack(pady=(20, 10))
+        
+        ctk.CTkButton(
+            container,
+            text="View Apartment Occupancy",
+            command=lambda: self.view_apartment_occupancy("bristol")
+        ).pack(pady=5)
+        
+        ctk.CTkButton(
+            container,
+            text="Generate Reports",
+            command=lambda: self.generate_reports("bristol")
+        ).pack(pady=5)
+        
+        ctk.CTkButton(
+            container,
+            text="Create Account",
+            command=lambda: self.create_account("newuser", "pass123", "Staff", "bristol")
+        ).pack(pady=5)
 
 
 class Administrator(User):
@@ -101,6 +131,42 @@ class Administrator(User):
     def track_lease_agreement(self, lease_id: int):
         """Track lease agreements for this location."""
         print("Tracking lease agreements...")
+    
+    def load_homepage_content(self, container, home_page):
+        """Load Administrator-specific homepage content."""
+        # Load base content first
+        super().load_homepage_content(container, home_page)
+        
+        # Add Administrator-specific content
+        ctk.CTkLabel(
+            container,
+            text=f"Administrator Functions ({self.location}):",
+            font=("Arial", 16, "bold")
+        ).pack(pady=(20, 10))
+        
+        ctk.CTkButton(
+            container,
+            text="Create Account",
+            command=lambda: self.create_account("newuser", "pass123", "Staff")
+        ).pack(pady=5)
+        
+        ctk.CTkButton(
+            container,
+            text="Manage Apartments",
+            command=lambda: self.manage_apartments("view")
+        ).pack(pady=5)
+        
+        ctk.CTkButton(
+            container,
+            text="Generate Reports",
+            command=lambda: self.generate_reports()
+        ).pack(pady=5)
+        
+        ctk.CTkButton(
+            container,
+            text="Track Lease Agreement",
+            command=lambda: self.track_lease_agreement(1)
+        ).pack(pady=5)
 
 
 class FinanceManager(User):
@@ -120,6 +186,36 @@ class FinanceManager(User):
     def process_payments(self, payment_id: int):
         """Process a payment with the given payment ID."""
         print(f"Processing payment with ID: {payment_id}")
+    
+    def load_homepage_content(self, container, home_page):
+        """Load Finance Manager-specific homepage content."""
+        # Load base content first
+        super().load_homepage_content(container, home_page)
+        
+        # Add Finance Manager-specific content
+        ctk.CTkLabel(
+            container,
+            text="Finance Manager Functions:",
+            font=("Arial", 16, "bold")
+        ).pack(pady=(20, 10))
+        
+        ctk.CTkButton(
+            container,
+            text="Generate Financial Reports",
+            command=lambda: self.generate_financial_reports()
+        ).pack(pady=5)
+        
+        ctk.CTkButton(
+            container,
+            text="View Late Payments",
+            command=lambda: self.view_late_payments()
+        ).pack(pady=5)
+        
+        ctk.CTkButton(
+            container,
+            text="Process Payments",
+            command=lambda: self.process_payments(1)
+        ).pack(pady=5)
 
 
 class FrontDeskStaff(User):
@@ -149,6 +245,50 @@ class FrontDeskStaff(User):
     def track_maintenance_request(self, request_id: int):
         """Track the status of a maintenance request."""
         print(f"Tracking maintenance request ID: {request_id}")
+    
+    def load_homepage_content(self, container, home_page):
+        """Load Front Desk Staff-specific homepage content."""
+        # Load base content first
+        super().load_homepage_content(container, home_page)
+        
+        # Add Front Desk Staff-specific content
+        ctk.CTkLabel(
+            container,
+            text=f"Front Desk Functions ({self.location}):",
+            font=("Arial", 16, "bold")
+        ).pack(pady=(20, 10))
+        
+        ctk.CTkButton(
+            container,
+            text="Register Tenant",
+            command=lambda: self.register_tenant("John Doe", self.location, "AB123456C", 
+                                                 "John Doe", "555-1234", "john@example.com", 
+                                                 "Engineer", [], "2 bedroom", "12 months")
+        ).pack(pady=5)
+        
+        ctk.CTkButton(
+            container,
+            text="Get Tenant Info",
+            command=lambda: self.get_tenant_info(1)
+        ).pack(pady=5)
+        
+        ctk.CTkButton(
+            container,
+            text="Register Maintenance Request",
+            command=lambda: self.register_maintenance_request(1, "Broken faucet")
+        ).pack(pady=5)
+        
+        ctk.CTkButton(
+            container,
+            text="Register Complaint",
+            command=lambda: self.register_complaint(1, "Noise complaint")
+        ).pack(pady=5)
+        
+        ctk.CTkButton(
+            container,
+            text="Track Maintenance Request",
+            command=lambda: self.track_maintenance_request(1)
+        ).pack(pady=5)
 
 
 class MaintenanceStaff(User):
@@ -164,3 +304,27 @@ class MaintenanceStaff(User):
     def update_request_status(self, request_id: int, status: str):
         """Update the status of a maintenance request."""
         print(f"Updating request {request_id} to status '{status}' located at {self.location}")
+    
+    def load_homepage_content(self, container, home_page):
+        """Load Maintenance Staff-specific homepage content."""
+        # Load base content first
+        super().load_homepage_content(container, home_page)
+        
+        # Add Maintenance Staff-specific content
+        ctk.CTkLabel(
+            container,
+            text=f"Maintenance Functions ({self.location}):",
+            font=("Arial", 16, "bold")
+        ).pack(pady=(20, 10))
+        
+        ctk.CTkButton(
+            container,
+            text="View Maintenance Requests",
+            command=lambda: self.view_maintenance_requests()
+        ).pack(pady=5)
+        
+        ctk.CTkButton(
+            container,
+            text="Update Request Status",
+            command=lambda: self.update_request_status(1, "In Progress")
+        ).pack(pady=5)
