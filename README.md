@@ -23,43 +23,44 @@ Paragon Apartment Management System (PAMS) is a Python-based desktop application
 
 ### Quick Setup
 
-Clone this repository:
+1. Clone this repository:
    ```bash
    git clone https://github.com/shamykyzer/systems-development-group-project.git
    cd advanced-software-development-group-project
    ```
 
-**Windows:**
-```powershell
-cd setupfiles
-powershell -ExecutionPolicy Bypass -File .\setup.ps1
-```
+2. Set up the virtual environment 
+   > **Windows:**
+   > ```powershell
+   > cd setupfiles
+   > powershell -ExecutionPolicy Bypass -File .\setup.ps1
+   > ```
+   
+   > **Linux/Mac:**
+   > ```bash
+   > cd setupfiles
+   > chmod +x setup.sh
+   > ./setup.sh
+   > ```
+   
+   - The setup script will automatically:
+      - Create a virtual environment
+      - Install all dependencies
+      - Create a `.env` file from the template
 
-**Linux/Mac:**
-```bash
-cd setupfiles
-chmod +x setup.sh
-./setup.sh
-```
+### Run the Application:
 
-The setup script will automatically:
-- Create a virtual environment
-- Install all dependencies
-- Create a `.env` file from the template
+1. Import the provided SQL dump from /setupfiles/paragonapartments_full_dump.sql.
 
-## Running the Application
+2. Edit paragonapartments/.env with your database credentials
 
-Import the provided SQL dump from /setupfiles/paragonapartments_full_dump.sql.
+3. Run the main application:
+   > ```bash
+   > python paragonapartments/main.py
+   > ```
 
-Edit paragonapartments/.env with your database credentials
 
-```bash
-python paragonapartments/main.py
-```
-
-Run the main application:
-
-- All UML design diagrams, methodology reports, and test documentation are available in the /docs directory. These include:
+All UML design diagrams, methodology reports, and test documentation are available in the /docs directory. These include:
    - Use Case, Class, and Sequence diagrams
    - Agile methodology report
    - Test case documentation and screenshots
