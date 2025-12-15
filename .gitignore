@@ -9,3 +9,6 @@ venv/
 # Editor/IDE
 .vscode/
 .idea/
+
+# Environment variables
+.env
