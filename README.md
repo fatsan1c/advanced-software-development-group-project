@@ -48,13 +48,12 @@ Paragon Apartment Management System (PAMS) is a Python-based desktop application
       - Install all dependencies
       - Create a `.env` file from the template
 
-### Run the Application:
+3. Import the provided SQL dump from `/setupfiles/paragonapartments_full_dump.sql` to mySQL and open a connection.
 
-1. Import the provided SQL dump from /setupfiles/paragonapartments_full_dump.sql.
+4. Edit `/paragonapartments/.env` with your database credentials.
 
-2. Edit paragonapartments/.env with your database credentials
+### 5. Run the Application:
 
-3. Run the main application:
    > ```bash
    > python paragonapartments/main.py
    > ```
