@@ -32,7 +32,7 @@ class App(ctk.CTk):
         login_page = self.open_page("LoginPage", controller=self, on_login_success=self.handle_login_success)
         self.wait_window(login_page)        
     
-    def handle_login_success(self, username: str, password: str, user_type: str):
+    def handle_login_success(self, username: str, user_type: str, location: str=None):
         """Handle successful login by creating user and showing home page.
         
         Args:
@@ -41,7 +41,7 @@ class App(ctk.CTk):
             user_type: The type/role of the user
         """
         # Create user object
-        self.current_user = create_user(username, password, user_type, location="bristol")
+        self.current_user = create_user(username, user_type, location)
         
         # Show home page
         self.open_page("HomePage", parent=self.container, controller=self, user=self.current_user)
