@@ -23,16 +23,12 @@ python -m pip install --upgrade pip
 echo -e "\n\033[0;33mInstalling dependencies...\033[0m"
 pip install -r setupfiles/requirements.txt
 
-# Create .env file if it doesn't exist
-if [ ! -f "paragonapartments/.env" ]; then
-    echo -e "\n\033[0;33mCreating .env file from template...\033[0m"
-    cp paragonapartments/.env.example paragonapartments/.env
-    echo -e "\033[0;31mIMPORTANT: Edit paragonapartments/.env with your database credentials!\033[0m"
-fi
+# # Create SQLite database
+# echo -e "\n\033[0;33mCreating SQLite database...\033[0m"
+# python setupfiles/create_sqlite_db.py
 
 echo -e "\n\033[0;32m✓ Setup complete!\033[0m"
 echo -e "\n\033[0;36mNext steps:\033[0m"
-echo "1. Edit paragonapartments/.env with your database credentials"
-echo "2. Run: python paragonapartments/main.py"
+echo "1. Run: python paragonapartments/main.py"
 echo -e "\n\033[0;36mTo activate the virtual environment later, run:\033[0m"
 echo "source .venv/bin/activate"

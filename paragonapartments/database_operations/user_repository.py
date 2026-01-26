@@ -22,7 +22,7 @@ def authenticate_user(username, password):
         SELECT users.username, users.role, users.location_ID, locations.city
         FROM users
         LEFT JOIN locations ON users.location_ID = locations.location_ID
-        WHERE users.username = %s AND users.password = %s
+        WHERE users.username = ? AND users.password = ?
     """
     return execute_query(query, (username, password), fetch_one=True)
 
@@ -55,7 +55,7 @@ def get_user_by_username(username):
     query = """
         SELECT user_ID, username, role, location_ID
         FROM users 
-        WHERE username = %s
+        WHERE username = ?
     """
     return execute_query(query, (username,), fetch_one=True)
 
@@ -73,7 +73,7 @@ def get_user_by_id(user_id):
     query = """
         SELECT user_ID, username, role, location_ID
         FROM users 
-        WHERE user_ID = %s
+        WHERE user_ID = ?
     """
     return execute_query(query, (user_id,), fetch_one=True)
 
@@ -122,7 +122,7 @@ def create_user(username, password, role, location_ID=None):
     """
     query = """
         INSERT INTO users (username, password, role, location_ID)
-        VALUES (%s, %s, %s, %s)
+        VALUES (?, ?, ?, ?)
     """
     return execute_query(query, (username, password, role, location_ID), commit=True)
 
@@ -144,14 +144,14 @@ def update_user(user_id, **kwargs):
     
     for field, value in kwargs.items():
         if field in allowed_fields:
-            updates.append(f"{field} = %s")
+            updates.append(f"{field} = ?")
             values.append(value)
     
     if not updates:
         return False
     
     values.append(user_id)
-    query = f"UPDATE users SET {', '.join(updates)} WHERE user_ID = %s"
+    query = f"UPDATE users SET {', '.join(updates)} WHERE user_ID = ?"
     
     result = execute_query(query, tuple(values), commit=True)
     return result is not None and result > 0
@@ -167,7 +167,7 @@ def delete_user(user_id):
     Returns:
         bool: True if successful, False otherwise
     """
-    query = "DELETE FROM users WHERE user_ID = %s"
+    query = "DELETE FROM users WHERE user_ID = ?"
     result = execute_query(query, (user_id,), commit=True)
     return result is not None and result > 0
 
@@ -185,7 +185,7 @@ def get_users_by_role(role):
     query = """
         SELECT user_ID, username, role, location_ID
         FROM users 
-        WHERE role = %s
+        WHERE role = ?
         ORDER BY username
     """
     return execute_query(query, (role,), fetch_all=True)

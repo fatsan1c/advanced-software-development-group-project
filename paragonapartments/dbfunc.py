@@ -1,30 +1,29 @@
-import mysql.connector
-from mysql.connector import errorcode
+import sqlite3
 import os
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
- 
-# MYSQL CONFIG VARIABLES
-hostname = os.getenv('DB_HOST', '127.0.0.1')
-username = os.getenv('DB_USER', 'root')
-passwd = os.getenv('DB_PASSWORD', '')
-database = os.getenv('DB_NAME', 'paragonapartments')
+# SQLite database path (relative to this file)
+DB_PATH = os.path.join(os.path.dirname(__file__), 'database', 'paragonapartments.db')
 
 def getConnection():    
     try:
-        conn = mysql.connector.connect(host=hostname,                              
-                              user=username,
-                              password=passwd,
-                              db=database)
-    except mysql.connector.Error as err:
-        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-            print('User name or Password is not working')
-        elif err.errno == errorcode.ER_BAD_DB_ERROR:
-            print('Database does not exist')
-        else:
-            print(err)                        
-    else:  #will execute if there is no exception raised in try block
-        return conn   
+        # Check if database file exists
+        if not os.path.exists(DB_PATH):
+            print(f'Database does not exist at: {DB_PATH}')
+            print('Run setupfiles/create_sqlite_db.py to create the database')
+            return None
+        
+        # Connect to SQLite database
+        conn = sqlite3.connect(DB_PATH)
+        
+        # Enable foreign key constraints
+        conn.execute("PRAGMA foreign_keys = ON")
+        
+        # Set row factory to return dict-like rows
+        conn.row_factory = sqlite3.Row
+        
+        return conn
+        
+    except sqlite3.Error as err:
+        print(f'SQLite Error: {err}')
+        return None   
                 

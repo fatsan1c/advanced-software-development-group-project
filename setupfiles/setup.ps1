@@ -50,20 +50,16 @@ if (Test-Path $dllsSource) {
     Write-Host "Copied Tcl/Tk DLL files to virtual environment" -ForegroundColor Green
 }
 
-# Create .env file if it doesn't exist
-if (!(Test-Path "paragonapartments\.env")) {
-    Write-Host ""
-    Write-Host "Creating .env file from template..." -ForegroundColor Yellow
-    Copy-Item "paragonapartments\.env.example" "paragonapartments\.env"
-    Write-Host "IMPORTANT: Edit paragonapartments\.env with your database credentials!" -ForegroundColor Red
-}
+# # Create SQLite database
+# Write-Host ""
+# Write-Host "Creating SQLite database..." -ForegroundColor Yellow
+# python setupfiles\create_sqlite_db.py
 
 Write-Host ""
 Write-Host "Setup complete!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Cyan
-Write-Host "1. Edit paragonapartments\.env with your database credentials"
-Write-Host "2. Run: python paragonapartments\main.py"
+Write-Host "1. Run: python paragonapartments\main.py"
 Write-Host ""
 Write-Host "To activate the virtual environment later, run:" -ForegroundColor Cyan
 Write-Host ".\.venv\Scripts\Activate.ps1"
