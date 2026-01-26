@@ -1,30 +1,29 @@
 import customtkinter as ctk
 
 
-def create_user(username: str, password: str, user_type: str, location: str = ""):
+def create_user(username: str, user_type: str, location: str = ""):
     """Factory function to create the appropriate user class based on user type"""
     user_type_lower = user_type.lower().replace(" ", "")
     
     if user_type_lower == "administrator" or user_type_lower == "admin":
-        return Administrator(username, password, location)
+        return Administrator(username, location)
     elif user_type_lower == "manager":
-        return Manager(username, password)
+        return Manager(username)
     elif user_type_lower == "financemanager" or user_type_lower == "finance":
-        return FinanceManager(username, password)
+        return FinanceManager(username)
     elif user_type_lower == "frontdeskstaff" or user_type_lower == "frontdesk":
-        return FrontDeskStaff(username, password, location)
+        return FrontDeskStaff(username, location)
     elif user_type_lower == "maintenancestaff" or user_type_lower == "maintenance":
-        return MaintenanceStaff(username, password, location)
+        return MaintenanceStaff(username, location)
     else:
-        return User(username, password, user_type, location)
+        return User(username, user_type, location)
 
 
 class User:
     """Base user class for all user types in the system."""
     
-    def __init__(self, username: str, password: str, role: str, location: str = ""):
+    def __init__(self, username: str, role: str, location: str = ""):
         self.username = username
-        self.password = password
         self.role = role
         self.location = location
     
@@ -34,8 +33,8 @@ class User:
     
     def logout(self, home_page):
         """Log the user out of the system."""
-        home_page.close_page()
         print(f"{self.username} has logged out.")
+        home_page.close_page()
 
     def load_homepage_content(self, container, home_page):
         """Initialize and display home page content."""
@@ -60,8 +59,8 @@ class User:
 class Manager(User):
     """Manager user with business-wide access and control."""
     
-    def __init__(self, username: str, password: str):
-        super().__init__(username, password, role="Manager")
+    def __init__(self, username: str):
+        super().__init__(username, role="Manager")
 
     def view_apartment_occupancy(self, location: str):
         """View apartment occupancy for a specific location."""
@@ -71,7 +70,7 @@ class Manager(User):
         """Generate maintenance reports for a location."""
         print("Generating maintenance report...")
 
-    def create_account(self, username: str, password: str, role: str, location: str = ""):
+    def create_account(self, username: str, role: str, location: str = ""):
         """Create a new user account with specified role and location."""
         print(f"Creating account for {username} with role {role} at location {location}")
 
@@ -113,10 +112,10 @@ class Manager(User):
 class Administrator(User):
     """Administrator with location-specific management capabilities."""
     
-    def __init__(self, username: str, password: str, location: str = ""):
-        super().__init__(username, password, role="Administrator", location=location)
+    def __init__(self, username: str, location: str = ""):
+        super().__init__(username, role="Administrator", location=location)
 
-    def create_account(self, username: str, password: str, role: str):
+    def create_account(self, username: str, role: str):
         """Create a new user account at this administrator's location."""
         print(f"Creating account for {username} with role {role} at location {self.location}")
 
@@ -172,8 +171,8 @@ class Administrator(User):
 class FinanceManager(User):
     """Finance manager with financial reporting and payment processing capabilities."""
     
-    def __init__(self, username: str, password: str):
-        super().__init__(username, password, role="Finance Manager")
+    def __init__(self, username: str):
+        super().__init__(username, role="Finance Manager")
 
     def generate_financial_reports(self):
         """Generate financial reports across all locations."""
@@ -221,8 +220,8 @@ class FinanceManager(User):
 class FrontDeskStaff(User):
     """Front desk staff with tenant management and maintenance request handling."""
     
-    def __init__(self, username: str, password: str, location: str = ""):
-        super().__init__(username, password, role="Front Desk Staff", location=location)
+    def __init__(self, username: str, location: str = ""):
+        super().__init__(username, role="Front Desk Staff", location=location)
 
     def register_tenant(self, tenant_name: str, location: str, ni_number: str, name: str, 
                        phone_number: str, email: str, occupation: str, references: list, 
@@ -294,8 +293,8 @@ class FrontDeskStaff(User):
 class MaintenanceStaff(User):
     """Maintenance staff with ability to view and update maintenance requests."""
     
-    def __init__(self, username: str, password: str, location: str = ""):
-        super().__init__(username, password, role="Maintenance Staff", location=location)
+    def __init__(self, username: str, location: str = ""):
+        super().__init__(username, role="Maintenance Staff", location=location)
 
     def view_maintenance_requests(self):
         """View all maintenance requests for this location."""

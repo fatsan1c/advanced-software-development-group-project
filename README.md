@@ -20,29 +20,50 @@ Paragon Apartment Management System (PAMS) is a Python-based desktop application
 - **Version Control:** Git and GitHub  
 
 ## Installation
+
+### Quick Setup
+
 1. Clone this repository:
    ```bash
-   git clone https://github.com/username/ParagonApartmentManagementSystem.git
-Install dependencies:
+   git clone https://github.com/shamykyzer/systems-development-group-project.git
+   cd advanced-software-development-group-project
+   ```
 
-bash
-Copy code
-pip install -r requirements.txt
-Import the provided SQL dump from /src/database/mock_data.sql.
+2. Set up the virtual environment 
+   > **Windows:**
+   > ```powershell
+   > cd setupfiles
+   > powershell -ExecutionPolicy Bypass -File .\setup.ps1
+   > ```
+   
+   > **Linux/Mac:**
+   > ```bash
+   > cd setupfiles
+   > chmod +x setup.sh
+   > ./setup.sh
+   > ```
+   
+   - The setup script will automatically:
+      - Create a virtual environment
+      - Install all dependencies
+      - Create a `.env` file from the template
 
-Run the main application:
+3. Import the provided SQL dump from `/setupfiles/paragonapartments_full_dump.sql` to mySQL and open a connection.
 
-•bash
-•Copy code
-•python src/main.py
-•Documentation
-•All UML design diagrams, methodology reports, and test documentation are available in the /docs directory. These include:
+4. Edit `/paragonapartments/.env` with your database credentials.
 
-Use Case, Class, and Sequence diagrams
+### 5. Run the Application:
 
-Agile methodology report
+   > ```bash
+   > python paragonapartments/main.py
+   > ```
 
-Test case documentation and screenshots
 
-Assessment Context
+All UML design diagrams, methodology reports, and test documentation are available in the /docs directory. These include:
+   - Use Case, Class, and Sequence diagrams
+   - Agile methodology report
+   - Test case documentation and screenshots
+
+### Assessment Context:
+
 Developed as part of the Advanced Software Development (UFCF8S-30-2) module at UWE Bristol. This project demonstrates full software lifecycle implementation — from requirements analysis and design to coding, testing, and evaluation.

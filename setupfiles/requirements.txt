@@ -1,0 +1,4 @@
+mysql-connector-python
+customtkinter
+python-dotenv
+Pillow

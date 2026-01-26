@@ -1,5 +1,5 @@
 import customtkinter as ctk
-
+from database_operations import authenticate_user
 
 class LoginPage(ctk.CTkToplevel):
     """Login page window for user authentication."""
@@ -40,11 +40,15 @@ class LoginPage(ctk.CTkToplevel):
     
     def authenticate(self, container, username: str, password: str) -> bool:
         """Authenticate user credentials."""
-        if username and password == "123":  # TODO: Replace with proper authentication
-            print("Login successful")
-            self.complete_login(username)
+        # Authenticate against database
+        user = authenticate_user(username, password)
+        
+        if user:
+            print(f"Login successful: {user['username']} ({user['role']}), {user['city']}")
+            self.complete_login(user['role'], user['city'])
             return True
         else:
+            # Show error message
             if not hasattr(self, 'error_label'):
                 self.error_label = ctk.CTkLabel(
                     container, 
@@ -52,17 +56,16 @@ class LoginPage(ctk.CTkToplevel):
                     text_color="red"
                 )
             self.error_label.pack()
-            print("Login failed (use admin/123)")
+            print("Login failed: Invalid username or password")
             return False
 
-    def complete_login(self, user_type: str):
+    def complete_login(self, user_type: str, location: str=None):
         """Complete login process and notify controller."""
         username = self.username_entry.get()
-        password = self.password_entry.get()
         
         # Call the success callback if provided
         if self.on_login_success:
-            self.on_login_success(username, password, user_type)
+            self.on_login_success(username, user_type, location)
         
         # Close the login window
         self.destroy()
