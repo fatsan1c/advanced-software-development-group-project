@@ -23,9 +23,16 @@ python -m pip install --upgrade pip
 echo -e "\n\033[0;33mInstalling dependencies...\033[0m"
 pip install -r setupfiles/requirements.txt
 
-# # Create SQLite database
-# echo -e "\n\033[0;33mCreating SQLite database...\033[0m"
-# python setupfiles/create_sqlite_db.py
+# Create SQLite database
+echo ""
+DB_PATH="paragonapartments/database/paragonapartments.db"
+if [ -f "$DB_PATH" ]; then
+    echo -e "\033[0;36mDatabase already exists, skipping creation...\033[0m"
+    echo -e "\033[0;90mTo recreate the database, run: python setupfiles/create_sqlite_db.py\033[0m"
+else
+    echo -e "\033[0;33mCreating SQLite database...\033[0m"
+    python setupfiles/create_sqlite_db.py
+fi
 
 echo -e "\n\033[0;32m✓ Setup complete!\033[0m"
 echo -e "\n\033[0;36mNext steps:\033[0m"

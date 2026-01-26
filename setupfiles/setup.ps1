@@ -50,10 +50,16 @@ if (Test-Path $dllsSource) {
     Write-Host "Copied Tcl/Tk DLL files to virtual environment" -ForegroundColor Green
 }
 
-# # Create SQLite database
-# Write-Host ""
-# Write-Host "Creating SQLite database..." -ForegroundColor Yellow
-# python setupfiles\create_sqlite_db.py
+# Create SQLite database
+Write-Host ""
+$dbPath = "paragonapartments\database\paragonapartments.db"
+if (Test-Path $dbPath) {
+    Write-Host "Database already exists, skipping creation..." -ForegroundColor Cyan
+    Write-Host "To recreate the database, run: python setupfiles\create_sqlite_db.py" -ForegroundColor Gray
+} else {
+    Write-Host "Creating SQLite database..." -ForegroundColor Yellow
+    python setupfiles\create_sqlite_db.py
+}
 
 Write-Host ""
 Write-Host "Setup complete!" -ForegroundColor Green
