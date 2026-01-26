@@ -43,6 +43,7 @@ def validate_credentials(username, password):
     return user is not None
 
 
+@require_permission('users', 'read')
 def get_user_by_username(username):
     """
     Get user details by username only.
@@ -61,6 +62,7 @@ def get_user_by_username(username):
     return execute_query(query, (username,), fetch_one=True)
 
 
+@require_permission('users', 'read')
 def get_user_by_id(user_id):
     """
     Get user details by user ID.
@@ -79,6 +81,7 @@ def get_user_by_id(user_id):
     return execute_query(query, (user_id,), fetch_one=True)
 
 
+@require_permission('users', 'read')
 def get_user_role(username):
     """
     Get the role of a user by username.
@@ -179,22 +182,3 @@ def delete_user(user_id):
     query = "DELETE FROM users WHERE user_ID = ?"
     result = execute_query(query, (user_id,), commit=True)
     return result is not None and result > 0
-
-
-def get_users_by_role(role):
-    """
-    Get all users with a specific role.
-    
-    Args:
-        role (str): Role to filter by
-        
-    Returns:
-        list: List of user dictionaries with the specified role
-    """
-    query = """
-        SELECT user_ID, username, role, location_ID
-        FROM users 
-        WHERE role = ?
-        ORDER BY username
-    """
-    return execute_query(query, (role,), fetch_all=True)
