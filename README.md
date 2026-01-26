@@ -71,7 +71,8 @@ python setupfiles/tools/create_sqlite_db.py
 | manager | paragon1 | Manager | All |
 | bristol_admin | admin1 | Admin | Bristol |
 | finance | finance1 | Finance | All |
-| guest | guest1 | Guest | View Only |
+| bristol_frontdesk | front1 | Frontdesk | Bristol |
+| bristol_maintenance | maint1 | Maintenance | Bristol |
 
 ### Permission Matrix:
 
@@ -82,7 +83,6 @@ python setupfiles/tools/create_sqlite_db.py
 | **Finance** | - | Read | Read | Read | Full | Full | - |
 | **Frontdesk** | - | Read | CRU | CR | Read | Read | CR |
 | **Maintenance** | - | Read | Read | - | - | - | RU |
-| **Guest** | - | Read | Read | Read | Read | Read | Read |
 
 **Legend:**
 - **Full (CRUD)** = Create, Read, Update, Delete

@@ -216,7 +216,6 @@ def create_database():
         (3,None,'finance','finance1','finance'),
         (4,1,'bristol_frontdesk','front1','frontdesk'),
         (5,1,'bristol_maintenance','maint1','maintenance'),
-        (6,None,'guest','guest1',None),
         (7,2,'cardiff_admin','admin1','admin'),
         (8,2,'cardiff_frontdesk','front1','frontdesk'),
         (9,2,'cardiff_maintenance','maint1','maintenance'),

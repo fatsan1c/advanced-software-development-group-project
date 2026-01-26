@@ -13,7 +13,6 @@ ROLE_HIERARCHY = {
     'finance': 3,      # Financial operations
     'frontdesk': 2,    # Basic operations
     'maintenance': 2,  # Maintenance-specific operations
-    'guest': 1,        # Read-only access
     None: 0            # No access
 }
 
@@ -62,15 +61,6 @@ ROLE_PERMISSIONS = {
         'apartments': ['read'],
         'tenants': ['read'],
         'maintenance': ['read', 'update'],
-        'complaints': ['read']
-    },
-    'guest': {
-        'apartments': ['read'],
-        'tenants': ['read'],
-        'leases': ['read'],
-        'invoices': ['read'],
-        'payments': ['read'],
-        'maintenance': ['read'],
         'complaints': ['read']
     }
 }
