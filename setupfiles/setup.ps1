@@ -25,6 +25,31 @@ Write-Host ""
 Write-Host "Installing dependencies..." -ForegroundColor Yellow
 pip install -r setupfiles\requirements.txt
 
+# Fix Tcl/Tk for virtual environment (Windows-specific fix for customtkinter)
+Write-Host ""
+Write-Host "Configuring Tcl/Tk for virtual environment..." -ForegroundColor Yellow
+$pythonBase = python -c "import sys; print(sys.base_prefix)"
+$tclSource = Join-Path $pythonBase "tcl"
+$dllsSource = Join-Path $pythonBase "DLLs"
+
+if (Test-Path $tclSource) {
+    Copy-Item $tclSource -Destination ".venv\" -Recurse -Force
+    Write-Host "Copied Tcl/Tk libraries to virtual environment" -ForegroundColor Green
+}
+
+if (Test-Path $dllsSource) {
+    $tcl86 = Join-Path $dllsSource "tcl86t.dll"
+    $tk86 = Join-Path $dllsSource "tk86t.dll"
+    
+    if (Test-Path $tcl86) {
+        Copy-Item $tcl86 -Destination ".venv\Scripts\" -Force
+    }
+    if (Test-Path $tk86) {
+        Copy-Item $tk86 -Destination ".venv\Scripts\" -Force
+    }
+    Write-Host "Copied Tcl/Tk DLL files to virtual environment" -ForegroundColor Green
+}
+
 # Create .env file if it doesn't exist
 if (!(Test-Path "paragonapartments\.env")) {
     Write-Host ""
