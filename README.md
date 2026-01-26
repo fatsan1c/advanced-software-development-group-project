@@ -73,6 +73,25 @@ python setupfiles/tools/create_sqlite_db.py
 | finance | finance1 | Finance | All |
 | guest | guest1 | Guest | View Only |
 
+### Permission Matrix:
+
+| Role | Users | Apartments | Tenants | Leases | Invoices | Payments | Maintenance |
+|------|-------|------------|---------|--------|----------|----------|-------------|
+| **Manager** | Full | Full | Full | Full | Full | Full | Full |
+| **Admin** | CRU | Full | Full | Full | CRU | CRU | Full |
+| **Finance** | - | Read | Read | Read | Full | Full | - |
+| **Frontdesk** | - | Read | CRU | CR | Read | Read | CR |
+| **Maintenance** | - | Read | Read | - | - | - | RU |
+| **Guest** | - | Read | Read | Read | Read | Read | Read |
+
+**Legend:**
+- **Full (CRUD)** = Create, Read, Update, Delete
+- **CRU** = Create, Read, Update
+- **CR** = Create, Read
+- **RU** = Read, Update
+- **Read** = Read only
+- **-** = No access
+
 ## Documentation
    - Use Case, Class, and Sequence diagrams
    - Agile methodology report

@@ -4,6 +4,7 @@ Handles authentication, user CRUD operations, and role management.
 """
 
 from database_operations.db_execute import execute_query
+from database_operations.permissions import require_permission, require_role
 
 
 def authenticate_user(username, password):
@@ -92,9 +93,11 @@ def get_user_role(username):
     return user['role'] if user else None
 
 
+@require_permission('users', 'read')
 def get_all_users():
     """
     Get all users from the database.
+    Requires: 'read' permission on 'users' resource (checked by decorator)
     
     Returns:
         list: List of user dictionaries, empty list if error
@@ -107,9 +110,11 @@ def get_all_users():
     return execute_query(query, fetch_all=True)
 
 
+@require_permission('users', 'create')
 def create_user(username, password, role, location_ID=None):
     """
     Create a new user in the database.
+    Requires: 'create' permission on 'users' resource (checked by decorator)
     
     Args:
         username (str): Username for the new user
@@ -127,9 +132,11 @@ def create_user(username, password, role, location_ID=None):
     return execute_query(query, (username, password, role, location_ID), commit=True)
 
 
+@require_permission('users', 'update')
 def update_user(user_id, **kwargs):
     """
     Update user information.
+    Requires: 'update' permission on 'users' resource (checked by decorator)
     
     Args:
         user_id (int): ID of user to update
@@ -157,9 +164,11 @@ def update_user(user_id, **kwargs):
     return result is not None and result > 0
 
 
+@require_role('manager')  # Only managers can delete users
 def delete_user(user_id):
     """
     Delete a user from the database.
+    Requires: 'manager' role (checked by decorator)
     
     Args:
         user_id (int): ID of user to delete
