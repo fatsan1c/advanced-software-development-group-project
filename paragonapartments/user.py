@@ -1,5 +1,5 @@
 import customtkinter as ctk
-
+import pages.page_elements as pe
 
 def create_user(username: str, user_type: str, location: str = ""):
     """Factory function to create the appropriate user class based on user type"""
@@ -36,24 +36,31 @@ class User:
         print(f"{self.username} has logged out.")
         home_page.close_page()
 
-    def load_homepage_content(self, container, home_page):
+    def load_homepage_content(self, home_page):
         """Initialize and display home page content."""
-        ctk.CTkLabel(
-            container, 
-            text="Paragon Apartments Home", 
-            font=("Arial", 24)
-        ).pack(pady=20)
+        # Centered content wrapper
+        top_content = pe.content_container(parent=home_page, anchor="nw", fill="x")
 
         ctk.CTkLabel(
-            container, 
-            text=f"Welcome, {self.role}!"
-        ).pack(pady=(0, 12))
+            top_content, 
+            text="Paragon Apartments", 
+            font=("Arial", 24)
+        ).pack(side="left", padx=15)
+
+        ctk.CTkLabel(
+            top_content, 
+            text=self.role + " Dashboard" + (f" - {self.location}" if self.location else ""),
+            font=("Arial", 24)
+        ).place(relx=0.5, rely=0.5, anchor="center")
 
         ctk.CTkButton(
-            container, 
-            text="Logout", 
+            top_content, 
+            text="Logout",
+            width=80,
+            height=40,
+            font=("Arial", 17),
             command=lambda: self.logout(home_page)
-        ).pack()
+        ).pack(side="right", padx=10)
 
 
 class Manager(User):
@@ -78,35 +85,58 @@ class Manager(User):
         """Expand business to a new location."""
         print(f"Expanding business to new location: {new_location}")
     
-    def load_homepage_content(self, container, home_page):
+    def load_homepage_content(self, home_page):
         """Load Manager-specific homepage content."""
         # Load base content first
-        super().load_homepage_content(container, home_page)
+        super().load_homepage_content(home_page)
+
+        # First row - 3 cards
+        row1 = pe.row_container(parent=home_page)
         
-        # Add Manager-specific content
-        ctk.CTkLabel(
-            container,
-            text="Manager Functions:",
-            font=("Arial", 16, "bold")
-        ).pack(pady=(20, 10))
+        occupancy_card = pe.function_card(row1, "Apartment Occupancy", side="left")
         
-        ctk.CTkButton(
-            container,
-            text="View Apartment Occupancy",
-            command=lambda: self.view_apartment_occupancy("bristol")
-        ).pack(pady=5)
-        
-        ctk.CTkButton(
-            container,
-            text="Generate Reports",
-            command=lambda: self.generate_reports("bristol")
-        ).pack(pady=5)
-        
-        ctk.CTkButton(
-            container,
+        pe.action_button(
+            occupancy_card,
+            text="View All Locations",
+            command=lambda: self.view_apartment_occupancy("all"),
+            pady=5
+        )
+
+        pe.action_button(
+            occupancy_card,
+            text="View Bristol",
+            command=lambda: self.view_apartment_occupancy("bristol"),
+            pady=5
+        )
+
+        reports_card = pe.function_card(row1, "Generate Reports", side="left")
+
+        pe.action_button(
+            reports_card,
+            text="Generate",
+            command=lambda: self.generate_reports("bristol"),
+            pady=5
+        )
+
+        accounts_card = pe.function_card(row1, "Manage Accounts", side="left")
+        pe.action_button(
+            accounts_card,
             text="Create Account",
-            command=lambda: self.create_account("newuser", "pass123", "Staff", "bristol")
-        ).pack(pady=5)
+            command=lambda: self.create_account("newuser", "pass123", "Staff", "bristol"),
+            pady=5
+        )
+
+        # Second row - full width card
+        row2 = pe.row_container(parent=home_page)
+        
+        expand_card = pe.function_card(row2, "Expand Business", side="top")
+
+        pe.action_button(
+            expand_card,
+            text="Add Location",
+            command=lambda: self.expand_business("newlocation"),
+            pady=5
+        )
 
 
 class Administrator(User):
@@ -131,11 +161,13 @@ class Administrator(User):
         """Track lease agreements for this location."""
         print("Tracking lease agreements...")
     
-    def load_homepage_content(self, container, home_page):
+    def load_homepage_content(self, home_page):
         """Load Administrator-specific homepage content."""
         # Load base content first
-        super().load_homepage_content(container, home_page)
+        super().load_homepage_content(home_page)
         
+        container = pe.content_container(parent=home_page, anchor="nw")
+
         # Add Administrator-specific content
         ctk.CTkLabel(
             container,
@@ -186,10 +218,12 @@ class FinanceManager(User):
         """Process a payment with the given payment ID."""
         print(f"Processing payment with ID: {payment_id}")
     
-    def load_homepage_content(self, container, home_page):
+    def load_homepage_content(self, home_page):
         """Load Finance Manager-specific homepage content."""
         # Load base content first
-        super().load_homepage_content(container, home_page)
+        super().load_homepage_content(home_page)
+
+        container = pe.content_container(parent=home_page, anchor="nw")
         
         # Add Finance Manager-specific content
         ctk.CTkLabel(
@@ -245,10 +279,12 @@ class FrontDeskStaff(User):
         """Track the status of a maintenance request."""
         print(f"Tracking maintenance request ID: {request_id}")
     
-    def load_homepage_content(self, container, home_page):
+    def load_homepage_content(self, home_page):
         """Load Front Desk Staff-specific homepage content."""
         # Load base content first
-        super().load_homepage_content(container, home_page)
+        super().load_homepage_content(home_page)
+        
+        container = pe.content_container(parent=home_page, anchor="nw")
         
         # Add Front Desk Staff-specific content
         ctk.CTkLabel(
@@ -304,11 +340,13 @@ class MaintenanceStaff(User):
         """Update the status of a maintenance request."""
         print(f"Updating request {request_id} to status '{status}' located at {self.location}")
     
-    def load_homepage_content(self, container, home_page):
+    def load_homepage_content(self, home_page):
         """Load Maintenance Staff-specific homepage content."""
         # Load base content first
-        super().load_homepage_content(container, home_page)
+        super().load_homepage_content(home_page)
         
+        container = pe.content_container(parent=home_page, anchor="nw")
+
         # Add Maintenance Staff-specific content
         ctk.CTkLabel(
             container,

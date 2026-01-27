@@ -20,10 +20,6 @@ class HomePage(ctk.CTkFrame):
             size=(50, 27.5)
         )
 
-        # Centered content wrapper
-        content = ctk.CTkFrame(self, fg_color="transparent")
-        content.pack(expand=True)
-
         def toggle_theme():
             mode = ctk.get_appearance_mode()  # "Light" or "Dark"
             ctk.set_appearance_mode("dark" if mode == "Light" else "light")
@@ -41,7 +37,7 @@ class HomePage(ctk.CTkFrame):
         )
         theme_button.pack(side="bottom", anchor="sw", padx=10, pady=10)
 
-        user.load_homepage_content(content, self)
+        user.load_homepage_content(self)
     
     def close_page(self):
         """Close the home page frame and return to login."""
