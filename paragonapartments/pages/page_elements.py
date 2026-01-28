@@ -83,8 +83,7 @@ def function_card(parent, title, side="left", anchor="nw", pady=10, padx=10):
     
     return content
 
-
-def action_button(parent, text, command, size="medium", pady=8, padx=5, side=None):
+def action_button(parent, text, command, size="medium", pady=5, padx=5, side=None):
     """Create a standard action button with consistent sizing.
     
     Args:

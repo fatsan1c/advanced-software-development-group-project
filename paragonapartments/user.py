@@ -98,15 +98,13 @@ class Manager(User):
         pe.action_button(
             occupancy_card,
             text="View All Locations",
-            command=lambda: self.view_apartment_occupancy("all"),
-            pady=5
+            command=lambda: self.view_apartment_occupancy("all")
         )
 
         pe.action_button(
             occupancy_card,
             text="View Bristol",
-            command=lambda: self.view_apartment_occupancy("bristol"),
-            pady=5
+            command=lambda: self.view_apartment_occupancy("bristol")
         )
 
         reports_card = pe.function_card(row1, "Generate Reports", side="left")
@@ -114,16 +112,14 @@ class Manager(User):
         pe.action_button(
             reports_card,
             text="Generate",
-            command=lambda: self.generate_reports("bristol"),
-            pady=5
+            command=lambda: self.generate_reports("bristol")
         )
 
         accounts_card = pe.function_card(row1, "Manage Accounts", side="left")
         pe.action_button(
             accounts_card,
             text="Create Account",
-            command=lambda: self.create_account("newuser", "pass123", "Staff", "bristol"),
-            pady=5
+            command=lambda: self.create_account("newuser", "Staff", "bristol")
         )
 
         # Second row - full width card
@@ -134,8 +130,7 @@ class Manager(User):
         pe.action_button(
             expand_card,
             text="Add Location",
-            command=lambda: self.expand_business("newlocation"),
-            pady=5
+            command=lambda: self.expand_business("newlocation")
         )
 
 
@@ -149,13 +144,17 @@ class Administrator(User):
         """Create a new user account at this administrator's location."""
         print(f"Creating account for {username} with role {role} at location {self.location}")
 
+    def edit_account(self, username: str, role: str):
+        """Edit an existing user account at this administrator's location."""
+        print(f"Editing account for {username} to role {role} at location {self.location}")
+
     def manage_apartments(self, action: str):
         """Perform management actions on apartments at this location."""
         print(f"Performing '{action}' on apartments at location: {self.location}")
 
     def generate_reports(self):
-        """Generate maintenance reports for this location."""
-        print("Generating maintenance report...")
+        """Generate reports for this location."""
+        print("Generating reports for this location...")
 
     def track_lease_agreement(self, lease_id: int):
         """Track lease agreements for this location."""
@@ -166,38 +165,47 @@ class Administrator(User):
         # Load base content first
         super().load_homepage_content(home_page)
         
-        container = pe.content_container(parent=home_page, anchor="nw")
-
-        # Add Administrator-specific content
-        ctk.CTkLabel(
-            container,
-            text=f"Administrator Functions ({self.location}):",
-            font=("Arial", 16, "bold")
-        ).pack(pady=(20, 10))
+        row1 = pe.row_container(parent=home_page)
         
-        ctk.CTkButton(
-            container,
+        accounts_card = pe.function_card(row1, "Manage Accounts", side="left")
+        
+        pe.action_button(
+            accounts_card,
             text="Create Account",
-            command=lambda: self.create_account("newuser", "pass123", "Staff")
-        ).pack(pady=5)
-        
-        ctk.CTkButton(
-            container,
-            text="Manage Apartments",
+            command=lambda: self.create_account("newuser", "admin")
+        )
+
+        pe.action_button(
+            accounts_card,
+            text="Edit Account",
+            command=lambda: self.edit_account("existinguser", "manager")
+        )
+
+        appartments_card = pe.function_card(row1, "Manage Apartments", side="left")
+
+        pe.action_button(
+            appartments_card,
+            text="View Apartments",
             command=lambda: self.manage_apartments("view")
-        ).pack(pady=5)
-        
-        ctk.CTkButton(
-            container,
-            text="Generate Reports",
+        )
+
+        row2 = pe.row_container(parent=home_page)
+
+        reports_card = pe.function_card(row2, "Generate Reports", side="left")
+
+        pe.action_button(
+            reports_card,
+            text="Generate",
             command=lambda: self.generate_reports()
-        ).pack(pady=5)
-        
-        ctk.CTkButton(
-            container,
-            text="Track Lease Agreement",
+        )
+
+        lease_card = pe.function_card(row2, "Track Lease Agreement", side="left")
+
+        pe.action_button(
+            lease_card,
+            text="Track Lease",
             command=lambda: self.track_lease_agreement(1)
-        ).pack(pady=5)
+        )
 
 
 class FinanceManager(User):
@@ -209,6 +217,10 @@ class FinanceManager(User):
     def generate_financial_reports(self):
         """Generate financial reports across all locations."""
         print("Generating financial reports...")
+
+    def manage_invoices(self):
+        """Manage invoices across all locations."""
+        print("Managing invoices...")
 
     def view_late_payments(self):
         """View all late payments across the system."""
@@ -223,32 +235,41 @@ class FinanceManager(User):
         # Load base content first
         super().load_homepage_content(home_page)
 
-        container = pe.content_container(parent=home_page, anchor="nw")
+        row1 = pe.row_container(parent=home_page)
         
-        # Add Finance Manager-specific content
-        ctk.CTkLabel(
-            container,
-            text="Finance Manager Functions:",
-            font=("Arial", 16, "bold")
-        ).pack(pady=(20, 10))
+        reports_card = pe.function_card(row1, "Financial Reports", side="left")
         
-        ctk.CTkButton(
-            container,
-            text="Generate Financial Reports",
+        pe.action_button(
+            reports_card,
+            text="Generate Reports",
             command=lambda: self.generate_financial_reports()
-        ).pack(pady=5)
-        
-        ctk.CTkButton(
-            container,
+        )
+
+        invoices_card = pe.function_card(row1, "Manage Invoices", side="left")
+
+        pe.action_button(
+            invoices_card,
+            text="View Invoices",
+            command=lambda: self.manage_invoices()
+        )
+
+        row2 = pe.row_container(parent=home_page)
+
+        payments_card = pe.function_card(row2, "Late Payments", side="left")
+
+        pe.action_button(
+            payments_card,
             text="View Late Payments",
             command=lambda: self.view_late_payments()
-        ).pack(pady=5)
-        
-        ctk.CTkButton(
-            container,
-            text="Process Payments",
+        )
+
+        process_card = pe.function_card(row2, "Process Payments", side="left")
+
+        pe.action_button(
+            process_card,
+            text="Process Payment",
             command=lambda: self.process_payments(1)
-        ).pack(pady=5)
+        )
 
 
 class FrontDeskStaff(User):
@@ -284,46 +305,45 @@ class FrontDeskStaff(User):
         # Load base content first
         super().load_homepage_content(home_page)
         
-        container = pe.content_container(parent=home_page, anchor="nw")
+        row1 = pe.row_container(parent=home_page)
         
-        # Add Front Desk Staff-specific content
-        ctk.CTkLabel(
-            container,
-            text=f"Front Desk Functions ({self.location}):",
-            font=("Arial", 16, "bold")
-        ).pack(pady=(20, 10))
+        tenant_card = pe.function_card(row1, "Tenant Management", side="left")
         
-        ctk.CTkButton(
-            container,
+        pe.action_button(
+            tenant_card,
             text="Register Tenant",
             command=lambda: self.register_tenant("John Doe", self.location, "AB123456C", 
                                                  "John Doe", "555-1234", "john@example.com", 
                                                  "Engineer", [], "2 bedroom", "12 months")
-        ).pack(pady=5)
+        )
         
-        ctk.CTkButton(
-            container,
+        pe.action_button(
+            tenant_card,
             text="Get Tenant Info",
             command=lambda: self.get_tenant_info(1)
-        ).pack(pady=5)
+        )
         
-        ctk.CTkButton(
-            container,
-            text="Register Maintenance Request",
+        maintenance_card = pe.function_card(row1, "Maintenance Requests", side="left")
+        
+        pe.action_button(
+            maintenance_card,
+            text="Register Request",
             command=lambda: self.register_maintenance_request(1, "Broken faucet")
-        ).pack(pady=5)
+        )
         
-        ctk.CTkButton(
-            container,
+        pe.action_button(
+            maintenance_card,
+            text="Track Request",
+            command=lambda: self.track_maintenance_request(1)
+        )
+        
+        complaints_card = pe.function_card(row1, "Complaints", side="left")
+        
+        pe.action_button(
+            complaints_card,
             text="Register Complaint",
             command=lambda: self.register_complaint(1, "Noise complaint")
-        ).pack(pady=5)
-        
-        ctk.CTkButton(
-            container,
-            text="Track Maintenance Request",
-            command=lambda: self.track_maintenance_request(1)
-        ).pack(pady=5)
+        )
 
 
 class MaintenanceStaff(User):
@@ -345,23 +365,20 @@ class MaintenanceStaff(User):
         # Load base content first
         super().load_homepage_content(home_page)
         
-        container = pe.content_container(parent=home_page, anchor="nw")
-
-        # Add Maintenance Staff-specific content
-        ctk.CTkLabel(
-            container,
-            text=f"Maintenance Functions ({self.location}):",
-            font=("Arial", 16, "bold")
-        ).pack(pady=(20, 10))
+        row1 = pe.row_container(parent=home_page)
         
-        ctk.CTkButton(
-            container,
-            text="View Maintenance Requests",
+        requests_card = pe.function_card(row1, "Maintenance Requests", side="left")
+        
+        pe.action_button(
+            requests_card,
+            text="View Requests",
             command=lambda: self.view_maintenance_requests()
-        ).pack(pady=5)
+        )
         
-        ctk.CTkButton(
-            container,
-            text="Update Request Status",
+        status_card = pe.function_card(row1, "Update Status", side="left")
+        
+        pe.action_button(
+            status_card,
+            text="Update Request",
             command=lambda: self.update_request_status(1, "In Progress")
-        ).pack(pady=5)
+        )
