@@ -1,5 +1,5 @@
 import customtkinter as ctk
-import pages.page_elements as pe
+import pages.components.page_elements as pe
 
 def create_user(username: str, user_type: str, location: str = ""):
     """Factory function to create the appropriate user class based on user type"""

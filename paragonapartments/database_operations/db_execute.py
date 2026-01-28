@@ -9,7 +9,7 @@ import os
 
 # Add parent directory to path to import dbfunc
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from dbfunc import getConnection
+from database_operations.dbfunc import getConnection
 
 
 def execute_query(query, params=None, fetch_one=False, fetch_all=False, commit=False):

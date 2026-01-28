@@ -1,19 +1,20 @@
 import sqlite3
-import os
+from pathlib import Path
 
-# SQLite database path (relative to this file)
-DB_PATH = os.path.join(os.path.dirname(__file__), 'database', 'paragonapartments.db')
+# Get the project root (paragonapartments directory) and database path
+PROJECT_ROOT = Path(__file__).parent.parent
+DB_PATH = PROJECT_ROOT / 'database' / 'paragonapartments.db'
 
 def getConnection():    
     try:
         # Check if database file exists
-        if not os.path.exists(DB_PATH):
+        if not DB_PATH.exists():
             print(f'Database does not exist at: {DB_PATH}')
             print('Run setupfiles/create_sqlite_db.py to create the database')
             return None
         
         # Connect to SQLite database
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(str(DB_PATH))
         
         # Enable foreign key constraints
         conn.execute("PRAGMA foreign_keys = ON")

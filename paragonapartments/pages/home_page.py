@@ -1,7 +1,7 @@
 from pathlib import Path
 from PIL import Image
 import customtkinter as ctk
-from user import User
+from models.user import User
 
 class HomePage(ctk.CTkFrame):
     def __init__(self, parent, controller, user : User):

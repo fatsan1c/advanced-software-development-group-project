@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from pages.home_page import HomePage
 from pages.login_page import LoginPage
-from user import create_user
+from models.user import create_user
 
 
 class App(ctk.CTk):

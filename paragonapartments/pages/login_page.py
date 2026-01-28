@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from database_operations import authenticate_user
-import pages.page_elements as pe
+import pages.components.page_elements as pe
 
 class LoginPage(ctk.CTkToplevel):
     """Login page window for user authentication."""
