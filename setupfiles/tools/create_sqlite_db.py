@@ -142,6 +142,22 @@ def create_database():
         FOREIGN KEY (tenant_ID) REFERENCES tenants(tenant_ID)
     )
     """)
+
+    print("Inserting data...")
+    
+    # Insert locations
+    cursor.executemany("INSERT INTO locations (location_ID, city, address) VALUES (?, ?, ?)", [
+        (1, 'Bristol', '12 Broadmead, Bristol, BS2 ZPK'),
+        (2, 'Cardiff', '15 Tredegar St, Cardiff, CF5Z 6GP'),
+        (3, 'London', '18 Rupert St, London, EC1A 6IQ'),
+        (4, 'Manchester', '23 Corporation St, Manchester, M3T 3AM')
+    ])
+
+    # Insert users
+    users_data = [
+        (1,None,'manager','paragon1','manager')
+    ]
+    cursor.executemany("INSERT INTO users VALUES (?, ?, ?, ?, ?)", users_data)
     
     conn.commit()
     conn.close()
