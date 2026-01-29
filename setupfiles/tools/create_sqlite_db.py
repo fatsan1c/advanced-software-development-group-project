@@ -6,7 +6,7 @@ import sqlite3
 import os
 
 # Path to the SQLite database file (will be stored in the database folder)
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'paragonapartments', 'database', 'paragonapartments.db')
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'paragonapartments', 'database', 'paragonapartments.db')
 
 def create_database():
     """Create SQLite database with schema and data."""
