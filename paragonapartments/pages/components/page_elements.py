@@ -75,7 +75,7 @@ def function_card(parent, title, side="left", anchor="nw", pady=10, padx=10):
         anchor="w"
     ).pack(padx=15, pady=(10, 5))
 
-    content_separator(card, pady=(0, 10))
+    content_separator(card, pady=(0, 5))
     
     # Content area - this is what gets returned
     content = ctk.CTkFrame(card, fg_color="transparent")
@@ -160,7 +160,7 @@ def row_container(parent, pady=0):
     return row
 
 
-def form_element(parent, fields, submit_text="Submit", on_submit=None, pady=5, field_per_row=2, small=False):
+def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pady=5, field_per_row=2, small=False):
     """Create a form with customizable fields and a submit button.
     
     Args:
@@ -169,16 +169,17 @@ def form_element(parent, fields, submit_text="Submit", on_submit=None, pady=5, f
             - 'name': Field name/label (required)
             - 'type': Input type - 'text', 'dropdown', 'checkbox' (default: 'text')
             - 'options': List of options for dropdown (required if type='dropdown')
+            - 'dropdown_update': Callback function for dropdown selection changes
             - 'default': Default value
             - 'placeholder': Placeholder text for text fields
             - 'required': Whether field is required (default: False)
+            - 'small': Use smaller sizing for compact forms (default: False)
         submit_text: Text for the submit button
         on_submit: Callback function that receives dict of {field_name: value} and error_label.
                    Callback should return True for success, or error message string for failure.
         pady: Vertical padding between fields
         field_per_row: Number of fields per row (default: 2)
         small: Use smaller sizing for compact forms (default: False)
-        
     Returns:
         Tuple of (form_container, error_label) - use error_label to show custom errors
         
@@ -207,6 +208,14 @@ def form_element(parent, fields, submit_text="Submit", on_submit=None, pady=5, f
     
     form = ctk.CTkFrame(parent, fg_color="transparent")
     form.pack(fill="both", expand=True, pady=pady)
+
+    if name:
+        ctk.CTkLabel(
+            form,
+            text=name,
+            font=("Arial", 13),
+            anchor="w"
+        ).pack(padx=5, pady=0)
     
     # Store field widgets for retrieval
     field_widgets = {}
@@ -223,10 +232,12 @@ def form_element(parent, fields, submit_text="Submit", on_submit=None, pady=5, f
         field_type = field.get('type', 'text')
         field_default = field.get('default', '')
         field_required = field.get('required', False)
+        field_update = field.get('dropdown_update', None)
+        small_field = field.get('small', False)
         
         # Field container
         field_frame = ctk.CTkFrame(current_row, fg_color="transparent")
-        field_frame.pack(fill="x", padx=5, side="left", expand=True)
+        field_frame.pack(fill="x" if not small_field else None, padx=5, side="left", expand=not small_field)
         
         # Create appropriate input widget
         if field_type == 'text':
@@ -242,12 +253,34 @@ def form_element(parent, fields, submit_text="Submit", on_submit=None, pady=5, f
             
         elif field_type == 'dropdown':
             options = field.get('options', [])
+            
+            # Create dropdown update handler if field_update is provided
+            def create_dropdown_handler(update_func, dropdown_widget):
+                def handler(selected_value):
+                    if update_func:
+                        # Call the update function with selected value
+                        new_options = update_func(selected_value)
+                        if new_options:
+                            # Update dropdown with new options
+                            dropdown_widget.configure(values=new_options)
+                            # Keep the currently selected value if it's in the new options
+                            if selected_value in new_options:
+                                dropdown_widget.set(selected_value)
+                            elif new_options:
+                                dropdown_widget.set(new_options[0])
+                return handler
+            
             widget = ctk.CTkOptionMenu(
                 field_frame,
                 values=options,
                 height=input_height,
                 font=("Arial", input_font_size)
             )
+            
+            # Set command after widget creation if field_update exists
+            if field_update:
+                widget.configure(command=create_dropdown_handler(field_update, widget))
+            
             if field_default and field_default in options:
                 widget.set(field_default)
             elif options:
@@ -276,10 +309,20 @@ def form_element(parent, fields, submit_text="Submit", on_submit=None, pady=5, f
         wraplength=400
     )
     
+    # Success message label (initially hidden)
+    success_label = ctk.CTkLabel(
+        form,
+        text="",
+        font=("Arial", 12),
+        text_color="green",
+        wraplength=400
+    )
+    
     # Submit button
     def handle_submit():
-        # Clear previous error
+        # Clear previous messages
         error_label.pack_forget()
+        success_label.pack_forget()
         
         # Collect values from all fields
         values = {}
@@ -304,21 +347,22 @@ def form_element(parent, fields, submit_text="Submit", on_submit=None, pady=5, f
             if required and (value == '' or value is None):
                 all_valid = False
                 error_label.configure(text=f"Error: {field_name} is required")
-                error_label.pack(pady=0, padx=10, before=None)
+                error_label.pack(pady=0, padx=10)
                 break
             
             values[field_name] = value
         
         # Call the callback if validation passes
         if all_valid and on_submit:
-            result = on_submit(values, error_label)
+            result = on_submit(values)
             # If callback returns a string, it's an error message
             if isinstance(result, str):
                 error_label.configure(text=result)
                 error_label.pack(pady=0, padx=10)
             elif result is True:
-                # Success - ensure error is hidden
-                error_label.pack_forget()
+                # Success - show success message
+                success_label.configure(text="Operation completed successfully.")
+                success_label.pack(pady=0, padx=10)
     
     submit_button = ctk.CTkButton(
         form,

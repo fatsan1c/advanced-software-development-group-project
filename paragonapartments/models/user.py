@@ -79,20 +79,47 @@ class Manager(User):
         """Generate maintenance reports for a location."""
         print("Generating maintenance report...")
 
-    def create_account(self, values, error_label):
+    def create_account(self, values):
         """Create a new user account with specified role and location."""
         username = values.get('Username', '')
         role = values.get('Role', '')
         password = values.get('Password', '')
         location = values.get('Location', None)
-        location_id = location_repo.get_location_id_by_city(location) if location else None
+        
+        # Handle "None" string from dropdown
+        if location and location != "None":
+            location_id = location_repo.get_location_id_by_city(location)
+        else:
+            location_id = None
 
-        # try:
-            # Database operation
-        user_repo.create_user(username, password, role, location_id)
-        #     return True  # Success
-        # except Exception as e:
-        #     return f"Failed to create account: {str(e)}"
+        try:
+            #Database operation
+            user_repo.create_user(username, password, role, location_id)
+            return True  # Success
+        except Exception as e:
+            return f"Failed to create account: {str(e)}"
+
+    def delete_account(self, values):
+        """Delete an existing user account by username or ID."""
+        user_identifier = values.get('Users', None)
+        user_id = values.get('ID', None)
+
+        try:
+            if user_identifier and user_identifier != "None":
+                # Assuming username is unique
+                user = user_repo.get_user_by_username(user_identifier)
+                if user:
+                    user_repo.delete_user(user['user_ID'])
+                else:
+                    return "User not found."
+            elif user_id:
+                user_repo.delete_user(int(user_id))
+            else:
+                return "No valid user identifier provided."
+
+            return True  # Success
+        except Exception as e:
+            return f"Failed to delete account: {str(e)}"
 
     def expand_business(self, new_location: str):
         """Expand business to a new location."""
@@ -144,10 +171,21 @@ class Manager(User):
             {'name': 'Username', 'type': 'text', 'required': True},
             {'name': 'Role', 'type': 'dropdown', 'options': ['Admin', 'Manager', 'Finance Manager', 'Frontdesk', 'Maintenance'], 'required': True},
             {'name': 'Password', 'type': 'text', 'required': True},
-            {'name': 'Location', 'type': 'dropdown', 'options': ['Bristol', 'London', 'Cardiff', 'Manchester'], 'required': False}
+            {'name': 'Location', 'type': 'dropdown', 'options': ['None'] + location_repo.get_all_cities(), 'required': False}
         ]
 
-        pe.form_element(accounts_card, fields, submit_text="Create Account", on_submit=self.create_account)
+        pe.form_element(accounts_card, fields, name="Create", submit_text="Create Account", on_submit=self.create_account, small=True)
+
+        def update_user_names(selected_value):
+            """Refresh user list when dropdown is clicked."""
+            return ['None'] + user_repo.get_all_usernames()
+
+        fields = [
+            {'name': 'Users', 'type': 'dropdown', 'options': ['None'] + user_repo.get_all_usernames(), 'dropdown_update': update_user_names},
+            {'name': 'ID', 'type': 'text', 'small': True}
+        ]
+
+        pe.form_element(accounts_card, fields, name="Delete", submit_text="Delete Account", on_submit=self.delete_account, small=True)
 
     def load_report_content(self, row):
         reports_card = pe.function_card(row, "Generate Reports", side="left")
