@@ -4,8 +4,6 @@ Handles location CRUD operations and location information retrieval.
 """
 
 from database_operations.db_execute import execute_query
-from database_operations.permissions import require_permission
-
 
 def get_location_by_id(location_id):
     """
@@ -85,7 +83,6 @@ def get_location_id_by_city(city):
     return location['location_ID'] if location else None
 
 
-@require_permission('locations', 'create')
 def create_location(city, address=None):
     """
     Create a new location in the database.
@@ -105,7 +102,6 @@ def create_location(city, address=None):
     return execute_query(query, (city, address), commit=True)
 
 
-@require_permission('locations', 'update')
 def update_location(location_id, **kwargs):
     """
     Update location information.
@@ -137,7 +133,6 @@ def update_location(location_id, **kwargs):
     return result is not None and result > 0
 
 
-@require_permission('locations', 'delete')
 def delete_location(location_id):
     """
     Delete a location from the database.

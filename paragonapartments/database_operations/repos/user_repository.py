@@ -4,7 +4,6 @@ Handles authentication, user CRUD operations, and role management.
 """
 
 from database_operations.db_execute import execute_query
-from database_operations.permissions import require_permission, require_role
 
 
 def authenticate_user(username, password):
@@ -43,7 +42,6 @@ def validate_credentials(username, password):
     return user is not None
 
 
-@require_permission('users', 'read')
 def get_user_by_username(username):
     """
     Get user details by username only.
@@ -62,7 +60,6 @@ def get_user_by_username(username):
     return execute_query(query, (username,), fetch_one=True)
 
 
-@require_permission('users', 'read')
 def get_user_by_id(user_id):
     """
     Get user details by user ID.
@@ -81,7 +78,6 @@ def get_user_by_id(user_id):
     return execute_query(query, (user_id,), fetch_one=True)
 
 
-@require_permission('users', 'read')
 def get_user_role(username):
     """
     Get the role of a user by username.
@@ -109,7 +105,6 @@ def get_all_roles():
     return [row['role'] for row in result] if result else []
 
 
-@require_permission('users', 'read')
 def get_all_users():
     """
     Get all users from the database.
@@ -125,8 +120,17 @@ def get_all_users():
     """
     return execute_query(query, fetch_all=True)
 
+def get_all_usernames():
+    """
+    Get all usernames from the database.
+    
+    Returns:
+        list: List of username strings (e.g., ['john', 'jane', 'doe'])
+    """
+    query = "SELECT username FROM users ORDER BY user_ID"
+    result = execute_query(query, fetch_all=True)
+    return [row['username'] for row in result] if result else []
 
-@require_permission('users', 'create')
 def create_user(username, password, role, location_ID=None):
     """
     Create a new user in the database.
@@ -148,7 +152,6 @@ def create_user(username, password, role, location_ID=None):
     return execute_query(query, (username, password, role, location_ID), commit=True)
 
 
-@require_permission('users', 'update')
 def update_user(user_id, **kwargs):
     """
     Update user information.
@@ -180,7 +183,6 @@ def update_user(user_id, **kwargs):
     return result is not None and result > 0
 
 
-@require_role('manager')  # Only managers can delete users
 def delete_user(user_id):
     """
     Delete a user from the database.
