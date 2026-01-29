@@ -77,8 +77,11 @@ class Manager(User):
         """Generate maintenance reports for a location."""
         print("Generating maintenance report...")
 
-    def create_account(self, username: str, role: str, location: str = ""):
+    def create_account(self, values):
         """Create a new user account with specified role and location."""
+        username = values.get('Username', '')
+        role = values.get('Role', '')
+        location = values.get('Location', '')
         print(f"Creating account for {username} with role {role} at location {location}")
 
     def expand_business(self, new_location: str):
@@ -90,10 +93,27 @@ class Manager(User):
         # Load base content first
         super().load_homepage_content(home_page)
 
-        # First row - 3 cards
-        row1 = pe.row_container(parent=home_page)
+        container = pe.scrollable_container(parent=home_page)
+
+        # First row - 2 cards
+        row1 = pe.row_container(parent=container)
         
-        occupancy_card = pe.function_card(row1, "Apartment Occupancy", side="left")
+        self.load_occupancy_content(row1)
+
+        self.load_account_content(row1)
+
+        # Second row - full width card
+        row2 = pe.row_container(parent=container)
+
+        self.load_report_content(row2)
+
+        # Third row - full width card
+        row3 = pe.row_container(parent=container)
+        
+        self.load_business_expansion_content(row3)
+
+    def load_occupancy_content(self, row):
+        occupancy_card = pe.function_card(row, "Apartment Occupancy", side="left")
         
         pe.action_button(
             occupancy_card,
@@ -107,7 +127,20 @@ class Manager(User):
             command=lambda: self.view_apartment_occupancy("bristol")
         )
 
-        reports_card = pe.function_card(row1, "Generate Reports", side="left")
+    def load_account_content(self, row):
+        accounts_card = pe.function_card(row, "Manage Accounts", side="left")
+
+        fields = [
+            {'name': 'Username', 'type': 'text', 'required': True},
+            {'name': 'Role', 'type': 'dropdown', 'options': ['Admin', 'Manager', 'Finance Manager', 'Frontdesk', 'Maintenance'], 'required': True},
+            {'name': 'Password', 'type': 'text', 'required': True},
+            {'name': 'Location', 'type': 'dropdown', 'options': ['Bristol', 'London', 'Cardiff', 'Manchester'], 'required': False}
+        ]
+
+        pe.form_element(accounts_card, fields, submit_text="Create Account", on_submit=self.create_account)
+
+    def load_report_content(self, row):
+        reports_card = pe.function_card(row, "Generate Reports", side="left")
 
         pe.action_button(
             reports_card,
@@ -115,17 +148,8 @@ class Manager(User):
             command=lambda: self.generate_reports("bristol")
         )
 
-        accounts_card = pe.function_card(row1, "Manage Accounts", side="left")
-        pe.action_button(
-            accounts_card,
-            text="Create Account",
-            command=lambda: self.create_account("newuser", "Staff", "bristol")
-        )
-
-        # Second row - full width card
-        row2 = pe.row_container(parent=home_page)
-        
-        expand_card = pe.function_card(row2, "Expand Business", side="top")
+    def load_business_expansion_content(self, row):
+        expand_card = pe.function_card(row, "Expand Business", side="top")
 
         pe.action_button(
             expand_card,

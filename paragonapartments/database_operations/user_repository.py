@@ -96,6 +96,19 @@ def get_user_role(username):
     return user['role'] if user else None
 
 
+def get_all_roles():
+    """
+    Get all distinct user roles from the database.
+    Requires: 'read' permission on 'users' resource (checked by decorator)
+    
+    Returns:
+        list: List of role strings (e.g., ['Admin', 'Finance Manager', 'Manager'])
+    """
+    query = "SELECT DISTINCT role FROM users ORDER BY role"
+    result = execute_query(query, fetch_all=True)
+    return [row['role'] for row in result] if result else []
+
+
 @require_permission('users', 'read')
 def get_all_users():
     """
