@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from database_operations import authenticate_user
+from database_operations.repos.user_repository import authenticate_user
 import pages.components.page_elements as pe
 
 class LoginPage(ctk.CTkToplevel):

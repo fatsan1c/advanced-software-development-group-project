@@ -3,7 +3,7 @@ Repositories package for database access layer.
 All database queries should go through these repository modules.
 """
 
-from .user_repository import (
+from .repos.user_repository import (
     authenticate_user,
     validate_credentials,
     get_user_by_username,

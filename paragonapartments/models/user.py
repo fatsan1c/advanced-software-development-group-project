@@ -1,5 +1,7 @@
 import customtkinter as ctk
 import pages.components.page_elements as pe
+import database_operations.repos.user_repository as user_repo
+import database_operations.repos.location_repository as location_repo
 
 def create_user(username: str, user_type: str, location: str = ""):
     """Factory function to create the appropriate user class based on user type"""
@@ -77,12 +79,20 @@ class Manager(User):
         """Generate maintenance reports for a location."""
         print("Generating maintenance report...")
 
-    def create_account(self, values):
+    def create_account(self, values, error_label):
         """Create a new user account with specified role and location."""
         username = values.get('Username', '')
         role = values.get('Role', '')
-        location = values.get('Location', '')
-        print(f"Creating account for {username} with role {role} at location {location}")
+        password = values.get('Password', '')
+        location = values.get('Location', None)
+        location_id = location_repo.get_location_id_by_city(location) if location else None
+
+        # try:
+            # Database operation
+        user_repo.create_user(username, password, role, location_id)
+        #     return True  # Success
+        # except Exception as e:
+        #     return f"Failed to create account: {str(e)}"
 
     def expand_business(self, new_location: str):
         """Expand business to a new location."""

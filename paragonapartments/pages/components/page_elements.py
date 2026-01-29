@@ -267,7 +267,7 @@ def form_element(parent, fields, submit_text="Submit", on_submit=None, pady=5, f
         field_widgets[field_name] = {'widget': widget, 'type': field_type, 'required': field_required}
         fields_count += 1
     
-    # Error message label
+    # Error message label (initially hidden)
     error_label = ctk.CTkLabel(
         form,
         text="",
@@ -275,12 +275,11 @@ def form_element(parent, fields, submit_text="Submit", on_submit=None, pady=5, f
         text_color="red",
         wraplength=400
     )
-    error_label.pack(pady=0, padx=10)
     
     # Submit button
     def handle_submit():
         # Clear previous error
-        error_label.configure(text="")
+        error_label.pack_forget()
         
         # Collect values from all fields
         values = {}
@@ -305,6 +304,7 @@ def form_element(parent, fields, submit_text="Submit", on_submit=None, pady=5, f
             if required and (value == '' or value is None):
                 all_valid = False
                 error_label.configure(text=f"Error: {field_name} is required")
+                error_label.pack(pady=0, padx=10, before=None)
                 break
             
             values[field_name] = value
@@ -315,9 +315,10 @@ def form_element(parent, fields, submit_text="Submit", on_submit=None, pady=5, f
             # If callback returns a string, it's an error message
             if isinstance(result, str):
                 error_label.configure(text=result)
+                error_label.pack(pady=0, padx=10)
             elif result is True:
-                # Success - clear form if needed
-                error_label.configure(text="")
+                # Success - ensure error is hidden
+                error_label.pack_forget()
     
     submit_button = ctk.CTkButton(
         form,
@@ -327,6 +328,6 @@ def form_element(parent, fields, submit_text="Submit", on_submit=None, pady=5, f
         font=("Arial", button_font_size, "bold"),
         corner_radius=8
     )
-    submit_button.pack(pady=(0, 5), padx=10, fill="x")
+    submit_button.pack(pady=(10, 5), padx=10, fill="x")
     
     return form, error_label
