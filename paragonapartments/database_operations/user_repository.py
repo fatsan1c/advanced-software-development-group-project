@@ -4,6 +4,7 @@ Handles authentication, user CRUD operations, and role management.
 """
 
 from database_operations.db_execute import execute_query
+from database_operations.permissions import require_permission, require_role
 
 
 def authenticate_user(username, password):
@@ -22,7 +23,7 @@ def authenticate_user(username, password):
         SELECT users.username, users.role, users.location_ID, locations.city
         FROM users
         LEFT JOIN locations ON users.location_ID = locations.location_ID
-        WHERE users.username = %s AND users.password = %s
+        WHERE users.username = ? AND users.password = ?
     """
     return execute_query(query, (username, password), fetch_one=True)
 
@@ -42,6 +43,7 @@ def validate_credentials(username, password):
     return user is not None
 
 
+@require_permission('users', 'read')
 def get_user_by_username(username):
     """
     Get user details by username only.
@@ -55,11 +57,12 @@ def get_user_by_username(username):
     query = """
         SELECT user_ID, username, role, location_ID
         FROM users 
-        WHERE username = %s
+        WHERE username = ?
     """
     return execute_query(query, (username,), fetch_one=True)
 
 
+@require_permission('users', 'read')
 def get_user_by_id(user_id):
     """
     Get user details by user ID.
@@ -73,11 +76,12 @@ def get_user_by_id(user_id):
     query = """
         SELECT user_ID, username, role, location_ID
         FROM users 
-        WHERE user_ID = %s
+        WHERE user_ID = ?
     """
     return execute_query(query, (user_id,), fetch_one=True)
 
 
+@require_permission('users', 'read')
 def get_user_role(username):
     """
     Get the role of a user by username.
@@ -92,9 +96,24 @@ def get_user_role(username):
     return user['role'] if user else None
 
 
+def get_all_roles():
+    """
+    Get all distinct user roles from the database.
+    Requires: 'read' permission on 'users' resource (checked by decorator)
+    
+    Returns:
+        list: List of role strings (e.g., ['Admin', 'Finance Manager', 'Manager'])
+    """
+    query = "SELECT DISTINCT role FROM users ORDER BY role"
+    result = execute_query(query, fetch_all=True)
+    return [row['role'] for row in result] if result else []
+
+
+@require_permission('users', 'read')
 def get_all_users():
     """
     Get all users from the database.
+    Requires: 'read' permission on 'users' resource (checked by decorator)
     
     Returns:
         list: List of user dictionaries, empty list if error
@@ -107,9 +126,11 @@ def get_all_users():
     return execute_query(query, fetch_all=True)
 
 
+@require_permission('users', 'create')
 def create_user(username, password, role, location_ID=None):
     """
     Create a new user in the database.
+    Requires: 'create' permission on 'users' resource (checked by decorator)
     
     Args:
         username (str): Username for the new user
@@ -122,14 +143,16 @@ def create_user(username, password, role, location_ID=None):
     """
     query = """
         INSERT INTO users (username, password, role, location_ID)
-        VALUES (%s, %s, %s, %s)
+        VALUES (?, ?, ?, ?)
     """
     return execute_query(query, (username, password, role, location_ID), commit=True)
 
 
+@require_permission('users', 'update')
 def update_user(user_id, **kwargs):
     """
     Update user information.
+    Requires: 'update' permission on 'users' resource (checked by decorator)
     
     Args:
         user_id (int): ID of user to update
@@ -144,22 +167,24 @@ def update_user(user_id, **kwargs):
     
     for field, value in kwargs.items():
         if field in allowed_fields:
-            updates.append(f"{field} = %s")
+            updates.append(f"{field} = ?")
             values.append(value)
     
     if not updates:
         return False
     
     values.append(user_id)
-    query = f"UPDATE users SET {', '.join(updates)} WHERE user_ID = %s"
+    query = f"UPDATE users SET {', '.join(updates)} WHERE user_ID = ?"
     
     result = execute_query(query, tuple(values), commit=True)
     return result is not None and result > 0
 
 
+@require_role('manager')  # Only managers can delete users
 def delete_user(user_id):
     """
     Delete a user from the database.
+    Requires: 'manager' role (checked by decorator)
     
     Args:
         user_id (int): ID of user to delete
@@ -167,25 +192,6 @@ def delete_user(user_id):
     Returns:
         bool: True if successful, False otherwise
     """
-    query = "DELETE FROM users WHERE user_ID = %s"
+    query = "DELETE FROM users WHERE user_ID = ?"
     result = execute_query(query, (user_id,), commit=True)
     return result is not None and result > 0
-
-
-def get_users_by_role(role):
-    """
-    Get all users with a specific role.
-    
-    Args:
-        role (str): Role to filter by
-        
-    Returns:
-        list: List of user dictionaries with the specified role
-    """
-    query = """
-        SELECT user_ID, username, role, location_ID
-        FROM users 
-        WHERE role = %s
-        ORDER BY username
-    """
-    return execute_query(query, (role,), fetch_all=True)

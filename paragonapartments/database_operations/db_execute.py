@@ -3,13 +3,13 @@ Database Helper - Centralized database query execution.
 Provides a single function for executing all database queries with proper connection handling.
 """
 
-import mysql.connector
+import sqlite3
 import sys
 import os
 
 # Add parent directory to path to import dbfunc
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from dbfunc import getConnection
+from database_operations.dbfunc import getConnection
 
 
 def execute_query(query, params=None, fetch_one=False, fetch_all=False, commit=False):
@@ -37,13 +37,15 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=False, commit=F
         if not conn:
             return None if fetch_one else ([] if fetch_all else None)
         
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
         cursor.execute(query, params or ())
         
         if fetch_one:
-            result = cursor.fetchone()
+            row = cursor.fetchone()
+            result = dict(row) if row else None
         elif fetch_all:
-            result = cursor.fetchall()
+            rows = cursor.fetchall()
+            result = [dict(row) for row in rows]
         elif commit:
             conn.commit()
             result = cursor.lastrowid if cursor.lastrowid else cursor.rowcount
@@ -52,7 +54,7 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=False, commit=F
             
         return result
         
-    except mysql.connector.Error as err:
+    except sqlite3.Error as err:
         print(f"Database error: {err}")
         return None if fetch_one else ([] if fetch_all else None)
     except Exception as e:

@@ -14,9 +14,8 @@ Paragon Apartment Management System (PAMS) is a Python-based desktop application
 
 ## Tech Stack
 - **Language:** Python 3.x  
-- **Database:** MySQL or SQLite  
-- **GUI Framework:** Tkinter or PyQt  
-- **Testing:** unittest / pytest  
+- **Database:** SQLite
+- **GUI Framework:** CustomTkinter
 - **Version Control:** Git and GitHub  
 
 ## Installation
@@ -46,20 +45,54 @@ Paragon Apartment Management System (PAMS) is a Python-based desktop application
    - The setup script will automatically:
       - Create a virtual environment
       - Install all dependencies
-      - Create a `.env` file from the template
 
-3. Import the provided SQL dump from `/setupfiles/paragonapartments_full_dump.sql` to mySQL and open a connection.
+3. Run the Application:
+   ```bash
+   python paragonapartments/main.py
+   ```
 
-4. Edit `/paragonapartments/.env` with your database credentials.
+## Database
 
-### 5. Run the Application:
+The database includes pre-populated sample data:
+- 4 locations (Bristol, Cardiff, London, Manchester)
+- 32 apartments across all locations
+- 20 tenants with active leases
+- 15 user accounts with various roles
 
-   > ```bash
-   > python paragonapartments/main.py
-   > ```
+To recreate or reset the database, run:
+```bash
+python setupfiles/tools/create_sqlite_db.py
+```
 
+## Default Login Credentials
 
-All UML design diagrams, methodology reports, and test documentation are available in the /docs directory. These include:
+| Username | Password | Role | Location |
+|----------|----------|------|----------|
+| manager | paragon1 | Manager | All |
+| bristol_admin | admin1 | Admin | Bristol |
+| finance | finance1 | Finance | All |
+| bristol_frontdesk | front1 | Frontdesk | Bristol |
+| bristol_maintenance | maint1 | Maintenance | Bristol |
+
+### Permission Matrix:
+
+| Role | Users | Apartments | Tenants | Leases | Invoices | Payments | Maintenance |
+|------|-------|------------|---------|--------|----------|----------|-------------|
+| **Manager** | Full | Full | Full | Full | Full | Full | Full |
+| **Admin** | CRU | Full | Full | Full | CRU | CRU | Full |
+| **Finance** | - | Read | Read | Read | Full | Full | - |
+| **Frontdesk** | - | Read | CRU | CR | Read | Read | CR |
+| **Maintenance** | - | Read | Read | - | - | - | RU |
+
+**Legend:**
+- **Full (CRUD)** = Create, Read, Update, Delete
+- **CRU** = Create, Read, Update
+- **CR** = Create, Read
+- **RU** = Read, Update
+- **Read** = Read only
+- **-** = No access
+
+## Documentation
    - Use Case, Class, and Sequence diagrams
    - Agile methodology report
    - Test case documentation and screenshots

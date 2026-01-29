@@ -1,15 +1,7 @@
-import os
-import sys
-
-# Fix Tcl/Tk path for virtual environment
-python_base = sys.base_prefix
-os.environ['TCL_LIBRARY'] = os.path.join(python_base, 'tcl', 'tcl8.6')
-os.environ['TK_LIBRARY'] = os.path.join(python_base, 'tcl', 'tk8.6')
-
 import customtkinter as ctk
 from pages.home_page import HomePage
 from pages.login_page import LoginPage
-from user import create_user
+from models.user import create_user
 
 
 class App(ctk.CTk):

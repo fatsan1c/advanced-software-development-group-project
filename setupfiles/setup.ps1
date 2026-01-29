@@ -25,20 +25,47 @@ Write-Host ""
 Write-Host "Installing dependencies..." -ForegroundColor Yellow
 pip install -r setupfiles\requirements.txt
 
-# Create .env file if it doesn't exist
-if (!(Test-Path "paragonapartments\.env")) {
-    Write-Host ""
-    Write-Host "Creating .env file from template..." -ForegroundColor Yellow
-    Copy-Item "paragonapartments\.env.example" "paragonapartments\.env"
-    Write-Host "IMPORTANT: Edit paragonapartments\.env with your database credentials!" -ForegroundColor Red
+# Fix Tcl/Tk for virtual environment (Windows-specific fix for customtkinter)
+Write-Host ""
+Write-Host "Configuring Tcl/Tk for virtual environment..." -ForegroundColor Yellow
+$pythonBase = python -c "import sys; print(sys.base_prefix)"
+$tclSource = Join-Path $pythonBase "tcl"
+$dllsSource = Join-Path $pythonBase "DLLs"
+
+if (Test-Path $tclSource) {
+    Copy-Item $tclSource -Destination ".venv\" -Recurse -Force
+    Write-Host "Copied Tcl/Tk libraries to virtual environment" -ForegroundColor Green
+}
+
+if (Test-Path $dllsSource) {
+    $tcl86 = Join-Path $dllsSource "tcl86t.dll"
+    $tk86 = Join-Path $dllsSource "tk86t.dll"
+    
+    if (Test-Path $tcl86) {
+        Copy-Item $tcl86 -Destination ".venv\Scripts\" -Force
+    }
+    if (Test-Path $tk86) {
+        Copy-Item $tk86 -Destination ".venv\Scripts\" -Force
+    }
+    Write-Host "Copied Tcl/Tk DLL files to virtual environment" -ForegroundColor Green
+}
+
+# Create SQLite database
+Write-Host ""
+$dbPath = "paragonapartments\database\paragonapartments.db"
+if (Test-Path $dbPath) {
+    Write-Host "Database already exists, skipping creation..." -ForegroundColor Cyan
+    Write-Host "To recreate the database, run: python setupfiles\create_sqlite_db.py" -ForegroundColor Gray
+} else {
+    Write-Host "Creating SQLite database..." -ForegroundColor Yellow
+    python setupfiles\create_sqlite_db.py
 }
 
 Write-Host ""
 Write-Host "Setup complete!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Cyan
-Write-Host "1. Edit paragonapartments\.env with your database credentials"
-Write-Host "2. Run: python paragonapartments\main.py"
+Write-Host "1. Run: python paragonapartments\main.py"
 Write-Host ""
 Write-Host "To activate the virtual environment later, run:" -ForegroundColor Cyan
 Write-Host ".\.venv\Scripts\Activate.ps1"

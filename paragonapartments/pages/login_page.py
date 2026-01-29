@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from database_operations import authenticate_user
+import pages.components.page_elements as pe
 
 class LoginPage(ctk.CTkToplevel):
     """Login page window for user authentication."""
@@ -25,18 +26,21 @@ class LoginPage(ctk.CTkToplevel):
 
     def loginpage_content(self, container):
         # Create inner frame for centered content
-        inner_frame = ctk.CTkFrame(container, fg_color="transparent")
-        inner_frame.place(relx=0.5, rely=0.54, anchor="center")
+        inner_frame = pe.content_container(parent=container)
+        inner_frame.place(relx=0.5, rely=0.57, anchor="center")
         
         ctk.CTkLabel(container, text="Paragon Apartments", font=("Arial", 24)).pack(pady=30)
-        ctk.CTkLabel(inner_frame, text="Login", font=("Arial", 18)).pack(pady=(0, 40))
+        ctk.CTkLabel(inner_frame, text="Login", font=("Arial", 18)).pack(pady=(8, 2))
+
+        pe.content_separator(inner_frame, pady=(5, 40))
         
         self.username_entry = ctk.CTkEntry(inner_frame, placeholder_text="Username", font=("Arial", 14))
-        self.username_entry.pack(pady=(0, 12))
+        self.username_entry.pack(pady=6)
         self.password_entry = ctk.CTkEntry(inner_frame, placeholder_text="Password", show="*")
-        self.password_entry.pack(pady=(0, 12))
+        self.password_entry.pack(pady=6)
         ctk.CTkButton(inner_frame, text="Login",
-             command=lambda: self.authenticate(inner_frame, username=self.username_entry.get(), password=self.password_entry.get())).pack()
+             command=lambda: self.authenticate(inner_frame, username=self.username_entry.get(), 
+                                               password=self.password_entry.get())).pack(pady=(20, 40), padx=40)
     
     def authenticate(self, container, username: str, password: str) -> bool:
         """Authenticate user credentials."""
