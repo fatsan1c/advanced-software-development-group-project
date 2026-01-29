@@ -20,7 +20,7 @@ import os
 from datetime import datetime
 
 # Path to the SQLite database
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'paragonapartments', 'database', 'paragonapartments.db')
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'paragonapartments', 'database', 'paragonapartments.db')
 
 def print_separator(char='=', length=80):
     """Print a separator line."""
