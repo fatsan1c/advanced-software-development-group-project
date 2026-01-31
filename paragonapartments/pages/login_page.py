@@ -36,7 +36,7 @@ class LoginPage(ctk.CTkToplevel):
         
         self.username_entry = ctk.CTkEntry(inner_frame, placeholder_text="Username", font=("Arial", 14))
         self.username_entry.pack(pady=6)
-        self.password_entry = ctk.CTkEntry(inner_frame, placeholder_text="Password", show="*")
+        self.password_entry = ctk.CTkEntry(inner_frame, placeholder_text="Password", show="*", font=("Arial", 14))
         self.password_entry.pack(pady=6)
         ctk.CTkButton(inner_frame, text="Login",
              command=lambda: self.authenticate(inner_frame, username=self.username_entry.get(), 

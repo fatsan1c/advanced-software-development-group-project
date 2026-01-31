@@ -44,6 +44,19 @@ def content_separator(parent, pady=(5, 10), padx=15):
     separator.pack(fill="x", pady=pady, padx=padx)
     return separator
 
+def vertical_divider(parent, pady=5, padx=(0, 5)):
+    """Add a visual separator line.
+    
+    Args:
+        parent: The parent container
+        pady: Vertical padding (top, bottom)
+        padx: Horizontal padding
+        color: Separator line color
+    """
+    separator = ctk.CTkFrame(parent, width=2, height=1, fg_color="gray35")
+    separator.pack(fill="y", side="left", padx=padx, pady=pady)
+    return separator
+
 
 def function_card(parent, title, side="left", anchor="nw", pady=10, padx=10):
     """Create a card container for user functions with a title.
@@ -169,7 +182,6 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
             - 'name': Field name/label (required)
             - 'type': Input type - 'text', 'dropdown', 'checkbox' (default: 'text')
             - 'options': List of options for dropdown (required if type='dropdown')
-            - 'dropdown_update': Callback function for dropdown selection changes
             - 'default': Default value
             - 'placeholder': Placeholder text for text fields
             - 'required': Whether field is required (default: False)
@@ -232,7 +244,6 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
         field_type = field.get('type', 'text')
         field_default = field.get('default', '')
         field_required = field.get('required', False)
-        field_update = field.get('dropdown_update', None)
         small_field = field.get('small', False)
         
         # Field container
@@ -254,32 +265,12 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
         elif field_type == 'dropdown':
             options = field.get('options', [])
             
-            # Create dropdown update handler if field_update is provided
-            def create_dropdown_handler(update_func, dropdown_widget):
-                def handler(selected_value):
-                    if update_func:
-                        # Call the update function with selected value
-                        new_options = update_func(selected_value)
-                        if new_options:
-                            # Update dropdown with new options
-                            dropdown_widget.configure(values=new_options)
-                            # Keep the currently selected value if it's in the new options
-                            if selected_value in new_options:
-                                dropdown_widget.set(selected_value)
-                            elif new_options:
-                                dropdown_widget.set(new_options[0])
-                return handler
-            
             widget = ctk.CTkOptionMenu(
                 field_frame,
                 values=options,
                 height=input_height,
                 font=("Arial", input_font_size)
             )
-            
-            # Set command after widget creation if field_update exists
-            if field_update:
-                widget.configure(command=create_dropdown_handler(field_update, widget))
             
             if field_default and field_default in options:
                 widget.set(field_default)
@@ -375,3 +366,402 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
     submit_button.pack(pady=(10, 5), padx=10, fill="x")
     
     return form, error_label
+
+
+def popup_card(parent, button_text, title, small=False, button_size="medium"):
+    """Create a popup card that opens when a button is clicked.
+    
+    This creates a button that, when clicked, displays a modal popup with a darkened
+    background overlay. The popup can contain forms, inputs, or any other content.
+    
+    Args:
+        parent: The parent container
+        button_text: Text displayed on the trigger button
+        title: Title displayed at the top of the popup card
+        small: Boolean indicating if the popup is small (True) or fullscreen (False)
+        button_size: Size of the trigger button - "small", "medium", "large", "full"
+        
+    Returns:
+        Tuple of (button_widget, content_container):
+        - button_widget: The button that opens the popup
+        - content_container: The container inside the popup where you add your content
+        
+    Example:
+        button, content = popup_card(parent, "Create User", "New User Form", small=True)
+        # Add form or other widgets to 'content'
+        fields = [{'name': 'Username', 'type': 'text'}]
+        form, error = form_element(content, fields, name=None, submit_text="Submit")
+    """
+    # Store overlay and popup references
+    overlay_ref = {'overlay': None, 'popup': None}
+    
+    def close_popup():
+        """Close and destroy the popup and overlay"""
+        if overlay_ref['overlay']:
+            overlay_ref['overlay'].destroy()
+            overlay_ref['overlay'] = None
+            overlay_ref['popup'] = None
+    
+    def open_popup():
+        """Create and display the popup with darkened overlay"""
+        # Get the top-level window to place overlay over entire window
+        top_level = parent.winfo_toplevel()
+        
+        # Create semi-transparent overlay that slightly dims content but keeps it visible
+        # Using lighter colors creates a subtle dimming effect
+        overlay = ctk.CTkFrame(top_level, fg_color="transparent")
+        overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
+        overlay.lift()
+        
+        # Close popup when clicking overlay background
+        overlay.bind("<Button-1>", lambda e: close_popup())
+        
+        # Create popup card
+        if not small:
+            popup = ctk.CTkFrame(overlay, corner_radius=10)
+            popup.place(relx=0.015, rely=0.015, relwidth=0.97, relheight=0.97)
+        else:  # small
+            popup = ctk.CTkFrame(overlay, corner_radius=10)
+            popup.place(relx=0.5, rely=0.5, anchor="center")
+        
+        # Store references
+        overlay_ref['overlay'] = overlay
+        overlay_ref['popup'] = popup
+        
+        # Prevent popup clicks from closing the overlay
+        popup.bind("<Button-1>", lambda e: "break")
+        
+        # Header with title and close button
+        header = ctk.CTkFrame(popup, fg_color="transparent")
+        header.pack(fill="x", padx=15, pady=(10, 5))
+        
+        ctk.CTkLabel(
+            header,
+            text=title,
+            font=("Arial", 18, "bold"),
+            anchor="w"
+        ).pack(side="left", fill="x", expand=True)
+        
+        close_btn = ctk.CTkButton(
+            header,
+            text="✕",
+            width=30,
+            height=30,
+            font=("Arial", 18),
+            command=close_popup,
+            fg_color=("gray70", "gray25"),
+            hover_color=("gray60", "gray20")
+        )
+        close_btn.pack(side="right")
+        
+        content_separator(popup, pady=(0, 5))
+        
+        # Content area - this is what gets returned
+        content = ctk.CTkFrame(popup, fg_color="transparent")
+        content.pack(fill="both", expand=True, padx=15, pady=(5, 15))
+        
+        return content
+    
+    # Create trigger button
+    button = action_button(parent, button_text, open_popup, size=button_size)
+    
+    return button, open_popup
+
+
+def data_table(parent, columns, data=None, editable=False, deletable=False, 
+               on_update=None, on_delete=None, on_create=None, refresh_data=None):
+    """Create a data table with optional CRUD operations.
+    
+    This creates a scrollable table that displays data with optional edit and delete
+    functionality for each row. If create callback is provided, an "Add Row" button appears.
+    
+    Args:
+        parent: The parent container
+        columns: List of column dictionaries with keys:
+            - 'name': Column header name (required)
+            - 'key': Data key for this column (required)
+            - 'width': Column width in pixels (default: 150)
+            - 'editable': Whether this column is editable (default: True if table editable)
+        data: List of dictionaries representing rows (optional, can be loaded later)
+        editable: Enable edit functionality for rows
+        deletable: Enable delete functionality for rows
+        on_update: Callback function(row_data, updated_data) for updating a row
+        on_delete: Callback function(row_data) for deleting a row
+        on_create: Callback function(new_data) for creating a new row
+        refresh_data: Callback function() that returns updated data list
+        
+    Returns:
+        Tuple of (table_container, refresh_function):
+        - table_container: The table widget
+        - refresh_function: Function to refresh table data
+        
+    Example:
+        def update_row(row, updated):
+            user_repo.update_user(row['id'], updated)
+            return True  # or error message string
+            
+        def delete_row(row):
+            user_repo.delete_user(row['id'])
+            return True
+            
+        def create_row(new_data):
+            user_repo.create_user(new_data)
+            return True
+            
+        def get_data():
+            return user_repo.get_all_users()
+        
+        columns = [
+            {'name': 'ID', 'key': 'id', 'width': 80, 'editable': False},
+            {'name': 'Username', 'key': 'username', 'width': 200},
+            {'name': 'Email', 'key': 'email', 'width': 250}
+        ]
+        
+        table, refresh = data_table(parent, columns, editable=True, deletable=True,
+                                   on_update=update_row, on_delete=delete_row,
+                                   on_create=create_row, refresh_data=get_data)
+    """
+    # Main table container
+    table_container = ctk.CTkFrame(parent)
+    table_container.pack(fill="both", expand=True, padx=10, pady=10)
+    
+    # Store reference to content area for refreshing
+    content_ref = {'content': None}
+    
+    def refresh_table():
+        """Refresh the table data"""
+        # Get fresh data if refresh callback provided
+        current_data = refresh_data() if refresh_data else data or []
+        
+        # Create scrollable content area on first call, or clear existing children
+        if content_ref['content'] is None:
+            content = scrollable_container(table_container, pady=0, padx=0)
+            content_ref['content'] = content
+        else:
+            # Clear all children from existing container
+            for widget in content_ref['content'].winfo_children():
+                widget.destroy()
+            content = content_ref['content']
+        
+        # Header row
+        header_row = ctk.CTkFrame(content, fg_color=("gray75", "gray25"))
+        header_row.pack(fill="x", padx=5, pady=(5, 0))
+        
+        for col in columns:
+            col_width = col.get('width', 150)
+            header_cell = ctk.CTkLabel(
+                header_row,
+                text=col['name'],
+                width=col_width-10,
+                font=("Arial", 13, "bold"),
+                anchor="w"
+            )
+            header_cell.pack(side="left", padx=5, pady=8)
+            vertical_divider(header_row, padx=(0, 8))
+        
+        # Actions column header if editable or deletable
+        if editable or deletable:
+            ctk.CTkLabel(
+                header_row,
+                text="Actions",
+                width=120,
+                font=("Arial", 13, "bold"),
+                anchor="center"
+            ).pack(side="right", padx=5, pady=8)
+        
+        # Data rows
+        for row_data in current_data:
+            create_row_widget(content, row_data, columns, editable, deletable, 
+                            on_update, on_delete, refresh_table)
+        
+        # Add new row button
+        if on_create:
+            add_btn = ctk.CTkButton(
+                content,
+                text="+ Add New Row",
+                command=lambda: create_new_row_dialog(columns, on_create, refresh_table),
+                height=35,
+                fg_color=("gray70", "gray30"),
+                hover_color=("gray60", "gray25")
+            )
+            add_btn.pack(side="left", pady=10)
+
+                # Refresh button
+        refresh_btn = ctk.CTkButton(
+            content,
+            text="⟳ Refresh",
+            command=refresh_table,
+            height=35,
+            width=120,
+            fg_color=("gray70", "gray30"),
+            hover_color=("gray60", "gray25")
+        )
+        refresh_btn.pack(pady=10)
+    
+    def create_row_widget(parent_widget, row_data, cols, is_editable, is_deletable, 
+                         update_callback, delete_callback, refresh_callback):
+        """Create a single row in the table"""
+        row = ctk.CTkFrame(parent_widget, fg_color="transparent")
+        row.pack(fill="x", padx=5, pady=2)
+        
+        # Store widgets for editing
+        cell_widgets = {}
+        
+        for col in cols:
+            col_width = col.get('width', 150)
+            col_key = col['key']
+            col_editable = col.get('editable', True)
+            value = str(row_data.get(col_key, ''))
+            
+            cell_frame = ctk.CTkFrame(row, fg_color="transparent")
+            cell_frame.pack(side="left", padx=5, pady=5)
+            
+            cell_label = ctk.CTkLabel(
+                cell_frame,
+                text=value,
+                width=col_width,
+                anchor="w",
+                font=("Arial", 12)
+            )
+            cell_label.pack()
+            
+            cell_widgets[col_key] = {'label': cell_label, 'editable': col_editable}
+        
+        # Action buttons
+        if is_editable or is_deletable:
+            action_frame = ctk.CTkFrame(row, fg_color="transparent")
+            action_frame.pack(side="right", padx=5)
+            
+            if is_editable:
+                edit_btn = ctk.CTkButton(
+                    action_frame,
+                    text="Edit",
+                    width=50,
+                    height=28,
+                    command=lambda: edit_row(row_data, cell_widgets, cols, 
+                                            update_callback, refresh_callback),
+                    fg_color=("gray70", "gray30"),
+                    hover_color=("gray60", "gray25")
+                )
+                edit_btn.pack(side="left", padx=2)
+            
+            if is_deletable:
+                delete_btn = ctk.CTkButton(
+                    action_frame,
+                    text="Delete",
+                    width=60,
+                    height=28,
+                    command=lambda: delete_row(row_data, delete_callback, refresh_callback),
+                    fg_color=("red", "darkred"),
+                    hover_color=("darkred", "red")
+                )
+                delete_btn.pack(side="left", padx=2)
+    
+    def edit_row(row_data, cell_widgets, cols, update_callback, refresh_callback):
+        """Enable editing for a row"""
+        edit_data = {}
+        
+        # Convert labels to entries
+        for col in cols:
+            col_key = col['key']
+            if col_key in cell_widgets and cell_widgets[col_key]['editable']:
+                widget_info = cell_widgets[col_key]
+                label = widget_info['label']
+                current_value = label.cget("text")
+                
+                # Replace label with entry
+                label.pack_forget()
+                entry = ctk.CTkEntry(
+                    label.master,
+                    width=col.get('width', 150),
+                    font=("Arial", 12)
+                )
+                entry.insert(0, current_value)
+                entry.pack()
+                edit_data[col_key] = entry
+        
+        # Change edit button to save
+        if cell_widgets:
+            first_cell = list(cell_widgets.values())[0]
+            button_frame = first_cell['label'].master.master
+            
+            # Find and update buttons
+            for widget in button_frame.winfo_children():
+                if isinstance(widget, ctk.CTkFrame):
+                    for btn in widget.winfo_children():
+                        if isinstance(btn, ctk.CTkButton) and btn.cget("text") == "Edit":
+                            btn.configure(
+                                text="Save",
+                                command=lambda: save_row(row_data, edit_data, 
+                                                        update_callback, refresh_callback)
+                            )
+    
+    def save_row(row_data, edit_data, update_callback, refresh_callback):
+        """Save edited row data"""
+        updated_data = {key: entry.get() for key, entry in edit_data.items()}
+        
+        if update_callback:
+            result = update_callback(row_data, updated_data)
+            if result is True:
+                refresh_callback()
+            else:
+                # Show error (could be enhanced with error display)
+                print(f"Update failed: {result}")
+    
+    def delete_row(row_data, delete_callback, refresh_callback):
+        """Delete a row"""
+        if delete_callback:
+            result = delete_callback(row_data)
+            if result is True:
+                refresh_callback()
+            else:
+                print(f"Delete failed: {result}")
+    
+    # un-tested possibly contains bugs
+    def create_new_row_dialog(cols, create_callback, refresh_callback):
+        """Open dialog to create new row"""
+        fields = [
+            {
+                'name': col['name'],
+                'type': 'text',
+                'placeholder': col['name']
+            }
+            for col in cols if col.get('editable', True)
+        ]
+        
+        def handle_create(values):
+            # Map field names back to keys
+            new_data = {}
+            for col in cols:
+                if col.get('editable', True):
+                    new_data[col['key']] = values.get(col['name'], '')
+            
+            result = create_callback(new_data)
+            if result is True:
+                refresh_callback()
+                return True
+            else:
+                return f"Create failed: {result}"
+        
+        # Create popup with form
+        button, open_popup = popup_card(
+            table_container,
+            "Add New",
+            "Create New Row",
+            small=True,
+            button_size="medium"
+        )
+        
+        content = open_popup()
+        form, error = form_element(
+            content,
+            fields,
+            name=None,
+            submit_text="Create",
+            on_submit=handle_create
+        )
+    
+    # Initial table load
+    refresh_table()
+    
+    return table_container, refresh_table

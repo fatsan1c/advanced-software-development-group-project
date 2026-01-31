@@ -10,9 +10,9 @@ def create_user(username: str, user_type: str, location: str = ""):
     if user_type_lower == "administrator" or user_type_lower == "admin":
         return Administrator(username, location)
     elif user_type_lower == "manager":
-        return Manager(username)
+        return Manager(username, location)
     elif user_type_lower == "financemanager" or user_type_lower == "finance":
-        return FinanceManager(username)
+        return FinanceManager(username, location)
     elif user_type_lower == "frontdeskstaff" or user_type_lower == "frontdesk":
         return FrontDeskStaff(username, location)
     elif user_type_lower == "maintenancestaff" or user_type_lower == "maintenance":
@@ -54,6 +54,7 @@ class User:
             text=self.role + " Dashboard" + (f" - {self.location}" if self.location else ""),
             font=("Arial", 24)
         ).place(relx=0.5, rely=0.5, anchor="center")
+        print(self.role, self.location)
 
         ctk.CTkButton(
             top_content, 
@@ -68,8 +69,8 @@ class User:
 class Manager(User):
     """Manager user with business-wide access and control."""
     
-    def __init__(self, username: str):
-        super().__init__(username, role="Manager")
+    def __init__(self, username: str, location: str = None):
+        super().__init__(username, role="Manager", location=location)
 
     def view_apartment_occupancy(self, location: str):
         """View apartment occupancy for a specific location."""
@@ -99,21 +100,32 @@ class Manager(User):
         except Exception as e:
             return f"Failed to create account: {str(e)}"
 
-    def delete_account(self, values):
-        """Delete an existing user account by username or ID."""
-        user_identifier = values.get('Users', None)
-        user_id = values.get('ID', None)
+    def edit_account(self, user_data, values):
+        """Edit an existing user account's role and location."""
+        user_id = user_data.get('user_ID', None)
+
+        username = values.get('username', '')
+        role = values.get('role', '')
+        location = values.get('city', None)
+        
+        # Handle "None" string from dropdown
+        if location and location != "None":
+            location_id = location_repo.get_location_id_by_city(location)
+        else:
+            location_id = None
 
         try:
-            if user_identifier and user_identifier != "None":
-                # Assuming username is unique
-                user = user_repo.get_user_by_username(user_identifier)
-                if user:
-                    user_repo.delete_user(user['user_ID'])
-                else:
-                    return "User not found."
-            elif user_id:
-                user_repo.delete_user(int(user_id))
+            user_repo.update_user(user_id, username=username, role=role, location_ID=location_id)
+            return True  # Success
+        except Exception as e:
+            return f"Failed to edit account: {str(e)}"
+
+    def delete_account(self, user_data):
+        """Delete an existing user account by username or ID."""
+
+        try:
+            if user_data and 'user_ID' in user_data:
+                user_repo.delete_user(int(user_data['user_ID']))
             else:
                 return "No valid user identifier provided."
 
@@ -176,16 +188,38 @@ class Manager(User):
 
         pe.form_element(accounts_card, fields, name="Create", submit_text="Create Account", on_submit=self.create_account, small=True)
 
-        def update_user_names(selected_value):
-            """Refresh user list when dropdown is clicked."""
-            return ['None'] + user_repo.get_all_usernames()
+        # Create the popup with a button
+        button, open_popup_func = pe.popup_card(
+            accounts_card, 
+            button_text="Edit Accounts", 
+            title="Edit Accounts",
+            button_size="small"
+        )
 
-        fields = [
-            {'name': 'Users', 'type': 'dropdown', 'options': ['None'] + user_repo.get_all_usernames(), 'dropdown_update': update_user_names},
-            {'name': 'ID', 'type': 'text', 'small': True}
-        ]
+        def setup_popup():
+            content = open_popup_func()
 
-        pe.form_element(accounts_card, fields, name="Delete", submit_text="Delete Account", on_submit=self.delete_account, small=True)
+            columns = [
+                {'name': 'ID', 'key': 'user_ID', 'width': 80, 'editable': False},
+                {'name': 'Username', 'key': 'username', 'width': 200},
+                {'name': 'Location', 'key': 'city', 'width': 200},
+                {'name': 'Role', 'key': 'role', 'width': 150}
+            ]
+
+            def get_data():
+                return user_repo.get_all_users()
+
+            table, refresh = pe.data_table(
+                content, 
+                columns, 
+                editable=True, 
+                deletable=True,
+                refresh_data=get_data,
+                on_delete=self.delete_account,
+                on_update=self.edit_account
+            )
+
+        button.configure(command=setup_popup)
 
     def load_report_content(self, row):
         reports_card = pe.function_card(row, "Generate Reports", side="left")
@@ -283,8 +317,8 @@ class Administrator(User):
 class FinanceManager(User):
     """Finance manager with financial reporting and payment processing capabilities."""
     
-    def __init__(self, username: str):
-        super().__init__(username, role="Finance Manager")
+    def __init__(self, username: str, location: str = None):
+        super().__init__(username, role="Finance Manager", location=location)
 
     def generate_financial_reports(self):
         """Generate financial reports across all locations."""

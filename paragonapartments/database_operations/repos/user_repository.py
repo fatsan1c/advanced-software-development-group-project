@@ -53,9 +53,10 @@ def get_user_by_username(username):
         dict: User data if found, None otherwise
     """
     query = """
-        SELECT user_ID, username, role, location_ID
+        SELECT users.user_ID, users.username, users.role, locations.city
         FROM users 
-        WHERE username = ?
+        LEFT JOIN locations ON users.location_ID = locations.location_ID
+        WHERE users.username = ?
     """
     return execute_query(query, (username,), fetch_one=True)
 
@@ -71,9 +72,10 @@ def get_user_by_id(user_id):
         dict: User data if found, None otherwise
     """
     query = """
-        SELECT user_ID, username, role, location_ID
+        SELECT users.user_ID, users.username, users.role, locations.city
         FROM users 
-        WHERE user_ID = ?
+        LEFT JOIN locations ON users.location_ID = locations.location_ID
+        WHERE users.user_ID = ?
     """
     return execute_query(query, (user_id,), fetch_one=True)
 
@@ -114,9 +116,9 @@ def get_all_users():
         list: List of user dictionaries, empty list if error
     """
     query = """
-        SELECT user_ID, username, role, location_ID
+        SELECT users.user_ID, users.username, users.role, locations.city
         FROM users
-        ORDER BY username
+        LEFT JOIN locations ON users.location_ID = locations.location_ID
     """
     return execute_query(query, fetch_all=True)
 
