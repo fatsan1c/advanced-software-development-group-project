@@ -2,6 +2,7 @@ import customtkinter as ctk
 import pages.components.page_elements as pe
 import database_operations.repos.user_repository as user_repo
 import database_operations.repos.location_repository as location_repo
+import database_operations.repos.apartment_repository as apartment_repo
 
 def create_user(username: str, user_type: str, location: str = ""):
     """Factory function to create the appropriate user class based on user type"""
@@ -110,8 +111,22 @@ class Manager(User):
         super().__init__(username, role="Manager", location=location)
 
     def view_apartment_occupancy(self, location: str):
-        """View apartment occupancy for a specific location."""
-        print(f"Viewing apartment occupancy for location: {location}")
+        """
+        View apartment occupancy for a specific location or all locations.
+        
+        Args:
+            location (str): City name to filter by, or "all" for all locations
+        
+        Returns:
+            int: Number of occupied apartments
+        """
+        occupied_count = apartment_repo.get_all_occupancy(location)
+        if location and location.lower() != "all":
+            print(f"Occupied apartments in {location}: {occupied_count}")
+        else:
+            print(f"Total occupied apartments: {occupied_count}")
+        return occupied_count
+
 
     def generate_reports(self, location: str):
         """Generate maintenance reports for a location."""
@@ -201,16 +216,49 @@ class Manager(User):
     def load_occupancy_content(self, row):
         occupancy_card = pe.function_card(row, "Apartment Occupancy", side="left")
         
-        pe.action_button(
+        # Get all cities for dropdown
+        cities = ['All Locations'] + location_repo.get_all_cities()
+        
+        # Create dropdown
+        location_dropdown = ctk.CTkComboBox(
             occupancy_card,
-            text="View All Locations",
-            command=lambda: self.view_apartment_occupancy("all")
+            values=cities,
+            width=200,
+            font=("Arial", 14)
         )
-
+        location_dropdown.set("All Locations")
+        location_dropdown.pack(pady=10, padx=20)
+        
+        # Create result label (initially hidden)
+        result_label = ctk.CTkLabel(
+            occupancy_card,
+            text="",
+            font=("Arial", 16, "bold"),
+            text_color="#3B8ED0"
+        )
+        result_label.pack(pady=10, padx=20)
+        
+        # Function to update display
+        def update_occupancy_display():
+            location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
+            occupied_count = self.view_apartment_occupancy(location)
+            total_count = apartment_repo.get_total_apartments(location)
+            available_count = total_count - occupied_count
+            
+            if location == "all":
+                result_label.configure(
+                    text=f"Occupied: {occupied_count} | Available: {available_count} | Total: {total_count}"
+                )
+            else:
+                result_label.configure(
+                    text=f"{location} - Occupied: {occupied_count} | Available: {available_count} | Total: {total_count}"
+                )
+        
+        # Create view button
         pe.action_button(
             occupancy_card,
-            text="View Bristol",
-            command=lambda: self.view_apartment_occupancy("bristol")
+            text="View Occupancy",
+            command=update_occupancy_display
         )
 
     def load_account_content(self, row):
