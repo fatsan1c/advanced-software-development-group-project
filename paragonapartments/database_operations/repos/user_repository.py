@@ -4,6 +4,7 @@ Handles authentication, user CRUD operations, and role management.
 """
 
 from database_operations.db_execute import execute_query
+from passlib.hash import sha256_crypt
 
 
 def authenticate_user(username, password):
@@ -18,13 +19,15 @@ def authenticate_user(username, password):
         dict: User data if authentication successful, None otherwise
               Example: {'user_ID': 1, 'username': 'john', 'role': 'Admin', 'city': 'Bristol'}
     """
-    query = """
-        SELECT users.user_ID, users.username, users.role, users.location_ID, locations.city
-        FROM users
-        LEFT JOIN locations ON users.location_ID = locations.location_ID
-        WHERE users.username = ? AND users.password = ?
-    """
-    return execute_query(query, (username, password), fetch_one=True)
+
+    user = get_user_by_username(username)
+    if user and sha256_crypt.verify(password, user['password']):
+        return {
+            'user_ID': user['user_ID'],
+            'username': user['username'],
+            'role': user['role'],
+            'city': user['city']
+        }
 
 
 def validate_credentials(username, password):
@@ -53,7 +56,7 @@ def get_user_by_username(username):
         dict: User data if found, None otherwise
     """
     query = """
-        SELECT users.user_ID, users.username, users.role, locations.city
+        SELECT users.user_ID, users.password, users.username, users.role, locations.city
         FROM users 
         LEFT JOIN locations ON users.location_ID = locations.location_ID
         WHERE users.username = ?
@@ -72,7 +75,7 @@ def get_user_by_id(user_id):
         dict: User data if found, None otherwise
     """
     query = """
-        SELECT users.user_ID, users.username, users.role, locations.city
+        SELECT users.user_ID, users.password, users.username, users.role, locations.city
         FROM users 
         LEFT JOIN locations ON users.location_ID = locations.location_ID
         WHERE users.user_ID = ?
@@ -140,18 +143,19 @@ def create_user(username, password, role, location_ID=None):
     
     Args:
         username (str): Username for the new user
-        password (str): Password (TODO: should be hashed)
+        password (str): Plain text password (will be hashed)
         role (str): User role (Admin, Manager, Finance, etc.)
         location_ID (int, optional): Location ID for the user
         
     Returns:
         int: ID of newly created user, None if failed
     """
+    hashed_password = sha256_crypt.hash(password)
     query = """
         INSERT INTO users (username, password, role, location_ID)
         VALUES (?, ?, ?, ?)
     """
-    return execute_query(query, (username, password, role, location_ID), commit=True)
+    return execute_query(query, (username, hashed_password, role, location_ID), commit=True)
 
 
 def update_user(user_id, **kwargs):
@@ -173,6 +177,9 @@ def update_user(user_id, **kwargs):
     for field, value in kwargs.items():
         if field in allowed_fields:
             updates.append(f"{field} = ?")
+            # Hash password if it's being updated
+            if field == 'password':
+                value = sha256_crypt.hash(value)
             values.append(value)
     
     if not updates:
@@ -192,7 +199,7 @@ def change_password(username, old_password, new_password):
     Args:
         username (str): Username of user whose password to change
         old_password (str): The current password to verify
-        new_password (str): The new password (TODO: should be hashed)
+        new_password (str): The new password (will be hashed)
         
     Returns:
         bool: True if successful, False otherwise
@@ -202,8 +209,9 @@ def change_password(username, old_password, new_password):
         return False
     user_id = user['user_ID']
 
+    hashed_password = sha256_crypt.hash(new_password)
     query = "UPDATE users SET password = ? WHERE user_ID = ?"
-    result = execute_query(query, (new_password, user_id), commit=True)
+    result = execute_query(query, (hashed_password, user_id), commit=True)
     return result is not None and result > 0
 
 def delete_user(user_id):
