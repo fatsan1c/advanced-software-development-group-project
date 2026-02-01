@@ -4,6 +4,7 @@ Creates SQLite database with test data.
 
 import sqlite3
 import os
+from passlib.hash import sha256_crypt
 
 # Path to the SQLite database file (will be stored in the database folder)
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'paragonapartments', 'database', 'paragonapartments.db')
@@ -153,9 +154,9 @@ def create_database():
         (4, 'Manchester', '23 Corporation St, Manchester, M3T 3AM')
     ])
 
-    # Insert users
+    # Insert users (with hashed password)
     users_data = [
-        (1,None,'manager','paragon1','manager')
+        (1,None,'manager',sha256_crypt.hash('paragon1'),'manager')
     ]
     cursor.executemany("INSERT INTO users VALUES (?, ?, ?, ?, ?)", users_data)
     

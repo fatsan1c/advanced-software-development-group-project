@@ -4,6 +4,7 @@ Creates SQLite database with test data.
 
 import sqlite3
 import os
+from passlib.hash import sha256_crypt
 
 # Path to the SQLite database file (will be stored in the database folder)
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'paragonapartments', 'database', 'paragonapartments.db')
@@ -209,22 +210,22 @@ def create_database():
     ]
     cursor.executemany("INSERT INTO lease_agreements VALUES (?, ?, ?, ?, ?, ?, ?)", leases_data)
     
-    # Insert users
+    # Insert users (with hashed passwords)
     users_data = [
-        (1,None,'manager','paragon1','manager'),
-        (2,1,'bristol_admin','admin1','admin'),
-        (3,None,'finance','finance1','finance'),
-        (4,1,'bristol_frontdesk','front1','frontdesk'),
-        (5,1,'bristol_maintenance','maint1','maintenance'),
-        (7,2,'cardiff_admin','admin1','admin'),
-        (8,2,'cardiff_frontdesk','front1','frontdesk'),
-        (9,2,'cardiff_maintenance','maint1','maintenance'),
-        (10,3,'london_admin','admin1','admin'),
-        (11,3,'london_frontdesk','front1','frontdesk'),
-        (12,3,'london_maintenance','maint1','maintenance'),
-        (13,4,'manchester_admin','admin1','admin'),
-        (14,4,'manchester_frontdesk','front1','frontdesk'),
-        (15,4,'manchester_maintenance','maint1','maintenance')
+        (1,None,'manager',sha256_crypt.hash('paragon1'),'manager'),
+        (2,1,'bristol_admin',sha256_crypt.hash('admin1'),'admin'),
+        (3,None,'finance',sha256_crypt.hash('finance1'),'finance'),
+        (4,1,'bristol_frontdesk',sha256_crypt.hash('front1'),'frontdesk'),
+        (5,1,'bristol_maintenance',sha256_crypt.hash('maint1'),'maintenance'),
+        (7,2,'cardiff_admin',sha256_crypt.hash('admin1'),'admin'),
+        (8,2,'cardiff_frontdesk',sha256_crypt.hash('front1'),'frontdesk'),
+        (9,2,'cardiff_maintenance',sha256_crypt.hash('maint1'),'maintenance'),
+        (10,3,'london_admin',sha256_crypt.hash('admin1'),'admin'),
+        (11,3,'london_frontdesk',sha256_crypt.hash('front1'),'frontdesk'),
+        (12,3,'london_maintenance',sha256_crypt.hash('maint1'),'maintenance'),
+        (13,4,'manchester_admin',sha256_crypt.hash('admin1'),'admin'),
+        (14,4,'manchester_frontdesk',sha256_crypt.hash('front1'),'frontdesk'),
+        (15,4,'manchester_maintenance',sha256_crypt.hash('maint1'),'maintenance')
     ]
     cursor.executemany("INSERT INTO users VALUES (?, ?, ?, ?, ?)", users_data)
     
