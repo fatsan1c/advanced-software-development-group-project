@@ -38,6 +38,15 @@ class LoginPage(ctk.CTkToplevel):
         self.username_entry.pack(pady=6)
         self.password_entry = ctk.CTkEntry(inner_frame, placeholder_text="Password", show="*", font=("Arial", 14))
         self.password_entry.pack(pady=6)
+        
+        # Bind Enter key to both entry fields
+        self.username_entry.bind("<Return>", lambda event: self.authenticate(inner_frame, 
+                                                                              username=self.username_entry.get(), 
+                                                                              password=self.password_entry.get()))
+        self.password_entry.bind("<Return>", lambda event: self.authenticate(inner_frame, 
+                                                                              username=self.username_entry.get(), 
+                                                                              password=self.password_entry.get()))
+        
         ctk.CTkButton(inner_frame, text="Login",
              command=lambda: self.authenticate(inner_frame, username=self.username_entry.get(), 
                                                password=self.password_entry.get())).pack(pady=(20, 40), padx=40)
