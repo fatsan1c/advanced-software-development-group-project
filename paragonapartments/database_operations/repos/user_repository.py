@@ -16,10 +16,10 @@ def authenticate_user(username, password):
         
     Returns:
         dict: User data if authentication successful, None otherwise
-              Example: {'username': 'john', 'role': 'Admin', 'city': 'Bristol'}
+              Example: {'user_ID': 1, 'username': 'john', 'role': 'Admin', 'city': 'Bristol'}
     """
     query = """
-        SELECT users.username, users.role, users.location_ID, locations.city
+        SELECT users.user_ID, users.username, users.role, users.location_ID, locations.city
         FROM users
         LEFT JOIN locations ON users.location_ID = locations.location_ID
         WHERE users.username = ? AND users.password = ?
@@ -184,6 +184,27 @@ def update_user(user_id, **kwargs):
     result = execute_query(query, tuple(values), commit=True)
     return result is not None and result > 0
 
+def change_password(username, old_password, new_password):
+    """
+    Change a user's password.
+    Requires: 'update' permission on 'users' resource (checked by decorator)
+    
+    Args:
+        username (str): Username of user whose password to change
+        old_password (str): The current password to verify
+        new_password (str): The new password (TODO: should be hashed)
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    user = authenticate_user(username, old_password)
+    if not user:
+        return False
+    user_id = user['user_ID']
+
+    query = "UPDATE users SET password = ? WHERE user_ID = ?"
+    result = execute_query(query, (new_password, user_id), commit=True)
+    return result is not None and result > 0
 
 def delete_user(user_id):
     """

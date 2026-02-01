@@ -354,6 +354,22 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
                 # Success - show success message
                 success_label.configure(text="Operation completed successfully.")
                 success_label.pack(pady=0, padx=10)
+                # Clear all input fields after successful submission
+                for field_name, field_info in field_widgets.items():
+                    widget = field_info['widget']
+                    field_type = field_info['type']
+                    
+                    if field_type == 'text':
+                        widget.delete(0, 'end')
+                    elif field_type == 'checkbox':
+                        widget.deselect()
+                    elif field_type == 'dropdown':
+                        # Find the original field definition to get options
+                        field_def = next((f for f in fields if f['name'] == field_name), None)
+                        if field_def:
+                            options = field_def.get('options', [])
+                            if options:
+                                widget.set(options[0])
     
     submit_button = ctk.CTkButton(
         form,
@@ -368,7 +384,7 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
     return form, error_label
 
 
-def popup_card(parent, button_text, title, small=False, button_size="medium"):
+def popup_card(parent, title, button_text="", small=False, button_size="medium", generate_button=True):
     """Create a popup card that opens when a button is clicked.
     
     This creates a button that, when clicked, displays a modal popup with a darkened
@@ -383,7 +399,7 @@ def popup_card(parent, button_text, title, small=False, button_size="medium"):
         
     Returns:
         Tuple of (button_widget, content_container):
-        - button_widget: The button that opens the popup
+        - button_widget: The button that opens the popup (or None if generate_button is False)
         - content_container: The container inside the popup where you add your content
         
     Example:
@@ -463,7 +479,10 @@ def popup_card(parent, button_text, title, small=False, button_size="medium"):
         return content
     
     # Create trigger button
-    button = action_button(parent, button_text, open_popup, size=button_size)
+    if generate_button:
+        button = action_button(parent, button_text, open_popup, size=button_size)
+    else:
+        button = None
     
     return button, open_popup
 

@@ -38,20 +38,32 @@ class User:
         print(f"{self.username} has logged out.")
         home_page.close_page()
 
+    def change_password(self, values):
+        """Change the user's password."""
+        old_password = values.get('Old Password', '')
+        new_password = values.get('New Password', '')
+
+        success = user_repo.change_password(self.username, old_password, new_password)
+
+        if success:
+            return True
+        else:
+            return "Failed to change password. Please check your old password."
+
     def load_homepage_content(self, home_page):
         """Initialize and display home page content."""
         # Centered content wrapper
-        top_content = pe.content_container(parent=home_page, anchor="nw", fill="x")
+        top_content = pe.content_container(parent=home_page, anchor="nw", fill="x", marginy=(10, 0))
 
         ctk.CTkLabel(
             top_content, 
-            text="Paragon Apartments", 
+            text=self.username + (f" - {self.location}" if self.location else ""), 
             font=("Arial", 24)
         ).pack(side="left", padx=15)
 
         ctk.CTkLabel(
             top_content, 
-            text=self.role + " Dashboard" + (f" - {self.location}" if self.location else ""),
+            text=self.role + " Dashboard",
             font=("Arial", 24)
         ).place(relx=0.5, rely=0.5, anchor="center")
         print(self.role, self.location)
@@ -64,6 +76,31 @@ class User:
             font=("Arial", 17),
             command=lambda: self.logout(home_page)
         ).pack(side="right", padx=10)
+
+        _, open_popup = pe.popup_card(home_page, title="Change Password", small=True, generate_button=False)
+
+        def setup_popup():
+            content = open_popup()
+
+            fields = [
+                {'name': 'Old Password', 'type': 'text', 'required': True},
+                {'name': 'New Password', 'type': 'text', 'required': True},
+            ]
+            pe.form_element(content, fields, name="Change Password", submit_text="Change Password", on_submit=self.change_password, small=True)
+
+
+        ctk.CTkButton(
+            home_page, 
+            text="Change password",
+            bg_color="transparent",
+            fg_color="transparent",
+            hover_color=("gray90", "gray20"),
+            text_color=("black", "white"),
+            height=12,
+            width=10,
+            command=setup_popup,
+            font=("Arial", 10),
+        ).pack(anchor="ne", padx=15, pady=0)
 
 
 class Manager(User):
@@ -209,7 +246,7 @@ class Manager(User):
             def get_data():
                 return user_repo.get_all_users()
 
-            table, refresh = pe.data_table(
+            pe.data_table(
                 content, 
                 columns, 
                 editable=True, 
