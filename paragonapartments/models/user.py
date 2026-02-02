@@ -261,6 +261,22 @@ class Manager(User):
             command=update_occupancy_display
         )
 
+        # Create graph popup button
+        button, open_popup_func = pe.popup_card(
+            occupancy_card,
+            title="Apartment Occupancy Graph",
+            button_text="Show Occupancy Graph",
+            small=False,
+            button_size="small"
+        )
+
+        def setup_graph_popup():
+            content = open_popup_func()
+            location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
+            apartment_repo.create_occupancy_graph(content, location)
+
+        button.configure(command=setup_graph_popup)
+
     def load_account_content(self, row):
         accounts_card = pe.function_card(row, "Manage Accounts", side="left")
 
