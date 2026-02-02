@@ -24,7 +24,7 @@ Paragon Apartment Management System (PAMS) is a Python-based desktop application
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/shamykyzer/systems-development-group-project.git
+   git clone https://github.com/fatsan1c/advanced-software-development-group-project.git
    cd advanced-software-development-group-project
    ```
 
