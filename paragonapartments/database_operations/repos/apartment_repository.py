@@ -101,3 +101,86 @@ def create_occupancy_graph(parent, location=None):
 def generate_financial_report():
      pass
     
+def get_all_apartments():
+    """
+    Get all apartments from the database.
+    
+    Returns:
+        list: List of apartment dictionaries, empty list if error
+    """
+    query = """
+        SELECT a.apartment_ID, l.city, a.apartment_address, a.number_of_beds, a.monthly_rent, 
+               CASE WHEN a.occupied = 1 THEN 'Occupied' ELSE 'Vacant' END AS status
+        FROM apartments a
+        JOIN locations l ON a.location_ID = l.location_ID
+        ORDER BY l.city, a.apartment_address
+    """
+    return execute_query(query, fetch_all=True)
+
+def create_apartment(location_ID, apartment_address, number_of_beds, monthly_rent, occupied):
+    """
+    Create a new apartment in the database.
+    
+    Args:
+        apartment_address (str): Address of the apartment
+        number_of_beds (int): Number of beds in the apartment
+        monthly_rent (float): Monthly rent amount
+        occupied (int): 1 if occupied, 0 if vacant
+        location_ID (int): Location ID for the apartment
+        
+    Returns:
+        bool: True if creation was successful, False otherwise
+    """
+    
+    query = """
+        INSERT INTO apartments (apartment_address, number_of_beds, monthly_rent, occupied, location_ID)
+        VALUES (?, ?, ?, ?, ?)
+    """
+    params = (apartment_address, number_of_beds, monthly_rent, occupied, location_ID)
+    
+    result = execute_query(query, params, commit=True)
+    return result is not None
+
+def update_apartment(apartment_id, **kwargs):
+    """
+    Update apartment information.
+    
+    Args:
+        apartment_id (int): ID of apartment to update
+        **kwargs: Fields to update (apartment_address, number_of_beds, monthly_rent, occupied, location_ID)
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    fields = []
+    params = []
+    
+    for key, value in kwargs.items():
+        fields.append(f"{key} = ?")
+        params.append(value)
+    
+    params.append(apartment_id)
+    set_clause = ", ".join(fields)
+    
+    query = f"""
+        UPDATE apartments
+        SET {set_clause}
+        WHERE apartment_ID = ?
+    """
+    
+    result = execute_query(query, tuple(params), commit=True)
+    return result is not None
+
+def delete_apartment(apartment_id):
+    """
+    Delete an apartment from the database.
+    
+    Args:
+        apartment_id (int): ID of apartment to delete
+    """
+    query = """
+        DELETE FROM apartments
+        WHERE apartment_ID = ?
+    """
+    result = execute_query(query, (apartment_id,), commit=True)
+    return result is not None

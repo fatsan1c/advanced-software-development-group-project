@@ -68,7 +68,6 @@ class User:
             text=self.role + " Dashboard",
             font=("Arial", 24)
         ).place(relx=0.5, rely=0.5, anchor="center")
-        print(self.role, self.location)
 
         ctk.CTkButton(
             top_content, 
@@ -85,8 +84,8 @@ class User:
             content = open_popup()
 
             fields = [
-                {'name': 'Old Password', 'type': 'text', 'required': True},
-                {'name': 'New Password', 'type': 'text', 'required': True},
+                {'name': 'Old Password', 'type': 'text', 'subtype': 'password', 'required': True},
+                {'name': 'New Password', 'type': 'text', 'subtype': 'password', 'required': True},
             ]
             pe.form_element(content, fields, name="Change Password", submit_text="Change Password", on_submit=self.change_password, small=True)
 
@@ -225,7 +224,61 @@ class Manager(User):
 
     def add_apartment(self, apartment_data):
         """Add a new apartment to the system."""
-        print("Adding new apartment...")
+        location = apartment_data.get('Location', '')
+        apartment_address = apartment_data.get('Apartment Address', '')
+        number_of_beds = apartment_data.get('Number of Beds', 0)
+        monthly_rent = apartment_data.get('Monthly Rent', 0)
+        status = apartment_data.get('Status', 'Vacant')
+
+        occupied = 1 if status.lower() == "occupied" else 0
+
+        try:
+            location_id = location_repo.get_location_id_by_city(location)
+            apartment_repo.create_apartment(location_id, apartment_address, number_of_beds, monthly_rent, occupied)
+            return True  # Success
+        except Exception as e:
+            return f"Failed to add apartment: {str(e)}"
+
+    def delete_apartment(self, apartment_data):
+        """Delete an existing apartment by ID."""
+
+        try:
+            if apartment_data and 'apartment_ID' in apartment_data:
+                apartment_repo.delete_apartment(int(apartment_data['apartment_ID']))
+            else:
+                return "No valid apartment identifier provided."
+
+            return True  # Success
+        except Exception as e:
+            return f"Failed to delete apartment: {str(e)}"
+        
+    def edit_apartment(self, apartment_data, values):
+        """Edit an existing apartment's details."""
+        apartment_id = apartment_data.get('apartment_ID', None)
+
+        location = values.get('city', '')
+        apartment_address = values.get('apartment_address', '')
+        number_of_beds = values.get('number_of_beds', 0)
+        monthly_rent = values.get('monthly_rent', 0)
+        status = values.get('status', 'Vacant')
+
+        occupied = 1 if status.lower() == "occupied" else 0
+
+        try:
+            location_id = location_repo.get_location_id_by_city(location)
+            if location_id is None:
+                return "Invalid location specified."
+            apartment_repo.update_apartment(
+                apartment_id,
+                location_ID=location_id,
+                apartment_address=apartment_address,
+                number_of_beds=number_of_beds,
+                monthly_rent=monthly_rent,
+                occupied=occupied
+            )
+            return True  # Success
+        except Exception as e:
+            return f"Failed to edit apartment: {str(e)}"
 
 
     def load_homepage_content(self, home_page):
@@ -415,12 +468,12 @@ class Manager(User):
         fields = [
             {'name': 'Location', 'type': 'dropdown', 'options': location_repo.get_all_cities(), 'required': True},
             {'name': 'Apartment Address', 'type': 'text', 'required': True},
-            {'name': 'Number of Beds', 'type': 'number', 'required': True},
-            {'name': 'Monthly Rent', 'type': 'number', 'required': True},
-            {'name': 'Status', 'type': 'dropdown', 'options': ["Occupied", "Vacant"], 'required': True},
+            {'name': 'Number of Beds', 'type': 'text', 'subtype': 'number', 'required': True},
+            {'name': 'Monthly Rent', 'type': 'text', 'subtype': 'currency', 'required': True},
+            {'name': 'Status', 'type': 'dropdown', 'options': ["Vacant", "Occupied"], 'required': True},
         ]
 
-        pe.form_element(expand_card, fields, name="Add Apartment", submit_text="Add", on_submit=self.add_apartment, small=True)
+        pe.form_element(expand_card, fields, name="Add Apartment", submit_text="Add", on_submit=self.add_apartment, small=True, field_per_row=5)
 
         # Create the popup with a button
         button, open_popup_func = pe.popup_card(
@@ -435,11 +488,11 @@ class Manager(User):
 
             columns = [
                 {'name': 'ID', 'key': 'apartment_ID', 'width': 80, 'editable': False},
-                {'name': 'Location', 'key': 'city', 'width': 200},
-                {'name': 'Address', 'key': 'apartment_address', 'width': 200},
+                {'name': 'Location', 'key': 'city', 'width': 150},
+                {'name': 'Address', 'key': 'apartment_address', 'width': 150},
                 {'name': 'Beds', 'key': 'number_of_beds', 'width': 80},
-                {'name': 'Monthly Rent', 'key': 'monthly_rent', 'width': 100},
-                {'name': 'Status', 'key': 'occupied', 'width': 100}
+                {'name': 'Monthly Rent', 'key': 'monthly_rent', 'width': 120},
+                {'name': 'Status', 'key': 'status', 'width': 100}
             ]
 
             def get_data():
@@ -450,7 +503,9 @@ class Manager(User):
                 columns, 
                 editable=True, 
                 deletable=True,
-                refresh_data=get_data
+                refresh_data=get_data,
+                on_delete=self.delete_apartment,
+                on_update=self.edit_apartment
             )
 
         button.configure(command=setup_popup)
