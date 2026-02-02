@@ -1,5 +1,8 @@
 import customtkinter as ctk
 import pages.components.page_elements as pe
+import database_operations.repos.user_repository as user_repo
+import database_operations.repos.location_repository as location_repo
+import database_operations.repos.apartment_repository as apartment_repo
 
 def create_user(username: str, user_type: str, location: str = ""):
     """Factory function to create the appropriate user class based on user type"""
@@ -8,9 +11,9 @@ def create_user(username: str, user_type: str, location: str = ""):
     if user_type_lower == "administrator" or user_type_lower == "admin":
         return Administrator(username, location)
     elif user_type_lower == "manager":
-        return Manager(username)
+        return Manager(username, location)
     elif user_type_lower == "financemanager" or user_type_lower == "finance":
-        return FinanceManager(username)
+        return FinanceManager(username, location)
     elif user_type_lower == "frontdeskstaff" or user_type_lower == "frontdesk":
         return FrontDeskStaff(username, location)
     elif user_type_lower == "maintenancestaff" or user_type_lower == "maintenance":
@@ -36,22 +39,35 @@ class User:
         print(f"{self.username} has logged out.")
         home_page.close_page()
 
+    def change_password(self, values):
+        """Change the user's password."""
+        old_password = values.get('Old Password', '')
+        new_password = values.get('New Password', '')
+
+        success = user_repo.change_password(self.username, old_password, new_password)
+
+        if success:
+            return True
+        else:
+            return "Failed to change password. Please check your old password."
+
     def load_homepage_content(self, home_page):
         """Initialize and display home page content."""
         # Centered content wrapper
-        top_content = pe.content_container(parent=home_page, anchor="nw", fill="x")
+        top_content = pe.content_container(parent=home_page, anchor="nw", fill="x", marginy=(10, 0))
 
         ctk.CTkLabel(
             top_content, 
-            text="Paragon Apartments", 
+            text=self.username + (f" - {self.location}" if self.location else ""), 
             font=("Arial", 24)
         ).pack(side="left", padx=15)
 
         ctk.CTkLabel(
             top_content, 
-            text=self.role + " Dashboard" + (f" - {self.location}" if self.location else ""),
+            text=self.role + " Dashboard",
             font=("Arial", 24)
         ).place(relx=0.5, rely=0.5, anchor="center")
+        print(self.role, self.location)
 
         ctk.CTkButton(
             top_content, 
@@ -62,16 +78,55 @@ class User:
             command=lambda: self.logout(home_page)
         ).pack(side="right", padx=10)
 
+        _, open_popup = pe.popup_card(home_page, title="Change Password", small=True, generate_button=False)
+
+        def setup_popup():
+            content = open_popup()
+
+            fields = [
+                {'name': 'Old Password', 'type': 'text', 'required': True},
+                {'name': 'New Password', 'type': 'text', 'required': True},
+            ]
+            pe.form_element(content, fields, name="Change Password", submit_text="Change Password", on_submit=self.change_password, small=True)
+
+
+        ctk.CTkButton(
+            home_page, 
+            text="Change password",
+            bg_color="transparent",
+            fg_color="transparent",
+            hover_color=("gray90", "gray20"),
+            text_color=("black", "white"),
+            height=12,
+            width=10,
+            command=setup_popup,
+            font=("Arial", 10),
+        ).pack(anchor="ne", padx=15, pady=0)
+
 
 class Manager(User):
     """Manager user with business-wide access and control."""
     
-    def __init__(self, username: str):
-        super().__init__(username, role="Manager")
+    def __init__(self, username: str, location: str = None):
+        super().__init__(username, role="Manager", location=location)
 
     def view_apartment_occupancy(self, location: str):
-        """View apartment occupancy for a specific location."""
-        print(f"Viewing apartment occupancy for location: {location}")
+        """
+        View apartment occupancy for a specific location or all locations.
+        
+        Args:
+            location (str): City name to filter by, or "all" for all locations
+        
+        Returns:
+            int: Number of occupied apartments
+        """
+        occupied_count = apartment_repo.get_all_occupancy(location)
+        if location and location.lower() != "all":
+            print(f"Occupied apartments in {location}: {occupied_count}")
+        else:
+            print(f"Total occupied apartments: {occupied_count}")
+        return occupied_count
+
 
     def generate_reports(self, location: str):
         """Generate maintenance reports for a location."""
@@ -81,8 +136,54 @@ class Manager(User):
         """Create a new user account with specified role and location."""
         username = values.get('Username', '')
         role = values.get('Role', '')
-        location = values.get('Location', '')
-        print(f"Creating account for {username} with role {role} at location {location}")
+        password = values.get('Password', '')
+        location = values.get('Location', None)
+        
+        # Handle "None" string from dropdown
+        if location and location != "None":
+            location_id = location_repo.get_location_id_by_city(location)
+        else:
+            location_id = None
+
+        try:
+            #Database operation
+            user_repo.create_user(username, password, role, location_id)
+            return True  # Success
+        except Exception as e:
+            return f"Failed to create account: {str(e)}"
+
+    def edit_account(self, user_data, values):
+        """Edit an existing user account's role and location."""
+        user_id = user_data.get('user_ID', None)
+
+        username = values.get('username', '')
+        role = values.get('role', '')
+        location = values.get('city', None)
+        
+        # Handle "None" string from dropdown
+        if location and location != "None":
+            location_id = location_repo.get_location_id_by_city(location)
+        else:
+            location_id = None
+
+        try:
+            user_repo.update_user(user_id, username=username, role=role, location_ID=location_id)
+            return True  # Success
+        except Exception as e:
+            return f"Failed to edit account: {str(e)}"
+
+    def delete_account(self, user_data):
+        """Delete an existing user account by username or ID."""
+
+        try:
+            if user_data and 'user_ID' in user_data:
+                user_repo.delete_user(int(user_data['user_ID']))
+            else:
+                return "No valid user identifier provided."
+
+            return True  # Success
+        except Exception as e:
+            return f"Failed to delete account: {str(e)}"
 
     def expand_business(self, new_location: str):
         """Expand business to a new location."""
@@ -115,16 +216,49 @@ class Manager(User):
     def load_occupancy_content(self, row):
         occupancy_card = pe.function_card(row, "Apartment Occupancy", side="left")
         
-        pe.action_button(
+        # Get all cities for dropdown
+        cities = ['All Locations'] + location_repo.get_all_cities()
+        
+        # Create dropdown
+        location_dropdown = ctk.CTkComboBox(
             occupancy_card,
-            text="View All Locations",
-            command=lambda: self.view_apartment_occupancy("all")
+            values=cities,
+            width=200,
+            font=("Arial", 14)
         )
-
+        location_dropdown.set("All Locations")
+        location_dropdown.pack(pady=10, padx=20)
+        
+        # Create result label (initially hidden)
+        result_label = ctk.CTkLabel(
+            occupancy_card,
+            text="",
+            font=("Arial", 16, "bold"),
+            text_color="#3B8ED0"
+        )
+        result_label.pack(pady=10, padx=20)
+        
+        # Function to update display
+        def update_occupancy_display():
+            location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
+            occupied_count = self.view_apartment_occupancy(location)
+            total_count = apartment_repo.get_total_apartments(location)
+            available_count = total_count - occupied_count
+            
+            if location == "all":
+                result_label.configure(
+                    text=f"Occupied: {occupied_count} | Available: {available_count} | Total: {total_count}"
+                )
+            else:
+                result_label.configure(
+                    text=f"{location} - Occupied: {occupied_count} | Available: {available_count} | Total: {total_count}"
+                )
+        
+        # Create view button
         pe.action_button(
             occupancy_card,
-            text="View Bristol",
-            command=lambda: self.view_apartment_occupancy("bristol")
+            text="View Occupancy",
+            command=update_occupancy_display
         )
 
     def load_account_content(self, row):
@@ -134,10 +268,43 @@ class Manager(User):
             {'name': 'Username', 'type': 'text', 'required': True},
             {'name': 'Role', 'type': 'dropdown', 'options': ['Admin', 'Manager', 'Finance Manager', 'Frontdesk', 'Maintenance'], 'required': True},
             {'name': 'Password', 'type': 'text', 'required': True},
-            {'name': 'Location', 'type': 'dropdown', 'options': ['Bristol', 'London', 'Cardiff', 'Manchester'], 'required': False}
+            {'name': 'Location', 'type': 'dropdown', 'options': ['None'] + location_repo.get_all_cities(), 'required': False}
         ]
 
-        pe.form_element(accounts_card, fields, submit_text="Create Account", on_submit=self.create_account)
+        pe.form_element(accounts_card, fields, name="Create", submit_text="Create Account", on_submit=self.create_account, small=True)
+
+        # Create the popup with a button
+        button, open_popup_func = pe.popup_card(
+            accounts_card, 
+            button_text="Edit Accounts", 
+            title="Edit Accounts",
+            button_size="small"
+        )
+
+        def setup_popup():
+            content = open_popup_func()
+
+            columns = [
+                {'name': 'ID', 'key': 'user_ID', 'width': 80, 'editable': False},
+                {'name': 'Username', 'key': 'username', 'width': 200},
+                {'name': 'Location', 'key': 'city', 'width': 200},
+                {'name': 'Role', 'key': 'role', 'width': 150}
+            ]
+
+            def get_data():
+                return user_repo.get_all_users()
+
+            pe.data_table(
+                content, 
+                columns, 
+                editable=True, 
+                deletable=True,
+                refresh_data=get_data,
+                on_delete=self.delete_account,
+                on_update=self.edit_account
+            )
+
+        button.configure(command=setup_popup)
 
     def load_report_content(self, row):
         reports_card = pe.function_card(row, "Generate Reports", side="left")
@@ -235,8 +402,8 @@ class Administrator(User):
 class FinanceManager(User):
     """Finance manager with financial reporting and payment processing capabilities."""
     
-    def __init__(self, username: str):
-        super().__init__(username, role="Finance Manager")
+    def __init__(self, username: str, location: str = None):
+        super().__init__(username, role="Finance Manager", location=location)
 
     def generate_financial_reports(self):
         """Generate financial reports across all locations."""
