@@ -3,6 +3,7 @@ import pages.components.page_elements as pe
 import database_operations.repos.user_repository as user_repo
 import database_operations.repos.location_repository as location_repo
 import database_operations.repos.apartment_repository as apartment_repo
+import database_operations.repos.apartment_repository as apartment_repo
 
 def create_user(username: str, user_type: str, location: str = ""):
     """Factory function to create the appropriate user class based on user type"""
@@ -187,8 +188,46 @@ class Manager(User):
 
     def expand_business(self, new_location: str):
         """Expand business to a new location."""
-        print(f"Expanding business to new location: {new_location}")
+        city = new_location.get('City', '')
+        address = new_location.get('Address', '')
+
+        try:
+            location_repo.create_location(city, address)
+            return True  # Success
+        except Exception as e:
+            return f"Failed to add location: {str(e)}"
     
+    def edit_location(self, location_data, values):
+        """Edit an existing location's city and address."""
+        location_id = location_data.get('location_ID', None)
+
+        city = values.get('city', '')
+        address = values.get('address', '')
+
+        try:
+            location_repo.update_location(location_id, city=city, address=address)
+            return True  # Success
+        except Exception as e:
+            return f"Failed to edit location: {str(e)}"
+        
+    def delete_location(self, location_data):
+        """Delete an existing location by ID."""
+
+        try:
+            if location_data and 'location_ID' in location_data:
+                location_repo.delete_location(int(location_data['location_ID']))
+            else:
+                return "No valid location identifier provided."
+
+            return True  # Success
+        except Exception as e:
+            return f"Failed to delete location: {str(e)}"
+
+    def add_apartment(self, apartment_data):
+        """Add a new apartment to the system."""
+        print("Adding new apartment...")
+
+
     def load_homepage_content(self, home_page):
         """Load Manager-specific homepage content."""
         # Load base content first
@@ -318,11 +357,87 @@ class Manager(User):
     def load_business_expansion_content(self, row):
         expand_card = pe.function_card(row, "Expand Business", side="top")
 
-        pe.action_button(
-            expand_card,
-            text="Add Location",
-            command=lambda: self.expand_business("newlocation")
+        fields = [
+            {'name': 'City', 'type': 'text', 'required': True},
+            {'name': 'Address', 'type': 'text', 'required': True},
+        ]
+
+        pe.form_element(expand_card, fields, name="Add Location", submit_text="Add", on_submit=self.expand_business, small=True)
+
+        # Create the popup with a button
+        button, open_popup_func = pe.popup_card(
+            expand_card, 
+            button_text="Edit Locations", 
+            title="Edit Locations",
+            button_size="small"
         )
+
+        def setup_popup():
+            content = open_popup_func()
+
+            columns = [
+                {'name': 'ID', 'key': 'location_ID', 'width': 80, 'editable': False},
+                {'name': 'City', 'key': 'city', 'width': 200},
+                {'name': 'Address', 'key': 'address', 'width': 200}
+            ]
+
+            def get_data():
+                return location_repo.get_all_locations()
+
+            pe.data_table(
+                content, 
+                columns, 
+                editable=True, 
+                deletable=True,
+                refresh_data=get_data,
+                on_delete=self.delete_location,
+                on_update=self.edit_location
+            )
+
+        button.configure(command=setup_popup)
+
+        fields = [
+            {'name': 'Location', 'type': 'dropdown', 'options': location_repo.get_all_cities(), 'required': True},
+            {'name': 'Apartment Address', 'type': 'text', 'required': True},
+            {'name': 'Number of Beds', 'type': 'number', 'required': True},
+            {'name': 'Monthly Rent', 'type': 'number', 'required': True},
+            {'name': 'Status', 'type': 'dropdown', 'options': ["Occupied", "Vacant"], 'required': True},
+        ]
+
+        pe.form_element(expand_card, fields, name="Add Apartment", submit_text="Add", on_submit=self.add_apartment, small=True)
+
+        # Create the popup with a button
+        button, open_popup_func = pe.popup_card(
+            expand_card, 
+            button_text="Edit Apartments", 
+            title="Edit Apartments",
+            button_size="small"
+        )
+
+        def setup_popup():
+            content = open_popup_func()
+
+            columns = [
+                {'name': 'ID', 'key': 'apartment_ID', 'width': 80, 'editable': False},
+                {'name': 'Location', 'key': 'city', 'width': 200},
+                {'name': 'Address', 'key': 'apartment_address', 'width': 200},
+                {'name': 'Beds', 'key': 'number_of_beds', 'width': 80},
+                {'name': 'Monthly Rent', 'key': 'monthly_rent', 'width': 100},
+                {'name': 'Status', 'key': 'occupied', 'width': 100}
+            ]
+
+            def get_data():
+                return apartment_repo.get_all_apartments()
+
+            pe.data_table(
+                content, 
+                columns, 
+                editable=True, 
+                deletable=True,
+                refresh_data=get_data
+            )
+
+        button.configure(command=setup_popup)
 
 
 class Administrator(User):
