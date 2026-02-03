@@ -55,7 +55,8 @@ def create_database():
     cursor.execute("""
     CREATE TABLE tenants (
         tenant_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
         date_of_birth TEXT NOT NULL,
         NI_number TEXT UNIQUE NOT NULL,
         email TEXT UNIQUE NOT NULL,
@@ -178,28 +179,28 @@ def create_database():
     
     # Insert tenants with realistic UK data
     tenants_data = [
-        (1,'Alice Brown','1992-03-15','AB123456C','alice.brown@demo.com','07111111111','Software Engineer',45000,'N','Y','Passed'),
-        (2,'James Wilson','1988-07-22','JW234567A','james.wilson@demo.com','07111111112','Accountant',38000,'N','Y','Passed'),
-        (3,'Emily Carter','1995-11-08','EC345678B','emily.carter@demo.com','07111111113','Nurse',32000,'Y','Y','Passed'),
-        (4,'Michael Green','1990-01-30','MG456789D','michael.green@demo.com','07111111114','Teacher',35000,'N','Y','Passed'),
-        (5,'Sophie Taylor','1993-05-14','ST567890C','sophie.taylor@demo.com','07111111115','Marketing Manager',42000,'Y','Y','Passed'),
-        (6,'Daniel Harris','1991-09-18','DH678901A','daniel.harris@demo.com','07222222221','Chef',28000,'N','Y','Passed'),
-        (7,'Olivia Martin','1994-12-03','OM789012B','olivia.martin@demo.com','07222222222','Graphic Designer',36000,'Y','Y','Passed'),
-        (8,'Thomas Lewis','1987-06-25','TL890123D','thomas.lewis@demo.com','07222222223','Engineer',48000,'N','Y','Passed'),
-        (9,'Lucy Walker','1996-02-11','LW901234A','lucy.walker@demo.com','07222222224','Pharmacist',40000,'N','Y','Passed'),
-        (10,'Ben Scott','1989-08-07','BS012345C','ben.scott@demo.com','07222222225','Sales Executive',33000,'N','Y','Passed'),
-        (11,'Harry King','1985-04-19','HK112233B','harry.king@demo.com','07333333331','Lawyer',65000,'N','Y','Passed'),
-        (12,'Amelia Wright','1992-10-27','AW223344D','amelia.wright@demo.com','07333333332','Doctor',72000,'N','Y','Passed'),
-        (13,'Jack Turner','1990-07-13','JT334455A','jack.turner@demo.com','07333333333','Financial Analyst',58000,'N','Y','Passed'),
-        (14,'Isla Patel','1993-01-05','IP445566C','isla.patel@demo.com','07333333334','Architect',52000,'Y','Y','Passed'),
-        (15,'Noah Ahmed','1988-11-21','NA556677B','noah.ahmed@demo.com','07333333335','Consultant',61000,'N','Y','Passed'),
-        (16,'Liam ONeill','1991-05-08','LO667788D','liam.oneill@demo.com','07444444441','Electrician',31000,'N','Y','Passed'),
-        (17,'Mia Roberts','1994-09-16','MR778899A','mia.roberts@demo.com','07444444442','Veterinarian',38000,'Y','Y','Passed'),
-        (18,'Ethan Wood','1986-12-29','EW889900C','ethan.wood@demo.com','07444444443','Project Manager',47000,'N','Y','Passed'),
-        (19,'Grace Hall','1995-03-22','GH990011B','grace.hall@demo.com','07444444444','Social Worker',29000,'N','Y','Passed'),
-        (20,'Oliver Price','1992-08-14','OP001122D','oliver.price@demo.com','07444444445','IT Support',34000,'Y','Y','Passed')
+        (1,'Alice','Brown','1992-03-15','AB123456C','alice.brown@demo.com','07111111111','Software Engineer',45000,'N','Y','Passed'),
+        (2,'James','Wilson','1988-07-22','JW234567A','james.wilson@demo.com','07111111112','Accountant',38000,'N','Y','Passed'),
+        (3,'Emily','Carter','1995-11-08','EC345678B','emily.carter@demo.com','07111111113','Nurse',32000,'Y','Y','Passed'),
+        (4,'Michael','Green','1990-01-30','MG456789D','michael.green@demo.com','07111111114','Teacher',35000,'N','Y','Passed'),
+        (5,'Sophie','Taylor','1993-05-14','ST567890C','sophie.taylor@demo.com','07111111115','Marketing Manager',42000,'Y','Y','Passed'),
+        (6,'Daniel','Harris','1991-09-18','DH678901A','daniel.harris@demo.com','07222222221','Chef',28000,'N','Y','Passed'),
+        (7,'Olivia','Martin','1994-12-03','OM789012B','olivia.martin@demo.com','07222222222','Graphic Designer',36000,'Y','Y','Passed'),
+        (8,'Thomas','Lewis','1987-06-25','TL890123D','thomas.lewis@demo.com','07222222223','Engineer',48000,'N','Y','Passed'),
+        (9,'Lucy','Walker','1996-02-11','LW901234A','lucy.walker@demo.com','07222222224','Pharmacist',40000,'N','Y','Passed'),
+        (10,'Ben','Scott','1989-08-07','BS012345C','ben.scott@demo.com','07222222225','Sales Executive',33000,'N','Y','Passed'),
+        (11,'Harry','King','1985-04-19','HK112233B','harry.king@demo.com','07333333331','Lawyer',65000,'N','Y','Passed'),
+        (12,'Amelia','Wright','1992-10-27','AW223344D','amelia.wright@demo.com','07333333332','Doctor',72000,'N','Y','Passed'),
+        (13,'Jack','Turner','1990-07-13','JT334455A','jack.turner@demo.com','07333333333','Financial Analyst',58000,'N','Y','Passed'),
+        (14,'Isla','Patel','1993-01-05','IP445566C','isla.patel@demo.com','07333333334','Architect',52000,'Y','Y','Passed'),
+        (15,'Noah','Ahmed','1988-11-21','NA556677B','noah.ahmed@demo.com','07333333335','Consultant',61000,'N','Y','Passed'),
+        (16,'Liam','ONeill','1991-05-08','LO667788D','liam.oneill@demo.com','07444444441','Electrician',31000,'N','Y','Passed'),
+        (17,'Mia','Roberts','1994-09-16','MR778899A','mia.roberts@demo.com','07444444442','Veterinarian',38000,'Y','Y','Passed'),
+        (18,'Ethan','Wood','1986-12-29','EW889900C','ethan.wood@demo.com','07444444443','Project Manager',47000,'N','Y','Passed'),
+        (19,'Grace','Hall','1995-03-22','GH990011B','grace.hall@demo.com','07444444444','Social Worker',29000,'N','Y','Passed'),
+        (20,'Oliver','Price','1992-08-14','OP001122D','oliver.price@demo.com','07444444445','IT Support',34000,'Y','Y','Passed')
     ]
-    cursor.executemany("INSERT INTO tenants VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", tenants_data)
+    cursor.executemany("INSERT INTO tenants VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", tenants_data)
     
     # Insert lease_agreements
     leases_data = [

@@ -55,7 +55,8 @@ def create_database():
     cursor.execute("""
     CREATE TABLE tenants (
         tenant_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
         date_of_birth TEXT NOT NULL,
         NI_number TEXT UNIQUE NOT NULL,
         email TEXT UNIQUE NOT NULL,

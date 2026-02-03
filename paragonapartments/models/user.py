@@ -4,6 +4,7 @@ import database_operations.repos.user_repository as user_repo
 import database_operations.repos.location_repository as location_repo
 import database_operations.repos.apartment_repository as apartment_repo
 import database_operations.repos.tenants_repository as tenant_repo
+import pages.input_validation as input_validation
 
 def create_user(username: str, user_type: str, location: str = ""):
     """Factory function to create the appropriate user class based on user type"""
@@ -472,7 +473,8 @@ class FrontDeskStaff(User):
 
     def register_tenant(self, values):
         """Register a new tenant with their details."""
-        name = values.get('Name', '')
+        first_name = values.get('First Name', '')
+        last_name = values.get('Last Name', '')
         dob = values.get('Date of Birth', '')
         ni_number = values.get('NI Number', '')
         email = values.get('Email', '')
@@ -484,7 +486,7 @@ class FrontDeskStaff(User):
         pets = values.get('Pets', 'N')
         
         try:
-            tenant_repo.create_tenant(name, dob, ni_number, email, phone, 
+            tenant_repo.create_tenant(first_name, last_name, dob, ni_number, email, phone, 
                                      occupation, annual_salary, right_to_rent, 
                                      credit_check, pets)
             return True  # Success
@@ -523,6 +525,32 @@ class FrontDeskStaff(User):
         
         def setup_popup():
             content = open_popup_func()
+            
+            # Auto-format date helper
+            def auto_format_date(entry_widget):
+                def on_change(*args):
+                    current = entry_widget.get().replace("-", "")
+                    current = ''.join(filter(str.isdigit, current))[:8]
+                    formatted = current
+                    if len(current) > 4:
+                        formatted = current[:4] + "-" + current[4:]
+                    if len(current) > 6:
+                        formatted = formatted[:7] + "-" + formatted[7:]
+                    if entry_widget.get() != formatted:
+                        entry_widget.delete(0, 'end')
+                        entry_widget.insert(0, formatted)
+                entry_widget.bind('<KeyRelease>', on_change)
+            
+            # Auto-format salary helper
+            def auto_format_salary(entry_widget):
+                def on_change(*args):
+                    current = entry_widget.get().replace(",", "").replace("£", "")
+                    if current and not current.replace('.', '', 1).isdigit():
+                        current = ''.join(filter(lambda x: x.isdigit() or x == '.', current))
+                    if entry_widget.get() != current:
+                        entry_widget.delete(0, 'end')
+                        entry_widget.insert(0, current)
+                entry_widget.bind('<KeyRelease>', on_change)
             
             # Create scrollable container for the form
             scrollable = ctk.CTkScrollableFrame(content, fg_color="transparent")
@@ -586,19 +614,27 @@ class FrontDeskStaff(User):
             grid1.grid_columnconfigure(0, weight=1)
             grid1.grid_columnconfigure(1, weight=1)
             
-            # Name (Full width)
-            name_frame = ctk.CTkFrame(grid1, fg_color="transparent")
-            name_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 15), padx=5)
-            ctk.CTkLabel(name_frame, text="Full Name *", font=("Arial", 13, "bold"), text_color=("#1a5c37", "#5FB041")).pack(anchor="w", pady=(0, 5))
-            entries['Name'] = ctk.CTkEntry(name_frame, height=40, font=("Arial", 14), border_width=2, border_color=("#1a5c37", "#5FB041"))
-            entries['Name'].pack(fill="x")
+            # First Name
+            fname_frame = ctk.CTkFrame(grid1, fg_color="transparent")
+            fname_frame.grid(row=0, column=0, sticky="ew", pady=(0, 15), padx=5)
+            ctk.CTkLabel(fname_frame, text="First Name *", font=("Arial", 13, "bold"), text_color=("#1a5c37", "#5FB041")).pack(anchor="w", pady=(0, 5))
+            entries['First Name'] = ctk.CTkEntry(fname_frame, height=40, font=("Arial", 14), border_width=2, border_color=("#1a5c37", "#5FB041"))
+            entries['First Name'].pack(fill="x")
+            
+            # Last Name
+            lname_frame = ctk.CTkFrame(grid1, fg_color="transparent")
+            lname_frame.grid(row=0, column=1, sticky="ew", pady=(0, 15), padx=5)
+            ctk.CTkLabel(lname_frame, text="Last Name *", font=("Arial", 13, "bold"), text_color=("#1a5c37", "#5FB041")).pack(anchor="w", pady=(0, 5))
+            entries['Last Name'] = ctk.CTkEntry(lname_frame, height=40, font=("Arial", 14), border_width=2, border_color=("#1a5c37", "#5FB041"))
+            entries['Last Name'].pack(fill="x")
             
             # Date of Birth
             dob_frame = ctk.CTkFrame(grid1, fg_color="transparent")
             dob_frame.grid(row=1, column=0, sticky="ew", pady=(0, 15), padx=5)
-            ctk.CTkLabel(dob_frame, text="Date of Birth *", font=("Arial", 13, "bold"), text_color=("#1a5c37", "#5FB041")).pack(anchor="w", pady=(0, 5))
+            ctk.CTkLabel(dob_frame, text="Date of Birth *(YYYY-MM-DD)", font=("Arial", 13, "bold"), text_color=("#1a5c37", "#5FB041")).pack(anchor="w", pady=(0, 5))
             entries['Date of Birth'] = ctk.CTkEntry(dob_frame, placeholder_text="YYYY-MM-DD", height=40, font=("Arial", 14), border_width=2, border_color=("#1a5c37", "#5FB041"))
             entries['Date of Birth'].pack(fill="x")
+            auto_format_date(entries['Date of Birth'])
             
             # NI Number
             ni_frame = ctk.CTkFrame(grid1, fg_color="transparent")
@@ -606,7 +642,6 @@ class FrontDeskStaff(User):
             ctk.CTkLabel(ni_frame, text="National Insurance Number *", font=("Arial", 13, "bold"), text_color=("#1a5c37", "#5FB041")).pack(anchor="w", pady=(0, 5))
             entries['NI Number'] = ctk.CTkEntry(ni_frame, placeholder_text="AB123456C", height=40, font=("Arial", 14), border_width=2, border_color=("#1a5c37", "#5FB041"))
             entries['NI Number'].pack(fill="x")
-            ## TODO - Add validation for NI number format
             
             # SECTION 2: Contact Information
             section2 = ctk.CTkFrame(scrollable, fg_color=("gray85", "gray20"), corner_radius=10, border_width=2, border_color=("#1a5c37", "#0d3d24"))
@@ -631,7 +666,6 @@ class FrontDeskStaff(User):
             ctk.CTkLabel(email_frame, text="Email Address *", font=("Arial", 13, "bold"), text_color=("#1a5c37", "#5FB041")).pack(anchor="w", pady=(0, 5))
             entries['Email'] = ctk.CTkEntry(email_frame, placeholder_text="example@email.com", height=40, font=("Arial", 14), border_width=2, border_color=("#1a5c37", "#5FB041"))
             entries['Email'].pack(fill="x")
-            ## TODO - Add validation for email format
             
             # Phone
             phone_frame = ctk.CTkFrame(grid2, fg_color="transparent")
@@ -639,7 +673,6 @@ class FrontDeskStaff(User):
             ctk.CTkLabel(phone_frame, text="Phone Number *", font=("Arial", 13, "bold"), text_color=("#1a5c37", "#5FB041")).pack(anchor="w", pady=(0, 5))
             entries['Phone'] = ctk.CTkEntry(phone_frame, placeholder_text="07123456789", height=40, font=("Arial", 14), border_width=2, border_color=("#1a5c37", "#5FB041"))
             entries['Phone'].pack(fill="x")
-            # TODO - Add validation for phone number format
             
             # SECTION 3: Employment Information
             section3 = ctk.CTkFrame(scrollable, fg_color=("gray85", "gray20"), corner_radius=10, border_width=2, border_color=("#1a5c37", "#0d3d24"))
@@ -671,7 +704,7 @@ class FrontDeskStaff(User):
             ctk.CTkLabel(salary_frame, text="Annual Salary (£) *", font=("Arial", 13, "bold"), text_color=("#1a5c37", "#5FB041")).pack(anchor="w", pady=(0, 5))
             entries['Annual Salary'] = ctk.CTkEntry(salary_frame, placeholder_text="35000", height=40, font=("Arial", 14), border_width=2, border_color=("#1a5c37", "#5FB041"))
             entries['Annual Salary'].pack(fill="x")
-            # TODO - Add validation for numeric salary
+            auto_format_salary(entries['Annual Salary'])
             
             # SECTION 4: Verification & Additional
             section4 = ctk.CTkFrame(scrollable, fg_color=("gray85", "gray20"), corner_radius=10, border_width=2, border_color=("#1a5c37", "#0d3d24"))
@@ -834,10 +867,25 @@ class FrontDeskStaff(User):
                 success_label.pack_forget()
                 
                 # Validation
-                required_fields = ['Name', 'Date of Birth', 'NI Number', 'Email', 'Phone', 'Occupation', 'Annual Salary']
+                required_fields = ['First Name', 'Last Name', 'Date of Birth', 'NI Number', 'Email', 'Phone', 'Occupation', 'Annual Salary']
                 for field in required_fields:
                     if not entries[field].get().strip():
                         error_label.configure(text=f"❌ Error: {field} is required")
+                        error_label.pack(pady=10)
+                        return
+                
+                # Validate using input_validation functions
+                validations = [
+                    (input_validation.is_email_valid(entries['Email'].get().strip()), "Invalid email format"),
+                    (input_validation.is_phone_valid(entries['Phone'].get().strip()), "Invalid phone number format"),
+                    (input_validation.is_annual_salary_valid(entries['Annual Salary'].get().strip()), "Annual Salary must be a valid positive number"),
+                    (input_validation.is_date_of_birth_valid(entries['Date of Birth'].get().strip()), "Date of Birth must be in YYYY-MM-DD format and over 18 years old"),
+                    (input_validation.is_NI_number_valid(entries['NI Number'].get().strip()), "Invalid National Insurance Number format")
+                ]
+                
+                for is_valid, error_msg in validations:
+                    if not is_valid:
+                        error_label.configure(text=f"❌ Error: {error_msg}")
                         error_label.pack(pady=10)
                         return
                 
