@@ -3,7 +3,8 @@ import pages.components.page_elements as pe
 import database_operations.repos.user_repository as user_repo
 import database_operations.repos.location_repository as location_repo
 import database_operations.repos.apartment_repository as apartment_repo
-import database_operations.repos.apartment_repository as apartment_repo
+
+
 
 def create_user(username: str, user_type: str, location: str = ""):
     """Factory function to create the appropriate user class based on user type"""
@@ -130,8 +131,8 @@ class Manager(User):
 
 
     def generate_reports(self, location: str):
-        """Generate maintenance reports for a location."""
-        print("Generating maintenance report...")
+        """Generate performance reports for a location."""
+        print("Generating performance report...")
 
     def create_account(self, values):
         """Create a new user account with specified role and location."""
@@ -362,13 +363,68 @@ class Manager(User):
         button.configure(command=setup_popup)
 
     def load_report_content(self, row):
-        reports_card = pe.function_card(row, "Generate Reports", side="left")
+        reports_card = pe.function_card(row, "Performance Reports", side="left")
 
+        # Get all cities for dropdown
+        cities = ['All Locations'] + location_repo.get_all_cities()
+        
+        # Create dropdown
+        location_dropdown = ctk.CTkComboBox(
+            reports_card,
+            values=cities,
+            width=200,
+            font=("Arial", 14)
+        )
+        location_dropdown.set("All Locations")
+        location_dropdown.pack(pady=10, padx=20)
+        
+        # Create result label
+        result_label = ctk.CTkLabel(
+            reports_card,
+            text="",
+            font=("Arial", 16, "bold"),
+            text_color="#3B8ED0"
+        )
+        result_label.pack(pady=10, padx=20)
+        
+        # Function to update display
+        def update_performance_display():
+            location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
+            actual_revenue = apartment_repo.get_monthly_revenue(location)
+            potential_revenue = apartment_repo.get_potential_revenue(location)
+            lost_revenue = potential_revenue - actual_revenue
+            
+            if location == "all":
+                result_label.configure(
+                    text=f"Actual: £{actual_revenue:,.2f} | Lost: £{lost_revenue:,.2f} | Potential: £{potential_revenue:,.2f}"
+                )
+            else:
+                result_label.configure(
+                    text=f"{location} - Actual: £{actual_revenue:,.2f} | Lost: £{lost_revenue:,.2f} | Potential: £{potential_revenue:,.2f}"
+                )
+        
+        # Create view button
         pe.action_button(
             reports_card,
-            text="Generate",
-            command=lambda: self.generate_reports("bristol")
+            text="View Performance",
+            command=update_performance_display
         )
+
+        # Create graph popup button
+        button, open_popup_func = pe.popup_card(
+            reports_card,
+            title="Performance Report Graph",
+            button_text="Show Performance Graph",
+            small=False,
+            button_size="small"
+        )
+
+        def setup_performance_graph_popup():
+            content = open_popup_func()
+            location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
+            apartment_repo.create_performance_graph(content, location)
+
+        button.configure(command=setup_performance_graph_popup)
 
     def load_business_expansion_content(self, row):
         expand_card = pe.function_card(row, "Expand Business", side="top")
