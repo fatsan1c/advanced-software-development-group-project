@@ -15,6 +15,9 @@ class LoginPage(ctk.CTkToplevel):
         height = 360
         geometry = controller.calculate_centered_geometry(width, height)
         self.geometry(geometry)
+
+        # Set icon after delay to allow window initialization
+        self.after(210, lambda: self.iconbitmap(controller.current_icon))
         
         # Container to hold all frames
         container = ctk.CTkFrame(self, fg_color="transparent")
