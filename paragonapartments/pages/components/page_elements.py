@@ -1,4 +1,5 @@
 import customtkinter as ctk
+import re
 
 def content_container(parent, anchor=None, side=None,
                      margin=10, marginx=None, marginy=None,
@@ -181,6 +182,7 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
         fields: List of field dictionaries with keys:
             - 'name': Field name/label (required)
             - 'type': Input type - 'text', 'dropdown', 'checkbox' (default: 'text')
+            - 'subtype': Subtype for text fields - 'text', 'number', 'password', 'currency' (default: 'text')
             - 'options': List of options for dropdown (required if type='dropdown')
             - 'default': Default value
             - 'placeholder': Placeholder text for text fields
@@ -242,6 +244,7 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
 
         field_name = field['name']
         field_type = field.get('type', 'text')
+        field_subtype = field.get('subtype', 'text')
         field_default = field.get('default', '')
         field_required = field.get('required', False)
         small_field = field.get('small', False)
@@ -258,6 +261,24 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
                 height=input_height,
                 font=("Arial", input_font_size)
             )
+
+            if field_subtype == 'password':
+                widget.configure(show="•")
+            elif field_subtype == 'number':
+                def only_numbers(proposed_value):
+                    return proposed_value.isdigit() or proposed_value == ""
+                vcmd = (widget.register(only_numbers), '%P')
+                widget.configure(validate="key", validatecommand=vcmd)
+            elif field_subtype == 'currency':
+                # Currency validation: allows numbers with optional decimal and max 2 decimal places
+                # Pattern: digits (optional: decimal point + max 2 digits)
+                def validate_currency(proposed_value):
+                    # Matches: empty, digits, or digits with .XX format (max 2 decimal places)
+                    return re.match(r'^\d*\.?\d{0,2}$', proposed_value) is not None
+                
+                vcmd = (widget.register(validate_currency), '%P')
+                widget.configure(validate="key", validatecommand=vcmd)
+
             if field_default:
                 widget.insert(0, str(field_default))
             widget.pack(fill="x")
