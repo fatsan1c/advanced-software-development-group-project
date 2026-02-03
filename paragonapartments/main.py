@@ -3,11 +3,19 @@ from pages.home_page import HomePage
 from pages.login_page import LoginPage
 from models.user import create_user
 from pathlib import Path
+import ctypes
 
 
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
+        
+        # Set AppUserModelID so Windows treats this as a unique application (fixes taskbar icon)
+        try:
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('ParagonApartments.App.1.0')
+        except:
+            pass
+        
         self.title("Paragon Apartment Management Portal")
         width = 1000
         height = 650
