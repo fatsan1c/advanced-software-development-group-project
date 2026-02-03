@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from PIL import Image
 
 def content_container(parent, anchor=None, side=None,
                      margin=10, marginx=None, marginy=None,
@@ -30,6 +31,23 @@ def content_container(parent, anchor=None, side=None,
                    padx=marginx, pady=marginy, ipadx=paddingx, ipady=paddingy)
     return container
 
+
+def round_image_corners(image, radius):
+    """Add rounded corners to an image."""
+    from PIL import ImageDraw
+    
+    # Create a mask with rounded corners
+    mask = Image.new('L', image.size, 0)
+    draw = ImageDraw.Draw(mask)
+    draw.rounded_rectangle([(0, 0), image.size], radius=radius, fill=255)
+    
+    # Apply the mask
+    output = Image.new('RGBA', image.size)
+    output.paste(image, (0, 0))
+    output.putalpha(mask)
+    
+    return output
+    
 
 def content_separator(parent, pady=(5, 10), padx=15):
     """Add a visual separator line.

@@ -1,4 +1,6 @@
 import customtkinter as ctk
+from PIL import Image
+from pathlib import Path
 from database_operations.repos.user_repository import authenticate_user
 import pages.components.page_elements as pe
 
@@ -12,7 +14,7 @@ class LoginPage(ctk.CTkToplevel):
         
         self.title("Paragon Apartment Login")
         width = 320
-        height = 360
+        height = 450
         geometry = controller.calculate_centered_geometry(width, height)
         self.geometry(geometry)
 
@@ -30,15 +32,32 @@ class LoginPage(ctk.CTkToplevel):
     def loginpage_content(self, container):
         # Create inner frame for centered content
         inner_frame = pe.content_container(parent=container)
-        inner_frame.place(relx=0.5, rely=0.57, anchor="center")
+        inner_frame.place(relx=0.5, rely=0.5, anchor="center")
         
-        ctk.CTkLabel(container, text="Paragon Apartments", font=("Arial", 24)).pack(pady=30)
+        # ctk.CTkLabel(container, text="Paragon Apartments", font=("Arial", 24)).pack(pady=30)
         ctk.CTkLabel(inner_frame, text="Login", font=("Arial", 18)).pack(pady=(8, 2))
 
-        pe.content_separator(inner_frame, pady=(5, 40))
+        pe.content_separator(inner_frame, pady=(5, 15))
+
+        # Load and display logo
+        try:
+            logos_dir = Path(__file__).parent.parent / "icons/paragon_logos"
+            
+            # Load image and add rounded corners
+            img = Image.open(logos_dir / "paragon_logo_full.png")
+            img = pe.round_image_corners(img, radius=20)
+            
+            logo_image = ctk.CTkImage(
+                light_image=img,
+                dark_image=img,
+                size=(150, 150)
+            )
+            ctk.CTkLabel(inner_frame, image=logo_image, text="").pack(pady=0)
+        except Exception as e:
+            print(f"Could not load logo: {e}")
         
         self.username_entry = ctk.CTkEntry(inner_frame, placeholder_text="Username", font=("Arial", 14))
-        self.username_entry.pack(pady=6)
+        self.username_entry.pack(pady=(30,6))
         self.password_entry = ctk.CTkEntry(inner_frame, placeholder_text="Password", show="*", font=("Arial", 14))
         self.password_entry.pack(pady=6)
         
@@ -52,7 +71,7 @@ class LoginPage(ctk.CTkToplevel):
         
         ctk.CTkButton(inner_frame, text="Login",
              command=lambda: self.authenticate(inner_frame, username=self.username_entry.get(), 
-                                               password=self.password_entry.get())).pack(pady=(20, 40), padx=40)
+                                               password=self.password_entry.get())).pack(pady=(20, 30), padx=40)
     
     def authenticate(self, container, username: str, password: str) -> bool:
         """Authenticate user credentials."""
