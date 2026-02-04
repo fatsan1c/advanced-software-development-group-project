@@ -2,15 +2,33 @@ import customtkinter as ctk
 from pages.home_page import HomePage
 from pages.login_page import LoginPage
 from models.user import create_user
+from pathlib import Path
+import ctypes
 
 
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
+        
+        # Set AppUserModelID so Windows treats this as a unique application (fixes taskbar icon)
+        try:
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('ParagonApartments.App.1.0')
+        except:
+            pass
+        
         self.title("Paragon Apartment Management Portal")
         width = 1000
         height = 650
         self.geometry(self.calculate_centered_geometry(width, height))
+
+        # Resolve logos path relative to this file
+        logos_dir = Path(__file__).parent / "icons/paragon_logos"
+        self.dark_logo_path = str(logos_dir / "paragon_logo.ico")
+        self.light_logo_path = str(logos_dir / "paragon_logo_light.ico")
+        self.current_icon = self.light_logo_path
+
+        # Set application icon using ICO file
+        self.change_icon(mode="dark")
         
         # Container to hold all frames
         self.container = ctk.CTkFrame(self, fg_color="transparent")
@@ -85,6 +103,22 @@ class App(ctk.CTk):
         x = (screen_width // 2) - (width // 2)
         y = (screen_height // 2) - (height // 2)
         return f'{width}x{height}+{x}+{y}'
+
+    def change_icon(self, mode: str):
+        """Change the application icon.
+        
+        Args:
+            mode: The mode indicating which icon to use ("light" or other)
+        """
+        if mode == "light":
+            self.current_icon = self.dark_logo_path
+        else:
+            self.current_icon = self.light_logo_path
+
+        try:
+            self.iconbitmap(self.current_icon)
+        except:
+            print(f"Warning: Unable to set application icon from {self.current_icon}")
 
 if __name__ == "__main__":
     app = App()

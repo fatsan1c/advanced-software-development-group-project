@@ -23,6 +23,7 @@ class HomePage(ctk.CTkFrame):
         def toggle_theme():
             mode = ctk.get_appearance_mode()  # "Light" or "Dark"
             ctk.set_appearance_mode("dark" if mode == "Light" else "light")
+            controller.change_icon(mode=("dark" if mode == "Light" else "light"))
             theme_button.configure(hover_color=("gray12" if mode == "Light" else "gray93"))
 
         theme_button = ctk.CTkButton(
