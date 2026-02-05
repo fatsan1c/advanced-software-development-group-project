@@ -40,6 +40,7 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=False, commit=F
         cursor = conn.cursor()
         cursor.execute(query, params or ())
         
+        # Process results based on flags
         if fetch_one:
             row = cursor.fetchone()
             result = dict(row) if row else None
@@ -54,6 +55,7 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=False, commit=F
             
         return result
         
+    # Handle specific database errors and general exceptions
     except sqlite3.Error as err:
         print(f"Database error: {err}")
         return None if fetch_one else ([] if fetch_all else None)
@@ -61,6 +63,7 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=False, commit=F
         print(f"Error: {e}")
         return None if fetch_one else ([] if fetch_all else None)
     finally:
+        # Ensure resources are cleaned up
         if cursor:
             cursor.close()
         if conn:

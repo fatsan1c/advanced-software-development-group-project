@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
 
+# This function is a workaround to prevent errors when the parent widget is closed while the graph is still active
 def _setup_graph_cleanup(parent, canvas, fig):
     """
     Set up cleanup for matplotlib canvas to prevent callback errors.
@@ -21,6 +22,7 @@ def _setup_graph_cleanup(parent, canvas, fig):
         except:
             pass
     
+    # Bind the cleanup function to the parent widget's destroy event
     parent.bind('<Destroy>', cleanup, add='+')
 
 def get_all_occupancy(location=None):

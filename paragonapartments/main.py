@@ -16,6 +16,7 @@ class App(ctk.CTk):
         except:
             pass
         
+        # Set window title and size
         self.title("Paragon Apartment Management Portal")
         width = 1000
         height = 650
@@ -42,6 +43,7 @@ class App(ctk.CTk):
         # Show login page
         self.show_login()
 
+        # Start main loop if user is logged in
         if self.current_user is not None:
             self.mainloop()
 
@@ -65,6 +67,7 @@ class App(ctk.CTk):
         self.open_page("HomePage", parent=self.container, controller=self, user=self.current_user)
 
     def open_page(self, page_name, **kwargs):
+        # Setup and open the requested page
         if page_name == "HomePage":
             home_page = HomePage(kwargs.get("parent"), kwargs.get("controller"), kwargs.get("user"))
             home_page.grid(row=0, column=0, sticky="nsew")
@@ -83,6 +86,7 @@ class App(ctk.CTk):
         # Show login page again
         self.show_login()
         
+        # If login was successful, show the main window again; otherwise, close the app
         if self.current_user is not None:
             self.deiconify()
         else:
@@ -110,6 +114,7 @@ class App(ctk.CTk):
         Args:
             mode: The mode indicating which icon to use ("light" or other)
         """
+        # Swap between light and dark icons based on mode
         if mode == "light":
             self.current_icon = self.dark_logo_path
         else:

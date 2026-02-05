@@ -1,7 +1,7 @@
 import customtkinter as ctk
 import pages.components.page_elements as pe
 import database_operations.repos.tenants_repository as tenant_repo
-import pages.input_validation as input_validation
+import pages.components.input_validation as input_validation
 from models.user import User
 
 
@@ -11,6 +11,7 @@ class FrontDeskStaff(User):
     def __init__(self, username: str, location: str = ""):
         super().__init__(username, role="Front Desk Staff", location=location)
 
+# ============================= v Front Desk functions v  =====================================
     def register_tenant(self, values):
         """Register a new tenant with their details."""
         first_name = values.get('First Name', '')
@@ -44,7 +45,9 @@ class FrontDeskStaff(User):
     def register_complaint(self, tenant_id: int, complaint_details: str):
         """Register a complaint from a tenant."""
         print(f"Registering complaint for tenant ID: {tenant_id} with details: {complaint_details}")
+# ============================= ^ Front Desk functions ^ =====================================
 
+# ============================= v Homepage UI Content v =====================================
     def load_homepage_content(self, home_page):
         """Load Front Desk Staff-specific homepage content."""
         # Load base content first
@@ -52,7 +55,17 @@ class FrontDeskStaff(User):
         
         row1 = pe.row_container(parent=home_page)
         
-        tenant_card = pe.function_card(row1, "Tenant Management", side="left")
+        # Tenant Management Card
+        self.load_tenant_content(row1)
+        
+        # Maintenance Requests Card
+        self.load_maintenance_content(row1)
+        
+        # Complaints Management Card
+        self.load_complaints_content(row1)
+
+    def load_tenant_content(self, row):
+        tenant_card = pe.function_card(row, "Tenant Management", side="left")
         
         # Create popup button and setup function
         button, open_popup_func = pe.popup_card(
@@ -477,8 +490,9 @@ class FrontDeskStaff(User):
             text="Get Tenant Info",
             command=lambda: self.get_tenant_info(1)
         )
-        
-        maintenance_card = pe.function_card(row1, "Maintenance Requests", side="left")
+
+    def load_maintenance_content(self, row):
+        maintenance_card = pe.function_card(row, "Maintenance Requests", side="left")
         
         pe.action_button(
             maintenance_card,
@@ -491,11 +505,13 @@ class FrontDeskStaff(User):
             text="Track Request",
             command=lambda: self.track_maintenance_request(1)
         )
-        
-        complaints_card = pe.function_card(row1, "Complaints", side="left")
+
+    def load_complaints_content(self, row):
+        complaints_card = pe.function_card(row, "Complaints", side="left")
         
         pe.action_button(
             complaints_card,
             text="Register Complaint",
             command=lambda: self.register_complaint(1, "Noise complaint")
         )
+# ============================= ^ Homepage UI Content ^ =====================================

@@ -86,7 +86,6 @@ def get_location_id_by_city(city):
 def create_location(city, address=None):
     """
     Create a new location in the database.
-    Requires: 'create' permission on 'locations' resource (checked by decorator)
     
     Args:
         city (str): City name for the new location
@@ -105,7 +104,6 @@ def create_location(city, address=None):
 def update_location(location_id, **kwargs):
     """
     Update location information.
-    Requires: 'update' permission on 'locations' resource (checked by decorator)
     
     Args:
         location_id (int): ID of location to update
@@ -136,7 +134,6 @@ def update_location(location_id, **kwargs):
 def delete_location(location_id):
     """
     Delete a location from the database.
-    Requires: 'delete' permission on 'locations' resource (checked by decorator)
     
     Args:
         location_id (int): ID of location to delete
