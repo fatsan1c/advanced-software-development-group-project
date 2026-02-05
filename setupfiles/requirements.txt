@@ -1,3 +1,5 @@
 customtkinter
 Pillow
 passlib
+matplotlib
+numpy
