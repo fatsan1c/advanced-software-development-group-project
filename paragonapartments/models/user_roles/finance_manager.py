@@ -8,6 +8,7 @@ class FinanceManager(User):
     def __init__(self, username: str, location: str = None):
         super().__init__(username, role="Finance Manager", location=location)
 
+# ============================= v Admin functions v  =====================================
     def generate_financial_reports(self):
         """Generate financial reports across all locations."""
         print("Generating financial reports...")
@@ -24,6 +25,9 @@ class FinanceManager(User):
         """Process a payment with the given payment ID."""
         print(f"Processing payment with ID: {payment_id}")
     
+# ============================= ^ Admin functions ^ =====================================
+    
+# ============================= v Homepage UI Content v =====================================
     def load_homepage_content(self, home_page):
         """Load Finance Manager-specific homepage content."""
         # Load base content first
@@ -31,7 +35,20 @@ class FinanceManager(User):
 
         row1 = pe.row_container(parent=home_page)
         
-        reports_card = pe.function_card(row1, "Financial Reports", side="left")
+        # Add financial management cards
+        self.load_reports_content(row1)
+
+        self.load_invoices_content(row1)
+
+        row2 = pe.row_container(parent=home_page)
+
+        # Add payment processing function cards
+        self.load_payment_content(row2)
+
+        self.load_process_content(row2)
+
+    def load_reports_content(self, row):
+        reports_card = pe.function_card(row, "Financial Reports", side="left")
         
         pe.action_button(
             reports_card,
@@ -39,7 +56,8 @@ class FinanceManager(User):
             command=lambda: self.generate_financial_reports()
         )
 
-        invoices_card = pe.function_card(row1, "Manage Invoices", side="left")
+    def load_invoices_content(self, row):
+        invoices_card = pe.function_card(row, "Manage Invoices", side="left")
 
         pe.action_button(
             invoices_card,
@@ -47,9 +65,8 @@ class FinanceManager(User):
             command=lambda: self.manage_invoices()
         )
 
-        row2 = pe.row_container(parent=home_page)
-
-        payments_card = pe.function_card(row2, "Late Payments", side="left")
+    def load_payment_content(self, row):
+        payments_card = pe.function_card(row, "Late Payments", side="left")
 
         pe.action_button(
             payments_card,
@@ -57,10 +74,12 @@ class FinanceManager(User):
             command=lambda: self.view_late_payments()
         )
 
-        process_card = pe.function_card(row2, "Process Payments", side="left")
+    def load_process_content(self, row):
+        process_card = pe.function_card(row, "Process Payments", side="left")
 
         pe.action_button(
             process_card,
             text="Process Payment",
             command=lambda: self.process_payments(1)
         )
+# ============================= ^ Homepage UI Content ^ =====================================

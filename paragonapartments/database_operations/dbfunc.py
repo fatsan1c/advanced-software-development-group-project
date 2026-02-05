@@ -5,6 +5,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 DB_PATH = PROJECT_ROOT / 'database' / 'paragonapartments.db'
 
+# Database connection function
 def getConnection():    
     try:
         # Check if database file exists
