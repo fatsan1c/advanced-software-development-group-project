@@ -12,6 +12,7 @@ class LoginPage(ctk.CTkToplevel):
         self.controller = controller
         self.on_login_success = on_login_success
         
+        # setup window properties
         self.title("Paragon Apartment Login")
         width = 320
         height = 450
@@ -27,6 +28,7 @@ class LoginPage(ctk.CTkToplevel):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
+        # Load the login page content
         self.loginpage_content(container)
 
     def loginpage_content(self, container):
@@ -34,9 +36,10 @@ class LoginPage(ctk.CTkToplevel):
         inner_frame = pe.content_container(parent=container)
         inner_frame.place(relx=0.5, rely=0.5, anchor="center")
         
-        # ctk.CTkLabel(container, text="Paragon Apartments", font=("Arial", 24)).pack(pady=30)
+        # Title label
         ctk.CTkLabel(inner_frame, text="Login", font=("Arial", 18)).pack(pady=(8, 2))
 
+        # Line separator
         pe.content_separator(inner_frame, pady=(5, 15))
 
         # Load and display logo
@@ -45,17 +48,19 @@ class LoginPage(ctk.CTkToplevel):
             
             # Load image and add rounded corners
             img = Image.open(logos_dir / "paragon_logo_full.png")
-            img = pe.round_image_corners(img, radius=20)
+            img = pe.round_image_corners(img, radius=20) # Add rounded corners with a radius of 20 pixels
             
             logo_image = ctk.CTkImage(
                 light_image=img,
                 dark_image=img,
                 size=(150, 150)
             )
+            # Display the logo image
             ctk.CTkLabel(inner_frame, image=logo_image, text="").pack(pady=0)
         except Exception as e:
             print(f"Could not load logo: {e}")
         
+        # Username and password entry fields
         self.username_entry = ctk.CTkEntry(inner_frame, placeholder_text="Username", font=("Arial", 14))
         self.username_entry.pack(pady=(30,6))
         self.password_entry = ctk.CTkEntry(inner_frame, placeholder_text="Password", show="*", font=("Arial", 14))
@@ -68,7 +73,7 @@ class LoginPage(ctk.CTkToplevel):
         self.password_entry.bind("<Return>", lambda event: self.authenticate(inner_frame, 
                                                                               username=self.username_entry.get(), 
                                                                               password=self.password_entry.get()))
-        
+        # Login button
         ctk.CTkButton(inner_frame, text="Login",
              command=lambda: self.authenticate(inner_frame, username=self.username_entry.get(), 
                                                password=self.password_entry.get())).pack(pady=(20, 30), padx=40)
@@ -78,6 +83,7 @@ class LoginPage(ctk.CTkToplevel):
         # Authenticate against database
         user = authenticate_user(username, password)
         
+        # If authentication is successful, complete login process
         if user:
             print(f"Login successful: {user['username']} ({user['role']}), {user['city']}")
             self.complete_login(user['role'], user['city'])
@@ -96,6 +102,7 @@ class LoginPage(ctk.CTkToplevel):
 
     def complete_login(self, user_type: str, location: str=None):
         """Complete login process and notify controller."""
+        # get username from login entry field
         username = self.username_entry.get()
         
         # Call the success callback if provided

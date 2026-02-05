@@ -1,7 +1,7 @@
 import customtkinter as ctk
 import pages.components.page_elements as pe
 import database_operations.repos.tenants_repository as tenant_repo
-import pages.input_validation as input_validation
+import pages.components.input_validation as input_validation
 from models.user import User
 
 
