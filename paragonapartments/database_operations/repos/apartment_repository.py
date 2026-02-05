@@ -4,9 +4,24 @@ Handles apartment queries, occupancy tracking, and apartment management.
 """
 
 from database_operations.db_execute import execute_query
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
+
+def _setup_graph_cleanup(parent, canvas, fig):
+    """
+    Set up cleanup for matplotlib canvas to prevent callback errors.
+    """
+    def cleanup(event=None):
+        try:
+            canvas.flush_events()
+            plt.close(fig)
+        except:
+            pass
+    
+    parent.bind('<Destroy>', cleanup, add='+')
 
 def get_all_occupancy(location=None):
     """
@@ -95,6 +110,8 @@ def create_occupancy_graph(parent, location=None):
     canvas = FigureCanvasTkAgg(fig, master=parent)
     canvas.draw()
     canvas.get_tk_widget().pack(fill='both', expand=True, padx=20, pady=20)
+    
+    _setup_graph_cleanup(parent, canvas, fig)
     
     return canvas
 
@@ -194,6 +211,8 @@ def create_performance_graph(parent, location=None):
     canvas = FigureCanvasTkAgg(fig, master=parent)
     canvas.draw()
     canvas.get_tk_widget().pack(fill='both', expand=True, padx=20, pady=20)
+    
+    _setup_graph_cleanup(parent, canvas, fig)
     
     return canvas
 
