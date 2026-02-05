@@ -167,6 +167,7 @@ def create_performance_graph(parent, location=None):
     actual_revenue = get_monthly_revenue(location)
     potential_revenue = get_potential_revenue(location)
     lost_revenue = potential_revenue - actual_revenue
+    showing_all = location is None or location.lower() == "all"
 
     labels = ['Actual Revenue', 'Lost Revenue']
     counts = [actual_revenue, lost_revenue]
@@ -181,10 +182,10 @@ def create_performance_graph(parent, location=None):
         yval = bar.get_height()
         ax.text(bar.get_x() + bar.get_width()/2, yval + 50, f'£{int(yval):,}', ha='center', va='bottom', fontsize=10)
 
-    title_location = location if location and location.lower() != "all" else "All Locations"
+    title_location = location if not showing_all else "All Locations"
     ax.set_title(f'Monthly Revenue Performance in {title_location}', fontsize=16, fontweight='bold')
     ax.set_ylabel('Revenue (£)', fontsize=12)
-    ax.set_ylim(0, max(counts) + 500 if counts else 500)
+    ax.set_ylim(0, max(counts) + (2000 if showing_all else 500) if counts else 500)
     
     # Format y-axis as currency
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'£{int(x):,}'))
