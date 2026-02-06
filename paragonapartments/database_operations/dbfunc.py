@@ -1,4 +1,5 @@
 import sqlite3
+import os
 from pathlib import Path
 
 # Get the project root (paragonapartments directory) and database path
@@ -8,14 +9,18 @@ DB_PATH = PROJECT_ROOT / 'database' / 'paragonapartments.db'
 # Database connection function
 def getConnection():    
     try:
+        # Allow tests / tooling to override DB location
+        override = os.environ.get("PAMS_DB_PATH")
+        db_path = Path(override).expanduser().resolve() if override else DB_PATH
+
         # Check if database file exists
-        if not DB_PATH.exists():
-            print(f'Database does not exist at: {DB_PATH}')
+        if not db_path.exists():
+            print(f'Database does not exist at: {db_path}')
             print('Run setupfiles/create_sqlite_db.py to create the database')
             return None
         
         # Connect to SQLite database
-        conn = sqlite3.connect(str(DB_PATH))
+        conn = sqlite3.connect(str(db_path))
         
         # Enable foreign key constraints
         conn.execute("PRAGMA foreign_keys = ON")

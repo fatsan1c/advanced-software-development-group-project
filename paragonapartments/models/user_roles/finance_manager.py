@@ -160,7 +160,6 @@ class FinanceManager(User):
             result_label.configure(
                 text=(
                     f"Invoiced: £{summary['total_invoiced']:,.2f} | "
-                    f"Collected: £{summary['total_collected']:,.2f} | "
                     f"Outstanding: £{summary['outstanding']:,.2f}\n"
                     f"Late invoices: {summary['late_invoice_count']}"
                 )

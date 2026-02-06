@@ -19,4 +19,4 @@ def create_tenant(first_name, last_name, date_of_birth, NI_number, email, phone,
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
     params = (first_name, last_name, date_of_birth, NI_number, email, phone, occupation, annual_salary, pets, right_to_rent, credit_check)
-    execute_query(query, params)
+    return execute_query(query, params, commit=True)

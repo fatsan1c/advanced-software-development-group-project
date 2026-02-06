@@ -64,6 +64,77 @@ To recreate or reset the database, run:
 python setupfiles/tools/create_sqlite_db.py
 ```
 
+## Testing (Automated + ASD Manual Test Cases)
+
+This project includes:
+- **Automated tests** (unit + SQLite integration) using `pytest`
+- **Code coverage reporting** using `pytest-cov`
+- **Manual test cases** (ASD deliverable) in [`docs/manual_test_cases.md`](docs/manual_test_cases.md)
+- **CI pipeline** that runs tests on Windows via GitHub Actions in [`.github/workflows/tests.yml`](.github/workflows/tests.yml)
+
+### Why this is important
+- **Prevents regressions**: repository/database logic is easy to break; integration tests catch issues early.
+- **Safe DB testing**: tests run against a temporary SQLite database, so they do **not** modify your real app DB.
+- **Assessment evidence**: manual test cases + traceability help demonstrate coverage of requirements for ASD.
+- **CI confidence**: every push/PR runs the same test command on Windows to keep the project stable across changes.
+
+### Install test dependencies
+Testing dependencies are included in [`setupfiles/requirements.txt`](setupfiles/requirements.txt), so one install covers both app + tests:
+
+```powershell
+python -m pip install -r setupfiles/requirements.txt
+```
+
+### Run automated tests
+From the repository root:
+
+```powershell
+python -m pytest
+```
+
+Run a specific file:
+
+```powershell
+python -m pytest tests\integration\test_finance_repository.py
+```
+
+### Run coverage (and generate `coverage.xml`)
+This runs the full test suite, prints a coverage table in the terminal, and writes `coverage.xml` in the repo root:
+
+```powershell
+python -m pytest --cov=paragonapartments --cov-report=term --cov-report=xml
+```
+
+- **`coverage.xml`** is a machine-readable report used by CI/tools; it can be deleted safely (it will be regenerated).
+
+### How DB isolation works (`PAMS_DB_PATH`)
+Repository code connects to SQLite through `getConnection()` in [`paragonapartments/database_operations/dbfunc.py`](paragonapartments/database_operations/dbfunc.py).
+
+For testing (and advanced debugging), the DB path can be overridden with an environment variable:
+- **`PAMS_DB_PATH`**: if set, repositories connect to that SQLite file instead of the default `paragonapartments/database/paragonapartments.db`.
+
+Example (PowerShell):
+
+```powershell
+$env:PAMS_DB_PATH = "$PWD\temp-test.db"
+python -m pytest
+```
+
+### What is covered by automated tests
+- **Validation utilities**: [`paragonapartments/pages/components/input_validation.py`](paragonapartments/pages/components/input_validation.py)
+- **Repository layer (SQLite integration tests)**:
+  - Users: `paragonapartments/database_operations/repos/user_repository.py`
+  - Locations: `paragonapartments/database_operations/repos/location_repository.py`
+  - Apartments: `paragonapartments/database_operations/repos/apartment_repository.py`
+  - Tenants: `paragonapartments/database_operations/repos/tenants_repository.py`
+  - Finance: `paragonapartments/database_operations/repos/finance_repository.py` (including duplicate-payment prevention)
+
+### Manual test cases (ASD)
+See [`docs/manual_test_cases.md`](docs/manual_test_cases.md) for:
+- Role-based scenarios (Manager / Finance / Front Desk / Maintenance)
+- Preconditions, steps, expected results, and evidence guidance
+- Traceability table mapping tests to features in this README
+
 ### Finance (Invoices & Payments)
 
 The Finance area was expanded to support realistic testing and faster UI performance:
