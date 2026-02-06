@@ -202,8 +202,8 @@ class FinanceManager(User):
         fields = [
             {"name": "Tenant ID", "type": "text", "subtype": "number", "required": True},
             {"name": "Amount Due", "type": "text", "subtype": "currency", "required": True},
-            {"name": "Due Date", "type": "text", "placeholder": "YYYY-MM-DD", "required": True},
-            {"name": "Issue Date", "type": "text", "placeholder": "YYYY-MM-DD", "required": False},
+            {"name": "Due Date", "type": "text", "subtype": "date", "required": True},
+            {"name": "Issue Date", "type": "text", "subtype": "date", "required": False},
         ]
         pe.form_element(invoices_card, fields, name="Create Invoice", submit_text="Create", on_submit=self.create_invoice, small=True)
 
@@ -364,7 +364,7 @@ class FinanceManager(User):
             {"name": "Invoice ID", "type": "text", "subtype": "number", "required": True},
             {"name": "Tenant ID", "type": "text", "subtype": "number", "required": True},
             {"name": "Amount", "type": "text", "subtype": "currency", "required": True},
-            {"name": "Payment Date", "type": "text", "placeholder": "YYYY-MM-DD", "required": False},
+            {"name": "Payment Date", "type": "text", "subtype": "date", "required": False}
         ]
         pe.form_element(payment_card, fields, name="Payment", submit_text="Record Payment", on_submit=self.record_payment, small=True)
 

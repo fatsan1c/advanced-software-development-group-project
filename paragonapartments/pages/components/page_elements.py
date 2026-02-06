@@ -202,10 +202,9 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
         fields: List of field dictionaries with keys:
             - 'name': Field name/label (required)
             - 'type': Input type - 'text', 'dropdown', 'checkbox' (default: 'text')
-            - 'subtype': Subtype for text fields - 'text', 'number', 'password', 'currency' (default: 'text')
+            - 'subtype': Subtype for text fields - 'text', 'number', 'password', 'currency', 'date' (default: 'text')
             - 'options': List of options for dropdown (required if type='dropdown')
             - 'default': Default value
-            - 'placeholder': Placeholder text for text fields
             - 'required': Whether field is required (default: False)
             - 'small': Use smaller sizing for compact forms (default: False)
         submit_text: Text for the submit button
@@ -228,7 +227,7 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
             return True  # Success
         
         fields = [
-            {'name': 'Username', 'type': 'text', 'placeholder': 'Enter username', 'required': True},
+            {'name': 'Username', 'type': 'text', 'required': True},
             {'name': 'Role', 'type': 'dropdown', 'options': ['Admin', 'User'], 'default': 'User'}
         ]
         form, error_label = form_element(parent, fields, submit_text="Create Account", on_submit=handle_submit)
@@ -277,7 +276,7 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
         if field_type == 'text':
             widget = ctk.CTkEntry(
                 field_frame,
-                placeholder_text=field.get('placeholder', field_name),
+                placeholder_text=field_name,
                 height=input_height,
                 font=("Arial", input_font_size)
             )
@@ -285,38 +284,67 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
             if field_subtype == 'password':
                 widget.configure(show="•")
             elif field_subtype == 'number':
-                # NOTE: Using Tk validate/validatecommand can break CustomTkinter placeholders
-                # on some platforms/themes. We sanitize on key release instead.
-                def sanitize_number(_event=None):
-                    current = widget.get()
-                    cleaned = "".join(ch for ch in current if ch.isdigit())
-                    if cleaned != current:
-                        widget.delete(0, "end")
-                        widget.insert(0, cleaned)
-                widget.bind("<KeyRelease>", sanitize_number)
+                # # NOTE: Using Tk validate/validatecommand can break CustomTkinter placeholders
+                # # on some platforms/themes. We sanitize on key release instead.
+                # def sanitize_number(_event=None):
+                #     current = widget.get()
+                #     cleaned = "".join(ch for ch in current if ch.isdigit())
+                #     if cleaned != current:
+                #         widget.delete(0, "end")
+                #         widget.insert(0, cleaned)
+                # widget.bind("<KeyRelease>", sanitize_number)
+
+######## Old code reverted because of issues ####################
+                def only_numbers(proposed_value):
+                    return proposed_value.isdigit() or proposed_value == ""
+                vcmd = (widget.register(only_numbers), '%P')
+                widget.configure(validate="key", validatecommand=vcmd)
+######## Old code reverted because of issues ####################
+
             elif field_subtype == 'currency':
-                # NOTE: Using Tk validate/validatecommand can break CustomTkinter placeholders
-                # on some platforms/themes. We sanitize on key release instead.
-                def sanitize_currency(_event=None):
-                    current = widget.get()
-                    # Keep digits and at most one dot
-                    cleaned_chars = []
-                    dot_seen = False
-                    for ch in current:
-                        if ch.isdigit():
-                            cleaned_chars.append(ch)
-                        elif ch == "." and not dot_seen:
-                            cleaned_chars.append(ch)
-                            dot_seen = True
-                    cleaned = "".join(cleaned_chars)
-                    # Enforce max 2 decimals
-                    if "." in cleaned:
-                        left, right = cleaned.split(".", 1)
-                        cleaned = left + "." + right[:2]
-                    if cleaned != current:
-                        widget.delete(0, "end")
-                        widget.insert(0, cleaned)
-                widget.bind("<KeyRelease>", sanitize_currency)
+                # # NOTE: Using Tk validate/validatecommand can break CustomTkinter placeholders
+                # # on some platforms/themes. We sanitize on key release instead.
+                # def sanitize_currency(_event=None):
+                #     current = widget.get()
+                #     # Keep digits and at most one dot
+                #     cleaned_chars = []
+                #     dot_seen = False
+                #     for ch in current:
+                #         if ch.isdigit():
+                #             cleaned_chars.append(ch)
+                #         elif ch == "." and not dot_seen:
+                #             cleaned_chars.append(ch)
+                #             dot_seen = True
+                #     cleaned = "".join(cleaned_chars)
+                #     # Enforce max 2 decimals
+                #     if "." in cleaned:
+                #         left, right = cleaned.split(".", 1)
+                #         cleaned = left + "." + right[:2]
+                #     if cleaned != current:
+                #         widget.delete(0, "end")
+                #         widget.insert(0, cleaned)
+                # widget.bind("<KeyRelease>", sanitize_currency)
+
+######## Old code reverted because of issues ####################
+                # Currency validation: allows numbers with optional decimal and max 2 decimal places
+                # Pattern: digits (optional: decimal point + max 2 digits)
+                def validate_currency(proposed_value):
+                    # Matches: empty, digits, or digits with .XX format (max 2 decimal places)
+                    return re.match(r'^\d*\.?\d{0,2}$', proposed_value) is not None
+                
+                vcmd = (widget.register(validate_currency), '%P')
+                widget.configure(validate="key", validatecommand=vcmd)
+######## Old code reverted because of issues ####################
+
+            elif field_subtype == 'date':
+                # Date validation: allows DD-MM-YYYY format with required hyphens
+                def validate_date(proposed_value):
+                    # Matches: empty or DD-MM-YYYY format (progressive: "", "0", "01", "01-", "01-0", "01-02", "01-02-", "01-02-2026")
+                    # Enforces hyphens in correct positions
+                    return re.match(r'^(\d{0,2}(-\d{0,2}(-\d{0,4})?)?)?$', proposed_value) is not None
+                
+                vcmd = (widget.register(validate_date), '%P')
+                widget.configure(validate="key", validatecommand=vcmd)
 
             if field_default:
                 widget.insert(0, str(field_default))
@@ -548,7 +576,7 @@ def popup_card(parent, title, button_text="", small=False, button_size="medium",
 
 
 def data_table(parent, columns, data=None, editable=False, deletable=False,
-               on_update=None, on_delete=None, on_create=None, refresh_data=None,
+               on_update=None, on_delete=None, refresh_data=None,
                show_refresh_button: bool = True,
                render_batch_size: int = 0,
                page_size: int = 0,
@@ -570,7 +598,6 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
         deletable: Enable delete functionality for rows
         on_update: Callback function(row_data, updated_data) for updating a row
         on_delete: Callback function(row_data) for deleting a row
-        on_create: Callback function(new_data) for creating a new row
         refresh_data: Callback function() that returns updated data list
         
     Returns:
@@ -602,7 +629,7 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
         
         table, refresh = data_table(parent, columns, editable=True, deletable=True,
                                    on_update=update_row, on_delete=delete_row,
-                                   on_create=create_row, refresh_data=get_data)
+                                   refresh_data=get_data)
     """
     # Main table container
     table_container = ctk.CTkFrame(parent)
@@ -687,18 +714,6 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
             """Add table-level controls after rows render."""
             if loading_label:
                 loading_label.destroy()
-
-            # Add new row button
-            if on_create:
-                add_btn = ctk.CTkButton(
-                    content,
-                    text="+ Add New Row",
-                    command=lambda: create_new_row_dialog(columns, on_create, refresh_table),
-                    height=35,
-                    fg_color=("gray70", "gray30"),
-                    hover_color=("gray60", "gray25")
-                )
-                add_btn.pack(side="left", pady=10)
 
             # Pagination controls
             if ps > 0 and total_rows > ps:
@@ -969,50 +984,6 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                 refresh_callback()
             else:
                 print(f"Delete failed: {result}")
-    
-    # un-tested possibly contains bugs
-    def create_new_row_dialog(cols, create_callback, refresh_callback):
-        """Open dialog to create new row"""
-        fields = [
-            {
-                'name': col['name'],
-                'type': 'text',
-                'placeholder': col['name']
-            }
-            for col in cols if col.get('editable', True)
-        ]
-        
-        def handle_create(values):
-            # Map field names back to keys
-            new_data = {}
-            for col in cols:
-                if col.get('editable', True):
-                    new_data[col['key']] = values.get(col['name'], '')
-            
-            result = create_callback(new_data)
-            if result is True:
-                refresh_callback()
-                return True
-            else:
-                return f"Create failed: {result}"
-        
-        # Create popup with form
-        button, open_popup = popup_card(
-            table_container,
-            "Add New",
-            "Create New Row",
-            small=True,
-            button_size="medium"
-        )
-        
-        content = open_popup()
-        form, error = form_element(
-            content,
-            fields,
-            name=None,
-            submit_text="Create",
-            on_submit=handle_create
-        )
     
     # Initial table load
     refresh_table()
