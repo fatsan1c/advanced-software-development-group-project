@@ -1,0 +1,52 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install OS deps (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r setupfiles/requirements.txt -r setupfiles/requirements-dev.txt
+
+      - name: Run tests
+        run: |
+          python -m pytest --cov=paragonapartments --cov-report=term --cov-report=xml --junitxml=pytest-results.xml
+
+      - name: Upload pytest results (junit)
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results-${{ matrix.os }}
+          path: pytest-results.xml
+
+      - name: Upload coverage (xml)
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml-${{ matrix.os }}
+          path: coverage.xml
+
