@@ -8,6 +8,7 @@ class Administrator(User):
     def __init__(self, username: str, location: str = ""):
         super().__init__(username, role="Administrator", location=location)
 
+# ============================= v Admin functions v  =====================================
     def create_account(self, username: str, role: str):
         """Create a new user account at this administrator's location."""
         print(f"Creating account for {username} with role {role} at location {self.location}")
@@ -27,51 +28,74 @@ class Administrator(User):
     def track_lease_agreement(self, lease_id: int):
         """Track lease agreements for this location."""
         print("Tracking lease agreements...")
+# ============================= ^ Admin functions ^ =====================================
     
+# ============================= v Homepage UI Content v =====================================
     def load_homepage_content(self, home_page):
         """Load Administrator-specific homepage content."""
         # Load base content first
         super().load_homepage_content(home_page)
         
+        # Create a row container for the administrator's homepage content
         row1 = pe.row_container(parent=home_page)
         
-        accounts_card = pe.function_card(row1, "Manage Accounts", side="left")
+        # Add function card for account management
+        self.load_account_content(row1)
+
+        # Add function card for apartment management
+        self.load_apartment_content(row1)
+
+        row2 = pe.row_container(parent=home_page)
+
+        # Add function card for reports and lease tracking
+        self.load_reports_content(row2)
+
+        self.load_lease_content(row2)
         
+    def load_account_content(self, row):
+        accounts_card = pe.function_card(row, "Manage Accounts", side="left")
+        
+        # Create account button for administrators location
         pe.action_button(
             accounts_card,
             text="Create Account",
             command=lambda: self.create_account("newuser", "admin")
         )
 
+        # Edit account button for administrators location
         pe.action_button(
             accounts_card,
             text="Edit Account",
             command=lambda: self.edit_account("existinguser", "manager")
         )
 
-        appartments_card = pe.function_card(row1, "Manage Apartments", side="left")
+    def load_apartment_content(self, row):
+        appartments_card = pe.function_card(row, "Manage Apartments", side="left")
 
+        # View apartments button for administrators location
         pe.action_button(
             appartments_card,
             text="View Apartments",
             command=lambda: self.manage_apartments("view")
         )
 
-        row2 = pe.row_container(parent=home_page)
+    def load_reports_content(self, row):
+        reports_card = pe.function_card(row, "Generate Reports", side="left")
 
-        reports_card = pe.function_card(row2, "Generate Reports", side="left")
-
+        # Generate reports button for administrators location
         pe.action_button(
             reports_card,
             text="Generate",
             command=lambda: self.generate_reports()
         )
 
-        lease_card = pe.function_card(row2, "Track Lease Agreement", side="left")
+    def load_lease_content(self, row):
+        lease_card = pe.function_card(row, "Track Lease Agreement", side="left")
 
+        # Track lease agreement button for administrators location
         pe.action_button(
             lease_card,
             text="Track Lease",
             command=lambda: self.track_lease_agreement(1)
         )
-        
+# ============================= ^ Homepage UI Content ^ =====================================

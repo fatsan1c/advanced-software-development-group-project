@@ -2,6 +2,8 @@ import customtkinter as ctk
 import re
 from PIL import Image
 
+# Import page elements for use in user dashboard and other pages
+
 def content_container(parent, anchor=None, side=None,
                      margin=10, marginx=None, marginy=None,
                      padding=15, paddingx=None, paddingy=None,

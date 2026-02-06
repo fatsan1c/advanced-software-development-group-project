@@ -12,6 +12,7 @@ class Manager(User):
     def __init__(self, username: str, location: str = None):
         super().__init__(username, role="Manager", location=location)
 
+# ============================= v Manager functions v  =====================================
     def view_apartment_occupancy(self, location: str):
         """
         View apartment occupancy for a specific location or all locations.
@@ -29,7 +30,7 @@ class Manager(User):
             print(f"Total occupied apartments: {occupied_count}")
         return occupied_count
 
-
+    # unused for now. May be used in future for more reports or graphs.
     def generate_reports(self, location: str):
         """Generate performance reports for a location."""
         print("Generating performance report...")
@@ -48,7 +49,7 @@ class Manager(User):
             location_id = None
 
         try:
-            #Database operation
+            # Database operation
             user_repo.create_user(username, password, role, location_id)
             return True  # Success
         except Exception as e:
@@ -78,6 +79,7 @@ class Manager(User):
         """Delete an existing user account by username or ID."""
 
         try:
+            # Attempt to delete by ID otherwise return error
             if user_data and 'user_ID' in user_data:
                 user_repo.delete_user(int(user_data['user_ID']))
             else:
@@ -89,6 +91,7 @@ class Manager(User):
 
     def expand_business(self, new_location: str):
         """Expand business to a new location."""
+        # Add new location to database
         city = new_location.get('City', '')
         address = new_location.get('Address', '')
 
@@ -115,6 +118,7 @@ class Manager(User):
         """Delete an existing location by ID."""
 
         try:
+            # Attempt to delete by ID otherwise return error
             if location_data and 'location_ID' in location_data:
                 location_repo.delete_location(int(location_data['location_ID']))
             else:
@@ -132,10 +136,13 @@ class Manager(User):
         monthly_rent = apartment_data.get('Monthly Rent', 0)
         status = apartment_data.get('Status', 'Vacant')
 
+        # Convert status to occupied flag
         occupied = 1 if status.lower() == "occupied" else 0
 
         try:
+            # Get location ID from city name
             location_id = location_repo.get_location_id_by_city(location)
+            # create apartment in database
             apartment_repo.create_apartment(location_id, apartment_address, number_of_beds, monthly_rent, occupied)
             return True  # Success
         except Exception as e:
@@ -145,6 +152,7 @@ class Manager(User):
         """Delete an existing apartment by ID."""
 
         try:
+            # Attempt to delete by ID otherwise return error
             if apartment_data and 'apartment_ID' in apartment_data:
                 apartment_repo.delete_apartment(int(apartment_data['apartment_ID']))
             else:
@@ -164,12 +172,16 @@ class Manager(User):
         monthly_rent = values.get('monthly_rent', 0)
         status = values.get('status', 'Vacant')
 
+        # Convert status to occupied flag
         occupied = 1 if status.lower() == "occupied" else 0
 
         try:
+            # Get location ID from city name
             location_id = location_repo.get_location_id_by_city(location)
+            # handle case where location is not found
             if location_id is None:
                 return "Invalid location specified."
+            
             apartment_repo.update_apartment(
                 apartment_id,
                 location_ID=location_id,
@@ -181,8 +193,9 @@ class Manager(User):
             return True  # Success
         except Exception as e:
             return f"Failed to edit apartment: {str(e)}"
+# ============================= ^ Manager functions ^ =====================================
 
-
+# ============================= v Homepage UI Content v =====================================
     def load_homepage_content(self, home_page):
         """Load Manager-specific homepage content."""
         # Load base content first
@@ -193,18 +206,22 @@ class Manager(User):
         # First row - 2 cards
         row1 = pe.row_container(parent=container)
         
+        # Display how many appartments are occupied vs available for each location, with option to view graph of occupancy trends over time
         self.load_occupancy_content(row1)
 
+        # Manage staff user accounts - create, edit, delete accounts with role and location assignment
         self.load_account_content(row1)
 
         # Second row - full width card
         row2 = pe.row_container(parent=container)
 
+        # Display financial performance reports for each location and overall business
         self.load_report_content(row2)
 
         # Third row - full width card
         row3 = pe.row_container(parent=container)
         
+        # Allow manager to add new locations and apartments to expand the business
         self.load_business_expansion_content(row3)
 
     def load_occupancy_content(self, row):
@@ -220,6 +237,7 @@ class Manager(User):
             width=200,
             font=("Arial", 14)
         )
+        # Set default value to "All Locations"
         location_dropdown.set("All Locations")
         location_dropdown.pack(pady=10, padx=20)
         
@@ -274,6 +292,8 @@ class Manager(User):
     def load_account_content(self, row):
         accounts_card = pe.function_card(row, "Manage Accounts", side="left")
 
+        # Choose field for creating new account form 
+        # - username, role (dropdown), password, location (dropdown)
         fields = [
             {'name': 'Username', 'type': 'text', 'required': True},
             {'name': 'Role', 'type': 'dropdown', 'options': ['Admin', 'Manager', 'Finance Manager', 'Frontdesk', 'Maintenance'], 'required': True},
@@ -281,9 +301,10 @@ class Manager(User):
             {'name': 'Location', 'type': 'dropdown', 'options': ['None'] + location_repo.get_all_cities(), 'required': False}
         ]
 
+        # create form for creating new accounts with above fields
         pe.form_element(accounts_card, fields, name="Create", submit_text="Create Account", on_submit=self.create_account, small=True)
 
-        # Create the popup with a button
+        # Create a popup with a button to edit existing accounts
         button, open_popup_func = pe.popup_card(
             accounts_card, 
             button_text="Edit Accounts", 
@@ -294,6 +315,7 @@ class Manager(User):
         def setup_popup():
             content = open_popup_func()
 
+            # Define columns for user data table
             columns = [
                 {'name': 'ID', 'key': 'user_ID', 'width': 80, 'editable': False},
                 {'name': 'Username', 'key': 'username', 'width': 200},
@@ -301,9 +323,11 @@ class Manager(User):
                 {'name': 'Role', 'key': 'role', 'width': 150}
             ]
 
+            # Function to fetch user data for the table
             def get_data():
                 return user_repo.get_all_users()
 
+            # Create editable and deletable data table for user accounts
             pe.data_table(
                 content, 
                 columns, 
@@ -314,6 +338,7 @@ class Manager(User):
                 on_update=self.edit_account
             )
 
+        # Set the button command to open the popup with the user accounts table
         button.configure(command=setup_popup)
 
     def load_report_content(self, row):
@@ -329,6 +354,7 @@ class Manager(User):
             width=200,
             font=("Arial", 14)
         )
+        # Set default value to "All Locations"
         location_dropdown.set("All Locations")
         location_dropdown.pack(pady=10, padx=20)
         
@@ -348,6 +374,7 @@ class Manager(User):
             potential_revenue = apartment_repo.get_potential_revenue(location)
             lost_revenue = potential_revenue - actual_revenue
             
+            # Format the revenue numbers
             if location == "all":
                 result_label.configure(
                     text=f"Actual: £{actual_revenue:,.2f} | Lost: £{lost_revenue:,.2f} | Potential: £{potential_revenue:,.2f}"
@@ -383,14 +410,16 @@ class Manager(User):
     def load_business_expansion_content(self, row):
         expand_card = pe.function_card(row, "Expand Business", side="top")
 
+        # Define fields for adding a new location
         fields = [
             {'name': 'City', 'type': 'text', 'required': True},
             {'name': 'Address', 'type': 'text', 'required': True},
         ]
 
+        # Create form for adding new location with above fields
         pe.form_element(expand_card, fields, name="Add Location", submit_text="Add", on_submit=self.expand_business, small=True)
 
-        # Create the popup with a button
+        # Create a popup to edit existing locations with a data table
         button, open_popup_func = pe.popup_card(
             expand_card, 
             button_text="Edit Locations", 
@@ -401,15 +430,18 @@ class Manager(User):
         def setup_popup():
             content = open_popup_func()
 
+            # Define columns for location data table
             columns = [
                 {'name': 'ID', 'key': 'location_ID', 'width': 80, 'editable': False},
                 {'name': 'City', 'key': 'city', 'width': 200},
                 {'name': 'Address', 'key': 'address', 'width': 200}
             ]
 
+            # Function to fetch location data for the table
             def get_data():
                 return location_repo.get_all_locations()
 
+            # Create editable and deletable data table for locations
             pe.data_table(
                 content, 
                 columns, 
@@ -420,8 +452,10 @@ class Manager(User):
                 on_update=self.edit_location
             )
 
+        # Set the button command to open the popup with the locations table
         button.configure(command=setup_popup)
 
+        # Define fields for adding a new apartment
         fields = [
             {'name': 'Location', 'type': 'dropdown', 'options': location_repo.get_all_cities(), 'required': True},
             {'name': 'Apartment Address', 'type': 'text', 'required': True},
@@ -432,7 +466,7 @@ class Manager(User):
 
         pe.form_element(expand_card, fields, name="Add Apartment", submit_text="Add", on_submit=self.add_apartment, small=True, field_per_row=5)
 
-        # Create the popup with a button
+        # Create a popup to edit existing apartments with a data table
         button, open_popup_func = pe.popup_card(
             expand_card, 
             button_text="Edit Apartments", 
@@ -443,6 +477,7 @@ class Manager(User):
         def setup_popup():
             content = open_popup_func()
 
+            # Define columns for apartment data table
             columns = [
                 {'name': 'ID', 'key': 'apartment_ID', 'width': 80, 'editable': False},
                 {'name': 'Location', 'key': 'city', 'width': 150},
@@ -452,9 +487,11 @@ class Manager(User):
                 {'name': 'Status', 'key': 'status', 'width': 100}
             ]
 
+            # Function to fetch apartment data for the table
             def get_data():
                 return apartment_repo.get_all_apartments()
 
+            # Create editable and deletable data table for apartments
             pe.data_table(
                 content, 
                 columns, 
@@ -465,4 +502,6 @@ class Manager(User):
                 on_update=self.edit_apartment
             )
 
+        # Set the button command to open the popup with the apartments table
         button.configure(command=setup_popup)
+# ============================= ^ Homepage UI Content ^ =====================================

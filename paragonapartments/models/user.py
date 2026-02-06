@@ -11,8 +11,10 @@ def create_user(username: str, user_type: str, location: str = ""):
     from models.user_roles.front_desk_staff import FrontDeskStaff
     from models.user_roles.maintenance_staff import MaintenanceStaff
     
+    # Normalize user type for comparison
     user_type_lower = user_type.lower().replace(" ", "")
     
+    # Check user type and return the corresponding user class instance
     if user_type_lower == "administrator" or user_type_lower == "admin":
         return Administrator(username, location)
     elif user_type_lower == "manager":
@@ -49,6 +51,7 @@ class User:
         old_password = values.get('Old Password', '')
         new_password = values.get('New Password', '')
 
+        # Request password change from the user repository
         success = user_repo.change_password(self.username, old_password, new_password)
 
         if success:
@@ -61,18 +64,21 @@ class User:
         # Centered content wrapper
         top_content = pe.content_container(parent=home_page, anchor="nw", fill="x", marginy=(10, 0))
 
+        # Display username and location in the top left corner
         ctk.CTkLabel(
             top_content, 
             text=self.username + (f" - {self.location}" if self.location else ""), 
             font=("Arial", 24)
         ).pack(side="left", padx=15)
 
+        # Display role and "Dashboard" in the center
         ctk.CTkLabel(
             top_content, 
             text=self.role + " Dashboard",
             font=("Arial", 24)
         ).place(relx=0.5, rely=0.5, anchor="center")
 
+        # Logout button in the top right corner
         ctk.CTkButton(
             top_content, 
             text="Logout",
@@ -82,18 +88,20 @@ class User:
             command=lambda: self.logout(home_page)
         ).pack(side="right", padx=10)
 
+        # Change password popup trigger in the top right corner, next to logout
         _, open_popup = pe.popup_card(home_page, title="Change Password", small=True, generate_button=False)
 
         def setup_popup():
             content = open_popup()
 
+            # Define the fields for changing password
             fields = [
                 {'name': 'Old Password', 'type': 'text', 'subtype': 'password', 'required': True},
                 {'name': 'New Password', 'type': 'text', 'subtype': 'password', 'required': True},
             ]
             pe.form_element(content, fields, name="Change Password", submit_text="Change Password", on_submit=self.change_password, small=True)
 
-
+        # Change password button
         ctk.CTkButton(
             home_page, 
             text="Change password",

@@ -100,7 +100,6 @@ def get_user_role(username):
 def get_all_roles():
     """
     Get all distinct user roles from the database.
-    Requires: 'read' permission on 'users' resource (checked by decorator)
     
     Returns:
         list: List of role strings (e.g., ['Admin', 'Finance Manager', 'Manager'])
@@ -113,7 +112,6 @@ def get_all_roles():
 def get_all_users():
     """
     Get all users from the database.
-    Requires: 'read' permission on 'users' resource (checked by decorator)
     
     Returns:
         list: List of user dictionaries, empty list if error
@@ -138,9 +136,7 @@ def get_all_usernames():
 
 def create_user(username, password, role, location_ID=None):
     """
-    Create a new user in the database.
-    Requires: 'create' permission on 'users' resource (checked by decorator)
-    
+    Create a new user in the database.    
     Args:
         username (str): Username for the new user
         password (str): Plain text password (will be hashed)
@@ -182,6 +178,7 @@ def update_user(user_id, **kwargs):
                 value = sha256_crypt.hash(value)
             values.append(value)
     
+    # If no valid fields to update, return False
     if not updates:
         return False
     
@@ -189,12 +186,12 @@ def update_user(user_id, **kwargs):
     query = f"UPDATE users SET {', '.join(updates)} WHERE user_ID = ?"
     
     result = execute_query(query, tuple(values), commit=True)
+    # return True if at least one row was affected, False otherwise
     return result is not None and result > 0
 
 def change_password(username, old_password, new_password):
     """
     Change a user's password.
-    Requires: 'update' permission on 'users' resource (checked by decorator)
     
     Args:
         username (str): Username of user whose password to change
@@ -217,7 +214,6 @@ def change_password(username, old_password, new_password):
 def delete_user(user_id):
     """
     Delete a user from the database.
-    Requires: 'manager' role (checked by decorator)
     
     Args:
         user_id (int): ID of user to delete
