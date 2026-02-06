@@ -1,3 +1,4 @@
+from email import header
 import customtkinter as ctk
 import pages.components.page_elements as pe
 import database_operations.repos.user_repository as user_repo
@@ -335,7 +336,9 @@ class Manager(User):
                 deletable=True,
                 refresh_data=get_data,
                 on_delete=self.delete_account,
-                on_update=self.edit_account
+                on_update=self.edit_account,
+                render_batch_size=20,
+                page_size=10
             )
 
         # Set the button command to open the popup with the user accounts table
@@ -477,30 +480,68 @@ class Manager(User):
         def setup_popup():
             content = open_popup_func()
 
+            # Filter dropdown
+            header = ctk.CTkFrame(content, fg_color="transparent")
+            header.pack(fill="x", padx=10, pady=(5, 0))
+
+            cities = ["All Locations"] + location_repo.get_all_cities()
+            location_dropdown = ctk.CTkComboBox(header, values=cities, width=220, font=("Arial", 13))
+            location_dropdown.set("All Locations")
+            location_dropdown.pack(side="left")
+
             # Define columns for apartment data table
             columns = [
                 {'name': 'ID', 'key': 'apartment_ID', 'width': 80, 'editable': False},
                 {'name': 'Location', 'key': 'city', 'width': 150},
                 {'name': 'Address', 'key': 'apartment_address', 'width': 150},
                 {'name': 'Beds', 'key': 'number_of_beds', 'width': 80},
-                {'name': 'Monthly Rent', 'key': 'monthly_rent', 'width': 120},
+                {'name': 'Monthly Rent', 'key': 'monthly_rent', 'width': 120, "format": "currency"},
                 {'name': 'Status', 'key': 'status', 'width': 100}
             ]
 
             # Function to fetch apartment data for the table
             def get_data():
-                return apartment_repo.get_all_apartments()
+                location = location_dropdown.get()
+                return apartment_repo.get_all_apartments(location=location)
 
             # Create editable and deletable data table for apartments
-            pe.data_table(
+            _, refresh_table = pe.data_table(
                 content, 
                 columns, 
                 editable=True, 
                 deletable=True,
                 refresh_data=get_data,
                 on_delete=self.delete_apartment,
-                on_update=self.edit_apartment
+                on_update=self.edit_apartment,
+                show_refresh_button=False,
+                render_batch_size=20,
+                page_size=9
             )
+
+            # Top refresh button next to the dropdown
+            ctk.CTkButton(
+                header,
+                text="⟳ Refresh",
+                command=refresh_table,
+                height=32,
+                width=120,
+                fg_color=("gray70", "gray30"),
+                hover_color=("gray60", "gray25")
+            ).pack(side="left", padx=(12, 0))
+
+            # Optional: auto-refresh when changing city
+            refresh_timer = {"id": None}
+            def schedule_refresh(_choice=None):
+                if refresh_timer["id"] is not None:
+                    try:
+                        content.after_cancel(refresh_timer["id"])
+                    except Exception:
+                        pass
+                if hasattr(refresh_table, "reset_page"):
+                    refresh_table.reset_page()
+                refresh_timer["id"] = content.after(150, refresh_table)
+
+            location_dropdown.configure(command=schedule_refresh)
 
         # Set the button command to open the popup with the apartments table
         button.configure(command=setup_popup)
