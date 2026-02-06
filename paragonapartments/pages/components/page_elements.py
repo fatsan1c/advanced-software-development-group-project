@@ -593,12 +593,16 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
             - 'key': Data key for this column (required)
             - 'width': Column width in pixels (default: 150)
             - 'editable': Whether this column is editable (default: True if table editable)
+            - 'format': Optional format for displaying data (e.g. "currency")
         data: List of dictionaries representing rows (optional, can be loaded later)
         editable: Enable edit functionality for rows
         deletable: Enable delete functionality for rows
         on_update: Callback function(row_data, updated_data) for updating a row
         on_delete: Callback function(row_data) for deleting a row
         refresh_data: Callback function() that returns updated data list
+        show_refresh_button: Whether to show a refresh button for manual data refresh
+        render_batch_size: If > 0, renders rows in batches of this size to keep UI responsive
+        page_size: If > 0, enables pagination with this many rows per page
         
     Returns:
         Tuple of (table_container, refresh_function):
