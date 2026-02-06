@@ -669,10 +669,12 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                 anchor="w"
             )
             header_cell.pack(side="left", padx=5, pady=8)
-            vertical_divider(header_row, padx=(0, 8))
+            if col != columns[-1]:  # Don't add divider after last column
+                vertical_divider(header_row, padx=(0, 8))
         
         # Actions column header if editable or deletable
         if editable or deletable:
+            vertical_divider(header_row, padx=(0, 8))
             ctk.CTkLabel(
                 header_row,
                 text="Actions",

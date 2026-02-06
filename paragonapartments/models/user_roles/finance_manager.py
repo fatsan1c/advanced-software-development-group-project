@@ -234,14 +234,14 @@ class FinanceManager(User):
             location_dropdown.pack(side="left")
 
             columns = [
-                {"name": "ID", "key": "invoice_ID", "width": 80, "editable": False},
-                {"name": "Tenant ID", "key": "tenant_ID", "width": 100},
-                {"name": "Tenant", "key": "tenant_name", "width": 200, "editable": False},
-                {"name": "City", "key": "city", "width": 140, "editable": False},
-                {"name": "Amount", "key": "amount_due", "width": 120, "format": "currency"},
-                {"name": "Due Date", "key": "due_date", "width": 120},
-                {"name": "Issue Date", "key": "issue_date", "width": 120},
-                {"name": "Paid (0/1)", "key": "paid", "width": 90},
+                {"name": "ID", "key": "invoice_ID", "width": 40, "editable": False},
+                {"name": "Tenant ID", "key": "tenant_ID", "width": 80},
+                {"name": "Tenant", "key": "tenant_name", "width": 120, "editable": False},
+                {"name": "City", "key": "city", "width": 90, "editable": False},
+                {"name": "Amount", "key": "amount_due", "width": 80, "format": "currency"},
+                {"name": "Due Date", "key": "due_date", "width": 100},
+                {"name": "Issue Date", "key": "issue_date", "width": 100},
+                {"name": "Paid (0/1)", "key": "paid", "width": 70},
             ]
 
             def get_data():
@@ -317,7 +317,7 @@ class FinanceManager(User):
                 {"name": "City", "key": "city", "width": 160, "editable": False},
                 {"name": "Amount", "key": "amount_due", "width": 120, "editable": False, "format": "currency"},
                 {"name": "Due Date", "key": "due_date", "width": 120, "editable": False},
-                {"name": "Issue Date", "key": "issue_date", "width": 120, "editable": False},
+                {"name": "Issue Date", "key": "issue_date", "width": 120, "editable": False}
             ]
 
             def get_data():
