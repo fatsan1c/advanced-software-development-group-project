@@ -6,7 +6,11 @@ on:
 
 jobs:
   pytest:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     env:
       PYTHONUTF8: "1"
     steps:
@@ -18,6 +22,12 @@ jobs:
         with:
           python-version: "3.12"
           cache: "pip"
+
+      - name: Install OS deps (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
 
       - name: Install dependencies
         run: |
@@ -31,12 +41,12 @@ jobs:
       - name: Upload pytest results (junit)
         uses: actions/upload-artifact@v4
         with:
-          name: pytest-results
+          name: pytest-results-${{ matrix.os }}
           path: pytest-results.xml
 
       - name: Upload coverage (xml)
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-xml
+          name: coverage-xml-${{ matrix.os }}
           path: coverage.xml
 
