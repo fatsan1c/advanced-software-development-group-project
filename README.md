@@ -70,13 +70,13 @@ This project includes:
 - **Automated tests** (unit + SQLite integration) using `pytest`
 - **Code coverage reporting** using `pytest-cov`
 - **Manual test cases** (ASD deliverable) in [`docs/manual_test_cases.md`](docs/manual_test_cases.md)
-- **CI pipeline** that runs tests on Windows via GitHub Actions in [`.github/workflows/tests.yml`](.github/workflows/tests.yml)
+- **CI pipeline** that runs tests on **Windows + Ubuntu + macOS** via GitHub Actions in [`.github/workflows/tests.yml`](.github/workflows/tests.yml)
 
 ### Why this is important
 - **Prevents regressions**: repository/database logic is easy to break; integration tests catch issues early.
 - **Safe DB testing**: tests run against a temporary SQLite database, so they do **not** modify your real app DB.
 - **Assessment evidence**: manual test cases + traceability help demonstrate coverage of requirements for ASD.
-- **CI confidence**: every push/PR runs the same test command on Windows to keep the project stable across changes.
+- **CI confidence**: every push/PR runs the same test command on Windows + Ubuntu + macOS to keep the project stable across changes.
 
 ### Install test dependencies
 Testing dependencies are included in [`setupfiles/requirements.txt`](setupfiles/requirements.txt), so one install covers both app + tests:
@@ -106,6 +106,11 @@ python -m pytest --cov=paragonapartments --cov-report=term --cov-report=xml
 ```
 
 - **`coverage.xml`** is a machine-readable report used by CI/tools; it can be deleted safely (it will be regenerated).
+
+### CI outputs (GitHub Actions artifacts)
+The CI workflow uploads these files for each OS run:
+- **`coverage.xml`**: code coverage report (XML)
+- **`pytest-results.xml`**: JUnit-style test results report (XML)
 
 ### How DB isolation works (`PAMS_DB_PATH`)
 Repository code connects to SQLite through `getConnection()` in [`paragonapartments/database_operations/dbfunc.py`](paragonapartments/database_operations/dbfunc.py).
