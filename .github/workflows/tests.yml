@@ -7,6 +7,8 @@ on:
 jobs:
   pytest:
     runs-on: windows-latest
+    env:
+      PYTHONUTF8: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,7 +26,13 @@ jobs:
 
       - name: Run tests
         run: |
-          python -m pytest --cov=paragonapartments --cov-report=term --cov-report=xml
+          python -m pytest --cov=paragonapartments --cov-report=term --cov-report=xml --junitxml=pytest-results.xml
+
+      - name: Upload pytest results (junit)
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results
+          path: pytest-results.xml
 
       - name: Upload coverage (xml)
         uses: actions/upload-artifact@v4
