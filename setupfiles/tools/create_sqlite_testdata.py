@@ -121,6 +121,12 @@ def create_database():
         FOREIGN KEY (tenant_ID) REFERENCES tenants(tenant_ID)
     )
     """)
+
+    # Performance indexes
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_invoices_tenant ON invoices(tenant_ID)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_invoices_paid_due ON invoices(paid, due_date)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_payments_invoice ON payments(invoice_ID)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_lease_tenant_active ON lease_agreements(tenant_ID, active)")
     
     # Create complaint table
     cursor.execute("""

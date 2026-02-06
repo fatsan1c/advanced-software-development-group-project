@@ -64,6 +64,57 @@ To recreate or reset the database, run:
 python setupfiles/tools/create_sqlite_db.py
 ```
 
+### Finance (Invoices & Payments)
+
+The Finance area was expanded to support realistic testing and faster UI performance:
+
+- **Finance Manager dashboard**
+  - **Financial Summary** by location (auto-refresh on dropdown change) + **View Graphs** popup (Matplotlib + NumPy)
+  - **Manage Invoices**: create invoice + view/edit invoices (location filter, £ formatting, pagination)
+  - **Late / Unpaid Invoices**: view overdue unpaid invoices (location filter, £ formatting, pagination)
+  - **Record Payment**: records a payment and marks the linked invoice as paid
+  - **View Payments**: table view of payments (location filter, £ formatting, pagination)
+
+- **Data-table improvements**
+  - **Pagination (10 rows/page)** to avoid rendering all rows at once
+  - Top refresh buttons next to filters for quicker workflow
+  - £ currency formatting in finance tables
+
+- **Safety: duplicate-payment prevention**
+  - `record_payment` blocks payments when the invoice is already paid or already has a payment recorded, and returns a clear message.
+
+### Performance: SQLite Indexes
+
+For larger datasets, SQLite indexes were added to speed up the common finance queries (late/unpaid filtering, joins, and invoice/payment lookups):
+
+- `invoices(tenant_ID)`
+- `invoices(paid, due_date)`
+- `payments(invoice_ID)`
+- `lease_agreements(tenant_ID, active)`
+
+Indexes are created automatically when you run the DB creation scripts, and can be applied to an existing DB using:
+
+```bash
+python setupfiles/tools/create_sqlite_indexes.py
+```
+
+### Finance Test Data Seeding (for UI / performance testing)
+
+You can generate repeatable invoice/payment datasets across all locations using:
+
+```bash
+python setupfiles/tools/seed_finance_testdata.py --reset --invoices 500 --paid 300 --late-unpaid 120
+```
+This will create:
+- **500 invoices** total
+- **300 payments** (paid invoices)
+- A guaranteed set of **late/unpaid** invoices distributed across locations (so filters like Cardiff are never empty)
+
+After seeding, you can validate performance in the app by opening:
+- Finance Manager → **View / Edit Invoices**
+- Finance Manager → **Late / Unpaid Invoices**
+- Finance Manager → **View Payments**
+
 ## Default Login Credentials
 
 | Username | Password | Role | Location |
