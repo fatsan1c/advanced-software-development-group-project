@@ -11,6 +11,7 @@ class FinanceManager(User):
     def __init__(self, username: str, location: str = None):
         super().__init__(username, role="Finance Manager", location=location)
 
+# ============================= v Finance Manager functions v  =====================================
     def _selected_location(self, dropdown_value: str | None) -> str:
         """Map UI dropdown value to repository location parameter."""
         if dropdown_value == "All Locations":
@@ -111,7 +112,9 @@ class FinanceManager(User):
             return True if payment_id else "Failed to record payment."
         except Exception as e:
             return f"Failed to record payment: {str(e)}"
-    
+# ============================= ^ Finance Manager functions ^ =====================================
+
+# ============================= v Homepage UI Content v =====================================
     def load_homepage_content(self, home_page):
         """Load Finance Manager-specific homepage content."""
         # Load base content first
@@ -441,3 +444,4 @@ class FinanceManager(User):
             location_dropdown.configure(command=schedule_refresh)
 
         button.configure(command=setup_popup)
+# ============================= ^ Homepage UI Content ^ =====================================
