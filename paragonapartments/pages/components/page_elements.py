@@ -579,7 +579,7 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                on_update=None, on_delete=None, refresh_data=None,
                show_refresh_button: bool = True,
                render_batch_size: int = 0,
-               page_size: int = 0,
+               page_size: int = 0, scrollable: bool = True,
                **_kwargs):
     """Create a data table with optional CRUD operations.
     
@@ -647,7 +647,11 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
         
         # Create scrollable content area on first call, or clear existing children
         if content_ref['content'] is None:
-            content = scrollable_container(table_container, pady=0, padx=0)
+            if scrollable:
+                content = scrollable_container(table_container, pady=0, padx=0)
+            else:
+                content = ctk.CTkFrame(table_container, fg_color="transparent")
+                content.pack(fill="both", expand=True, padx=0, pady=0)
             content_ref['content'] = content
         else:
             # Clear all children from existing container

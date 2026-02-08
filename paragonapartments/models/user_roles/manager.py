@@ -338,7 +338,8 @@ class Manager(User):
                 on_delete=self.delete_account,
                 on_update=self.edit_account,
                 render_batch_size=20,
-                page_size=10
+                page_size=10,
+                scrollable=False
             )
 
         # Set the button command to open the popup with the user accounts table
@@ -452,8 +453,24 @@ class Manager(User):
                 deletable=True,
                 refresh_data=get_data,
                 on_delete=self.delete_location,
-                on_update=self.edit_location
+                on_update=self.edit_location,
+                scrollable=False,
+                page_size=9
             )
+
+            # pe.data_table(
+            #     content, 
+            #     columns, 
+            #     editable=True, 
+            #     deletable=True,
+            #     refresh_data=get_data,
+            #     on_delete=self.delete_apartment,
+            #     on_update=self.edit_apartment,
+            #     show_refresh_button=False,
+            #     render_batch_size=20,
+            #     page_size=9,
+            #     scrollable=False
+            # )
 
         # Set the button command to open the popup with the locations table
         button.configure(command=setup_popup)
@@ -515,7 +532,8 @@ class Manager(User):
                 on_update=self.edit_apartment,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=9
+                page_size=9,
+                scrollable=False
             )
 
             # Top refresh button next to the dropdown
