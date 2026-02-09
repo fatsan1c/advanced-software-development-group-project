@@ -284,48 +284,12 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
             if field_subtype == 'password':
                 widget.configure(show="•")
             elif field_subtype == 'number':
-                # # NOTE: Using Tk validate/validatecommand can break CustomTkinter placeholders
-                # # on some platforms/themes. We sanitize on key release instead.
-                # def sanitize_number(_event=None):
-                #     current = widget.get()
-                #     cleaned = "".join(ch for ch in current if ch.isdigit())
-                #     if cleaned != current:
-                #         widget.delete(0, "end")
-                #         widget.insert(0, cleaned)
-                # widget.bind("<KeyRelease>", sanitize_number)
-
-######## Old code reverted because of issues ####################
                 def only_numbers(proposed_value):
                     return proposed_value.isdigit() or proposed_value == ""
                 vcmd = (widget.register(only_numbers), '%P')
                 widget.configure(validate="key", validatecommand=vcmd)
-######## Old code reverted because of issues ####################
 
             elif field_subtype == 'currency':
-                # # NOTE: Using Tk validate/validatecommand can break CustomTkinter placeholders
-                # # on some platforms/themes. We sanitize on key release instead.
-                # def sanitize_currency(_event=None):
-                #     current = widget.get()
-                #     # Keep digits and at most one dot
-                #     cleaned_chars = []
-                #     dot_seen = False
-                #     for ch in current:
-                #         if ch.isdigit():
-                #             cleaned_chars.append(ch)
-                #         elif ch == "." and not dot_seen:
-                #             cleaned_chars.append(ch)
-                #             dot_seen = True
-                #     cleaned = "".join(cleaned_chars)
-                #     # Enforce max 2 decimals
-                #     if "." in cleaned:
-                #         left, right = cleaned.split(".", 1)
-                #         cleaned = left + "." + right[:2]
-                #     if cleaned != current:
-                #         widget.delete(0, "end")
-                #         widget.insert(0, cleaned)
-                # widget.bind("<KeyRelease>", sanitize_currency)
-
-######## Old code reverted because of issues ####################
                 # Currency validation: allows numbers with optional decimal and max 2 decimal places
                 # Pattern: digits (optional: decimal point + max 2 digits)
                 def validate_currency(proposed_value):
@@ -334,7 +298,6 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
                 
                 vcmd = (widget.register(validate_currency), '%P')
                 widget.configure(validate="key", validatecommand=vcmd)
-######## Old code reverted because of issues ####################
 
             elif field_subtype == 'date':
                 # Date validation: allows DD-MM-YYYY format with required hyphens
