@@ -1,4 +1,4 @@
-﻿import customtkinter as ctk
+import customtkinter as ctk
 import pages.components.page_elements as pe
 import database_operations.repos.user_repository as user_repo
 
