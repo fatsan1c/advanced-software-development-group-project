@@ -15,9 +15,13 @@ class Administrator(User):
 # ============================= v Admin functions v  =====================================
     def view_apartment_occupancy(self):
         """View apartment occupancy for this administrator's location."""
-        occupied_count = apartment_repo.get_all_occupancy(self.location)
-        print(f"Occupied apartments in {self.location}: {occupied_count}")
-        return occupied_count
+        try:
+            occupied_count = apartment_repo.get_all_occupancy(self.location)
+            print(f"Occupied apartments in {self.location}: {occupied_count}")
+            return occupied_count
+        except Exception as e:
+            print(f"Error retrieving occupancy data: {e}")
+            return 0
 
     def create_account(self, values):
         """Create a new user account at this administrator's location."""
@@ -166,13 +170,16 @@ class Administrator(User):
         
         # Function to update display
         def update_occupancy_display():
-            occupied_count = self.view_apartment_occupancy()
-            total_count = apartment_repo.get_total_apartments(self.location)
-            available_count = total_count - occupied_count
-            
-            result_label.configure(
-                text=f"Occupied: {occupied_count} | Available: {available_count} | Total: {total_count}"
-            )
+            try:
+                occupied_count = self.view_apartment_occupancy()
+                total_count = apartment_repo.get_total_apartments(self.location)
+                available_count = total_count - occupied_count
+                
+                result_label.configure(
+                    text=f"Occupied: {occupied_count} | Available: {available_count} | Total: {total_count}"
+                )
+            except Exception as e:
+                result_label.configure(text=f"Error loading data: {str(e)}", text_color="red")
         
         update_occupancy_display()  # Auto-update when loading the page
 
@@ -225,9 +232,13 @@ class Administrator(User):
 
             # Function to fetch user data for the table (filtered by location)
             def get_data():
-                all_users = user_repo.get_all_users()
-                # Filter users by administrator's location
-                return [user for user in all_users if user.get('city') == self.location]
+                try:
+                    all_users = user_repo.get_all_users()
+                    # Filter users by administrator's location
+                    return [user for user in all_users if user.get('city') == self.location]
+                except Exception as e:
+                    print(f"Error loading users: {e}")
+                    return []
 
             # Create editable and deletable data table for user accounts
             pe.data_table(
@@ -260,13 +271,16 @@ class Administrator(User):
         
         # Function to update display
         def update_performance_display():
-            actual_revenue = apartment_repo.get_monthly_revenue(self.location)
-            potential_revenue = apartment_repo.get_potential_revenue(self.location)
-            lost_revenue = potential_revenue - actual_revenue
-            
-            result_label.configure(
-                text=f"Actual: £{actual_revenue:,.2f} | Lost: £{lost_revenue:,.2f} | Potential: £{potential_revenue:,.2f}"
-            )
+            try:
+                actual_revenue = apartment_repo.get_monthly_revenue(self.location)
+                potential_revenue = apartment_repo.get_potential_revenue(self.location)
+                lost_revenue = potential_revenue - actual_revenue
+                
+                result_label.configure(
+                    text=f"Actual: £{actual_revenue:,.2f} | Lost: £{lost_revenue:,.2f} | Potential: £{potential_revenue:,.2f}"
+                )
+            except Exception as e:
+                result_label.configure(text=f"Error loading revenue data: {str(e)}", text_color="red")
         
         update_performance_display()  # Auto-update when loading the page
 
@@ -320,7 +334,11 @@ class Administrator(User):
 
             # Function to fetch apartment data for the table (filtered by location)
             def get_data():
-                return apartment_repo.get_all_apartments(location=self.location)
+                try:
+                    return apartment_repo.get_all_apartments(location=self.location)
+                except Exception as e:
+                    print(f"Error loading apartments: {e}")
+                    return []
 
             # Create editable and deletable data table for apartments
             pe.data_table(

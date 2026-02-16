@@ -181,7 +181,12 @@ class MaintenanceStaff(User):
         """Load maintenance statistics summary card."""
         summary_card = pe.function_card(row, "Maintenance Dashboard", side="left")
 
-        cities = ["All Locations"] + location_repo.get_all_cities()
+        try:
+            cities = ["All Locations"] + location_repo.get_all_cities()
+        except Exception as e:
+            print(f"Error loading cities: {e}")
+            cities = ["All Locations"]
+            
         location_dropdown = ctk.CTkComboBox(
             summary_card,
             values=cities,
@@ -200,24 +205,27 @@ class MaintenanceStaff(User):
         result_label.pack(pady=10, padx=20)
 
         def update_summary():
-            location = self._selected_location(location_dropdown.get())
-            stats = self.get_maintenance_stats(location)
-            
-            total = stats.get('total_requests', 0) or 0
-            pending = stats.get('pending_requests', 0) or 0
-            completed = stats.get('completed_requests', 0) or 0
-            high_priority = stats.get('high_priority_pending', 0) or 0
-            avg_cost = stats.get('avg_cost', 0) or 0
-            
-            result_label.configure(
-                text=(
-                    f"Total Requests: {total} | "
-                    f"Pending: {pending} | "
-                    f"Completed: {completed}\n"
-                    f"High Priority Pending: {high_priority} | "
-                    f"Avg Cost: £{avg_cost:.2f}"
+            try:
+                location = self._selected_location(location_dropdown.get())
+                stats = self.get_maintenance_stats(location)
+                
+                total = stats.get('total_requests', 0) or 0
+                pending = stats.get('pending_requests', 0) or 0
+                completed = stats.get('completed_requests', 0) or 0
+                high_priority = stats.get('high_priority_pending', 0) or 0
+                avg_cost = stats.get('avg_cost', 0) or 0
+                
+                result_label.configure(
+                    text=(
+                        f"Total Requests: {total} | "
+                        f"Pending: {pending} | "
+                        f"Completed: {completed}\n"
+                        f"High Priority Pending: {high_priority} | "
+                        f"Avg Cost: £{avg_cost:.2f}"
+                    )
                 )
-            )
+            except Exception as e:
+                result_label.configure(text=f"Error loading stats: {str(e)}", text_color="red")
 
         # Auto-refresh summary on location change
         refresh_timer = {"id": None}
@@ -253,7 +261,12 @@ class MaintenanceStaff(User):
 
             ctk.CTkLabel(header, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
 
-            cities = ["All Locations"] + location_repo.get_all_cities()
+            try:
+                cities = ["All Locations"] + location_repo.get_all_cities()
+            except Exception as e:
+                print(f"Error loading cities: {e}")
+                cities = ["All Locations"]
+                
             location_dropdown = ctk.CTkComboBox(header, values=cities, width=180, font=("Arial", 13))
             location_dropdown.set(self.location if self.location else "All Locations")
             location_dropdown.pack(side="left", padx=(0, 15))
@@ -281,12 +294,16 @@ class MaintenanceStaff(User):
             ]
 
             def get_data():
-                location = self._selected_location(location_dropdown.get())
-                priority_val = priority_dropdown.get()
-                priority = None
-                if priority_val != "All":
-                    priority = int(priority_val.split(" ")[0])
-                return maintenance_repo.get_maintenance_requests(location, completed=0, priority=priority)
+                try:
+                    location = self._selected_location(location_dropdown.get())
+                    priority_val = priority_dropdown.get()
+                    priority = None
+                    if priority_val != "All":
+                        priority = int(priority_val.split(" ")[0])
+                    return maintenance_repo.get_maintenance_requests(location, completed=0, priority=priority)
+                except Exception as e:
+                    print(f"Error loading pending requests: {e}")
+                    return []
 
             _, refresh_table = pe.data_table(
                 content,
@@ -769,7 +786,12 @@ class MaintenanceStaff(User):
 
             ctk.CTkLabel(header, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
 
-            cities = ["All Locations"] + location_repo.get_all_cities()
+            try:
+                cities = ["All Locations"] + location_repo.get_all_cities()
+            except Exception as e:
+                print(f"Error loading cities: {e}")
+                cities = ["All Locations"]
+                
             location_dropdown = ctk.CTkComboBox(header, values=cities, width=220, font=("Arial", 13))
             location_dropdown.set(self.location if self.location else "All Locations")
             location_dropdown.pack(side="left")
@@ -786,8 +808,12 @@ class MaintenanceStaff(User):
             ]
 
             def get_data():
-                location = self._selected_location(location_dropdown.get())
-                return maintenance_repo.get_scheduled_maintenance(location)
+                try:
+                    location = self._selected_location(location_dropdown.get())
+                    return maintenance_repo.get_scheduled_maintenance(location)
+                except Exception as e:
+                    print(f"Error loading scheduled maintenance: {e}")
+                    return []
 
             _, refresh_table = pe.data_table(
                 content,
@@ -849,7 +875,12 @@ class MaintenanceStaff(User):
 
             ctk.CTkLabel(header, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
 
-            cities = ["All Locations"] + location_repo.get_all_cities()
+            try:
+                cities = ["All Locations"] + location_repo.get_all_cities()
+            except Exception as e:
+                print(f"Error loading cities: {e}")
+                cities = ["All Locations"]
+                
             location_dropdown = ctk.CTkComboBox(header, values=cities, width=180, font=("Arial", 13))
             location_dropdown.set(self.location if self.location else "All Locations")
             location_dropdown.pack(side="left", padx=(0, 15))
@@ -879,14 +910,18 @@ class MaintenanceStaff(User):
             ]
 
             def get_data():
-                location = self._selected_location(location_dropdown.get())
-                status_val = status_dropdown.get()
-                completed = None
-                if status_val == "Pending":
-                    completed = 0
-                elif status_val == "Completed":
-                    completed = 1
-                return maintenance_repo.get_maintenance_requests(location, completed=completed)
+                try:
+                    location = self._selected_location(location_dropdown.get())
+                    status_val = status_dropdown.get()
+                    completed = None
+                    if status_val == "Pending":
+                        completed = 0
+                    elif status_val == "Completed":
+                        completed = 1
+                    return maintenance_repo.get_maintenance_requests(location, completed=completed)
+                except Exception as e:
+                    print(f"Error loading maintenance requests: {e}")
+                    return []
 
             _, refresh_table = pe.data_table(
                 content,
