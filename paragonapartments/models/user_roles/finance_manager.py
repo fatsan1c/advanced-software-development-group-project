@@ -258,7 +258,8 @@ class FinanceManager(User):
                 on_update=self.update_invoice_row,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=10
+                page_size=9,
+                scrollable=False
             )
 
             # Top refresh button next to the dropdown
@@ -332,7 +333,8 @@ class FinanceManager(User):
                 refresh_data=get_data,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=10
+                page_size=9,
+                scrollable=False
             )
 
             ctk.CTkButton(
@@ -416,7 +418,8 @@ class FinanceManager(User):
                 refresh_data=get_data,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=10
+                page_size=9,
+                scrollable=False
             )
 
             ctk.CTkButton(

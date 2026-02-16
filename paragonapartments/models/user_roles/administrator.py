@@ -332,7 +332,7 @@ class Administrator(User):
                 on_delete=self.delete_apartment,
                 on_update=self.edit_apartment,
                 render_batch_size=20,
-                page_size=9,
+                page_size=10,
                 scrollable=False
             )
 
