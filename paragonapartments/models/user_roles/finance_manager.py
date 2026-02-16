@@ -11,6 +11,7 @@ class FinanceManager(User):
     def __init__(self, username: str, location: str = None):
         super().__init__(username, role="Finance Manager", location=location)
 
+# ============================= v Finance Manager functions v  =====================================
     def _selected_location(self, dropdown_value: str | None) -> str:
         """Map UI dropdown value to repository location parameter."""
         if dropdown_value == "All Locations":
@@ -111,7 +112,9 @@ class FinanceManager(User):
             return True if payment_id else "Failed to record payment."
         except Exception as e:
             return f"Failed to record payment: {str(e)}"
-    
+# ============================= ^ Finance Manager functions ^ =====================================
+
+# ============================= v Homepage UI Content v =====================================
     def load_homepage_content(self, home_page):
         """Load Finance Manager-specific homepage content."""
         # Load base content first
@@ -202,8 +205,8 @@ class FinanceManager(User):
         fields = [
             {"name": "Tenant ID", "type": "text", "subtype": "number", "required": True},
             {"name": "Amount Due", "type": "text", "subtype": "currency", "required": True},
-            {"name": "Due Date", "type": "text", "placeholder": "YYYY-MM-DD", "required": True},
-            {"name": "Issue Date", "type": "text", "placeholder": "YYYY-MM-DD", "required": False},
+            {"name": "Due Date", "type": "text", "subtype": "date", "required": True},
+            {"name": "Issue Date", "type": "text", "subtype": "date", "required": False},
         ]
         pe.form_element(invoices_card, fields, name="Create Invoice", submit_text="Create", on_submit=self.create_invoice, small=True)
 
@@ -231,14 +234,14 @@ class FinanceManager(User):
             location_dropdown.pack(side="left")
 
             columns = [
-                {"name": "ID", "key": "invoice_ID", "width": 80, "editable": False},
-                {"name": "Tenant ID", "key": "tenant_ID", "width": 100},
-                {"name": "Tenant", "key": "tenant_name", "width": 200, "editable": False},
-                {"name": "City", "key": "city", "width": 140, "editable": False},
-                {"name": "Amount", "key": "amount_due", "width": 120, "format": "currency"},
-                {"name": "Due Date", "key": "due_date", "width": 120},
-                {"name": "Issue Date", "key": "issue_date", "width": 120},
-                {"name": "Paid (0/1)", "key": "paid", "width": 90},
+                {"name": "ID", "key": "invoice_ID", "width": 40, "editable": False},
+                {"name": "Tenant ID", "key": "tenant_ID", "width": 80},
+                {"name": "Tenant", "key": "tenant_name", "width": 120, "editable": False},
+                {"name": "City", "key": "city", "width": 90, "editable": False},
+                {"name": "Amount", "key": "amount_due", "width": 80, "format": "currency"},
+                {"name": "Due Date", "key": "due_date", "width": 100},
+                {"name": "Issue Date", "key": "issue_date", "width": 100},
+                {"name": "Paid (0/1)", "key": "paid", "width": 70},
             ]
 
             def get_data():
@@ -314,7 +317,7 @@ class FinanceManager(User):
                 {"name": "City", "key": "city", "width": 160, "editable": False},
                 {"name": "Amount", "key": "amount_due", "width": 120, "editable": False, "format": "currency"},
                 {"name": "Due Date", "key": "due_date", "width": 120, "editable": False},
-                {"name": "Issue Date", "key": "issue_date", "width": 120, "editable": False},
+                {"name": "Issue Date", "key": "issue_date", "width": 120, "editable": False}
             ]
 
             def get_data():
@@ -364,7 +367,7 @@ class FinanceManager(User):
             {"name": "Invoice ID", "type": "text", "subtype": "number", "required": True},
             {"name": "Tenant ID", "type": "text", "subtype": "number", "required": True},
             {"name": "Amount", "type": "text", "subtype": "currency", "required": True},
-            {"name": "Payment Date", "type": "text", "placeholder": "YYYY-MM-DD", "required": False},
+            {"name": "Payment Date", "type": "text", "subtype": "date", "required": False}
         ]
         pe.form_element(payment_card, fields, name="Payment", submit_text="Record Payment", on_submit=self.record_payment, small=True)
 
@@ -441,3 +444,4 @@ class FinanceManager(User):
             location_dropdown.configure(command=schedule_refresh)
 
         button.configure(command=setup_popup)
+# ============================= ^ Homepage UI Content ^ =====================================
