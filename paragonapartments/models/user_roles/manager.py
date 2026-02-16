@@ -336,8 +336,8 @@ class Manager(User):
             columns = [
                 {'name': 'ID', 'key': 'user_ID', 'width': 80, 'editable': False},
                 {'name': 'Username', 'key': 'username', 'width': 200},
-                {'name': 'Location', 'key': 'city', 'width': 200},
-                {'name': 'Role', 'key': 'role', 'width': 150}
+                {'name': 'Location', 'key': 'city', 'width': 200, 'format': 'dropdown', 'options': ['None'] + location_repo.get_all_cities()},
+                {'name': 'Role', 'key': 'role', 'width': 150, 'format': 'dropdown', 'options': ['Admin', 'Manager', 'Finance Manager', 'Frontdesk', 'Maintenance']}
             ]
 
             # Function to fetch user data for the table
@@ -532,11 +532,11 @@ class Manager(User):
             # Define columns for apartment data table
             columns = [
                 {'name': 'ID', 'key': 'apartment_ID', 'width': 80, 'editable': False},
-                {'name': 'Location', 'key': 'city', 'width': 150},
+                {'name': 'Location', 'key': 'city', 'width': 150, 'format': 'dropdown', 'options': location_options},
                 {'name': 'Address', 'key': 'apartment_address', 'width': 150},
-                {'name': 'Beds', 'key': 'number_of_beds', 'width': 80},
+                {'name': 'Beds', 'key': 'number_of_beds', 'width': 80, "format": "number"},
                 {'name': 'Monthly Rent', 'key': 'monthly_rent', 'width': 120, "format": "currency"},
-                {'name': 'Status', 'key': 'status', 'width': 100}
+                {'name': 'Status', 'key': 'status', 'width': 100, "format": "dropdown", 'options': ["Vacant", "Occupied"]}
             ]
 
             # Function to fetch apartment data for the table

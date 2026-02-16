@@ -300,14 +300,15 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
                 widget.configure(validate="key", validatecommand=vcmd)
 
             elif field_subtype == 'date':
-                # Date validation: allows DD-MM-YYYY format with required hyphens
+                # Date validation: allows YYYY-MM-DD format with required hyphens
                 def validate_date(proposed_value):
-                    # Matches: empty or DD-MM-YYYY format (progressive: "", "0", "01", "01-", "01-0", "01-02", "01-02-", "01-02-2026")
+                    # Matches: empty or YYYY-MM-DD format (progressive: "", "2", "2026", "2026-", "2026-0", "2026-02", "2026-02-", "2026-02-16")
                     # Enforces hyphens in correct positions
-                    return re.match(r'^(\d{0,2}(-\d{0,2}(-\d{0,4})?)?)?$', proposed_value) is not None
+                    return re.match(r'^(\d{0,4}(-\d{0,2}(-\d{0,2})?)?)?$', proposed_value) is not None
                 
                 vcmd = (widget.register(validate_date), '%P')
                 widget.configure(validate="key", validatecommand=vcmd)
+                widget.configure(placeholder_text=f"{field_name} (YYYY-MM-DD)")
 
             if field_default:
                 widget.insert(0, str(field_default))
@@ -556,7 +557,8 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
             - 'key': Data key for this column (required)
             - 'width': Column width in pixels (default: 150)
             - 'editable': Whether this column is editable (default: True if table editable)
-            - 'format': Optional format for displaying data (e.g. "currency")
+            - 'format': Optional format with validation - "text", "number", "currency", "date", "dropdown"
+            - 'options': List of options for dropdown format (required if format='dropdown')
         data: List of dictionaries representing rows (optional, can be loaded later)
         editable: Enable edit functionality for rows
         deletable: Enable delete functionality for rows
@@ -591,8 +593,11 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
         
         columns = [
             {'name': 'ID', 'key': 'id', 'width': 80, 'editable': False},
-            {'name': 'Username', 'key': 'username', 'width': 200},
-            {'name': 'Email', 'key': 'email', 'width': 250}
+            {'name': 'Username', 'key': 'username', 'width': 200, 'format': 'text'},
+            {'name': 'Status', 'key': 'status', 'width': 150, 'format': 'dropdown', 
+             'options': ['Active', 'Inactive', 'Pending']},
+            {'name': 'Balance', 'key': 'balance', 'width': 150, 'format': 'currency'},
+            {'name': 'Age', 'key': 'age', 'width': 100, 'format': 'number'}
         ]
         
         table, refresh = data_table(parent, columns, editable=True, deletable=True,
@@ -848,6 +853,7 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                 except Exception:
                     value = str(raw_value)
             else:
+                # Default: apply prefix/suffix if specified
                 value = str(raw_value)
                 if col.get("prefix") and value:
                     value = f"{col['prefix']}{value}"
@@ -909,21 +915,70 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                 widget_info = cell_widgets[col_key]
                 label = widget_info['label']
                 current_value = label.cget("text")
+                col_format = col.get("format")
 
-                # If the column is formatted as currency, strip formatting for editing
-                if col.get("format") == "currency" and isinstance(current_value, str):
+                # Strip formatting based on format type
+                if col_format == "currency" and isinstance(current_value, str):
                     current_value = current_value.replace("£", "").replace(",", "").strip()
+                # For other formats, current_value is already in the correct format for editing
                 
-                # Replace label with entry
+                # Replace label with appropriate widget based on format type
                 label.pack_forget()
-                entry = ctk.CTkEntry(
-                    label.master,
-                    width=col.get('width', 150),
-                    font=("Arial", 12)
-                )
-                entry.insert(0, current_value)
-                entry.pack()
-                edit_data[col_key] = entry
+                
+                if col_format == "dropdown":
+                    # Create dropdown widget
+                    options = col.get('options', [])
+                    dropdown = ctk.CTkOptionMenu(
+                        label.master,
+                        values=options if options else ["No options"],
+                        width=col.get('width', 150),
+                        height=28,
+                        font=("Arial", 12)
+                    )
+                    
+                    # Set current value if it exists in options
+                    if current_value and options and current_value in options:
+                        dropdown.set(current_value)
+                    elif options:
+                        dropdown.set(options[0])
+                    
+                    dropdown.pack()
+                    edit_data[col_key] = dropdown
+                else:
+                    # Create entry widget with validation
+                    entry = ctk.CTkEntry(
+                        label.master,
+                        width=col.get('width', 150),
+                        font=("Arial", 12)
+                    )
+                    
+                    # Apply real-time validation based on format type
+                    if col_format == "number":
+                        def only_numbers(proposed_value):
+                            return proposed_value.isdigit() or proposed_value == ""
+                        vcmd = (entry.register(only_numbers), '%P')
+                        entry.configure(validate="key", validatecommand=vcmd)
+                    
+                    elif col_format == "currency":
+                        def validate_currency(proposed_value):
+                            # Matches: empty, digits, or digits with .XX format (max 2 decimal places)
+                            return re.match(r'^\d*\.?\d{0,2}$', proposed_value) is not None
+                        vcmd = (entry.register(validate_currency), '%P')
+                        entry.configure(validate="key", validatecommand=vcmd)
+                    
+                    elif col_format == "date":
+                        def validate_date(proposed_value):
+                            # Matches: empty or YYYY-MM-DD format (progressive)
+                            return re.match(r'^(\d{0,4}(-\d{0,2}(-\d{0,2})?)?)?$', proposed_value) is not None
+                        vcmd = (entry.register(validate_date), '%P')
+                        entry.configure(validate="key", validatecommand=vcmd)
+                        entry.configure(placeholder_text="YYYY-MM-DD")
+                    
+                    # For "text" format or no format, no special validation needed
+                    
+                    entry.insert(0, current_value)
+                    entry.pack()
+                    edit_data[col_key] = entry
         
         # Change edit button to save
         if cell_widgets:
@@ -943,7 +998,13 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
     
     def save_row(row_data, edit_data, update_callback, refresh_callback):
         """Save edited row data"""
-        updated_data = {key: entry.get() for key, entry in edit_data.items()}
+        # Handle both Entry and OptionMenu widgets
+        updated_data = {}
+        for key, widget in edit_data.items():
+            if isinstance(widget, ctk.CTkOptionMenu):
+                updated_data[key] = widget.get()
+            else:  # CTkEntry
+                updated_data[key] = widget.get()
         
         if update_callback:
             result = update_callback(row_data, updated_data)

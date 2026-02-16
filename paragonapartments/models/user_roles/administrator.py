@@ -327,8 +327,8 @@ class Administrator(User):
             columns = [
                 {'name': 'ID', 'key': 'apartment_ID', 'width': 80, 'editable': False},
                 {'name': 'Address', 'key': 'apartment_address', 'width': 200},
-                {'name': 'Beds', 'key': 'number_of_beds', 'width': 80},
-                {'name': 'Monthly Rent', 'key': 'monthly_rent', 'width': 120, "format": "currency"},
+                {'name': 'Beds', 'key': 'number_of_beds', 'format': 'number', 'width': 80},
+                {'name': 'Monthly Rent', 'key': 'monthly_rent', 'format': 'currency', 'width': 120},
                 {'name': 'Status', 'key': 'status', 'width': 100}
             ]
 

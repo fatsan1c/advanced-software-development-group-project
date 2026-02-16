@@ -288,9 +288,9 @@ class MaintenanceStaff(User):
                 {"name": "Apartment", "key": "apartment_address", "width": 120, "editable": False},
                 {"name": "City", "key": "city", "width": 120, "editable": False},
                 {"name": "Issue", "key": "issue_description", "width": 280},
-                {"name": "Priority", "key": "priority_level", "width": 90},
+                {"name": "Priority", "key": "priority_level", "width": 90, "format": "number"},
                 {"name": "Reported", "key": "reported_date", "width": 110, "editable": False},
-                {"name": "Scheduled", "key": "scheduled_date", "width": 110},
+                {"name": "Scheduled", "key": "scheduled_date", "width": 110, "format": "date"},
             ]
 
             def get_data():
@@ -902,9 +902,9 @@ class MaintenanceStaff(User):
                 {"name": "Apartment", "key": "apartment_address", "width": 120, "editable": False},
                 {"name": "City", "key": "city", "width": 110, "editable": False},
                 {"name": "Issue", "key": "issue_description", "width": 260},
-                {"name": "Priority", "key": "priority_level", "width": 80},
+                {"name": "Priority", "key": "priority_level", "width": 80, "format": "number"},
                 {"name": "Reported", "key": "reported_date", "width": 105, "editable": False},
-                {"name": "Scheduled", "key": "scheduled_date", "width": 105},
+                {"name": "Scheduled", "key": "scheduled_date", "width": 105, "format": "date"},
                 {"name": "Done (0/1)", "key": "completed", "width": 95},
                 {"name": "Cost", "key": "cost", "width": 100, "format": "currency"},
             ]

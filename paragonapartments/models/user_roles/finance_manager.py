@@ -255,8 +255,8 @@ class FinanceManager(User):
                 {"name": "Tenant", "key": "tenant_name", "width": 120, "editable": False},
                 {"name": "City", "key": "city", "width": 90, "editable": False},
                 {"name": "Amount", "key": "amount_due", "width": 80, "format": "currency"},
-                {"name": "Due Date", "key": "due_date", "width": 100},
-                {"name": "Issue Date", "key": "issue_date", "width": 100},
+                {"name": "Due Date", "key": "due_date", "width": 100, "format": "date"},
+                {"name": "Issue Date", "key": "issue_date", "width": 100, "format": "date"},
                 {"name": "Paid (0/1)", "key": "paid", "width": 70},
             ]
 
