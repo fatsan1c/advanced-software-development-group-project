@@ -252,7 +252,7 @@ class Manager(User):
         result_label.pack(pady=10, padx=20)
         
         # Function to update display
-        def update_occupancy_display():
+        def update_occupancy_display(choice=None):
             location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
             occupied_count = self.view_apartment_occupancy(location)
             total_count = apartment_repo.get_total_apartments(location)
@@ -267,12 +267,8 @@ class Manager(User):
                     text=f"{location} - Occupied: {occupied_count} | Available: {available_count} | Total: {total_count}"
                 )
         
-        # Create view button
-        pe.action_button(
-            occupancy_card,
-            text="View Occupancy",
-            command=update_occupancy_display
-        )
+        update_occupancy_display()  # Auto-update when loading the page
+        location_dropdown.configure(command=update_occupancy_display)
 
         # Create graph popup button
         button, open_popup_func = pe.popup_card(
@@ -372,7 +368,7 @@ class Manager(User):
         result_label.pack(pady=10, padx=20)
         
         # Function to update display
-        def update_performance_display():
+        def update_performance_display(choice=None):
             location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
             actual_revenue = apartment_repo.get_monthly_revenue(location)
             potential_revenue = apartment_repo.get_potential_revenue(location)
@@ -388,12 +384,8 @@ class Manager(User):
                     text=f"{location} - Actual: £{actual_revenue:,.2f} | Lost: £{lost_revenue:,.2f} | Potential: £{potential_revenue:,.2f}"
                 )
         
-        # Create view button
-        pe.action_button(
-            reports_card,
-            text="View Performance",
-            command=update_performance_display
-        )
+        update_performance_display()  # Auto-update when loading the page
+        location_dropdown.configure(command=update_performance_display)
 
         # Create graph popup button
         button, open_popup_func = pe.popup_card(
@@ -457,20 +449,6 @@ class Manager(User):
                 scrollable=False,
                 page_size=9
             )
-
-            # pe.data_table(
-            #     content, 
-            #     columns, 
-            #     editable=True, 
-            #     deletable=True,
-            #     refresh_data=get_data,
-            #     on_delete=self.delete_apartment,
-            #     on_update=self.edit_apartment,
-            #     show_refresh_button=False,
-            #     render_batch_size=20,
-            #     page_size=9,
-            #     scrollable=False
-            # )
 
         # Set the button command to open the popup with the locations table
         button.configure(command=setup_popup)
