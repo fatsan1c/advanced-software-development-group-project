@@ -222,21 +222,35 @@ def create_performance_graph(parent, location=None):
 def generate_performance_report():
      pass
     
-def get_all_apartments():
+def get_all_apartments(location="all"):
     """
     Get all apartments from the database.
+    
+    Args:
+        location (str, optional): City name to filter by. If "All Locations" or None, returns all apartments.
     
     Returns:
         list: List of apartment dictionaries, empty list if error
     """
-    query = """
-        SELECT a.apartment_ID, l.city, a.apartment_address, a.number_of_beds, a.monthly_rent, 
-               CASE WHEN a.occupied = 1 THEN 'Occupied' ELSE 'Vacant' END AS status
-        FROM apartments a
-        JOIN locations l ON a.location_ID = l.location_ID
-        ORDER BY l.city, a.apartment_address
-    """
-    return execute_query(query, fetch_all=True)
+    if location and location.lower() not in ["all locations", "all"]:
+        query = """
+            SELECT a.apartment_ID, l.city, a.apartment_address, a.number_of_beds, a.monthly_rent, 
+                   CASE WHEN a.occupied = 1 THEN 'Occupied' ELSE 'Vacant' END AS status
+            FROM apartments a
+            JOIN locations l ON a.location_ID = l.location_ID
+            WHERE l.city = ?
+            ORDER BY l.city, a.apartment_address
+        """
+        return execute_query(query, (location,), fetch_all=True)
+    else:
+        query = """
+            SELECT a.apartment_ID, l.city, a.apartment_address, a.number_of_beds, a.monthly_rent, 
+                   CASE WHEN a.occupied = 1 THEN 'Occupied' ELSE 'Vacant' END AS status
+            FROM apartments a
+            JOIN locations l ON a.location_ID = l.location_ID
+            ORDER BY l.city, a.apartment_address
+        """
+        return execute_query(query, fetch_all=True)
 
 def create_apartment(location_ID, apartment_address, number_of_beds, monthly_rent, occupied):
     """

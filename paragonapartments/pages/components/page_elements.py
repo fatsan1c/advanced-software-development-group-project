@@ -542,7 +542,7 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                on_update=None, on_delete=None, refresh_data=None,
                show_refresh_button: bool = True,
                render_batch_size: int = 0,
-               page_size: int = 0,
+               page_size: int = 0, scrollable: bool = True,
                **_kwargs):
     """Create a data table with optional CRUD operations.
     
@@ -614,7 +614,11 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
         
         # Create scrollable content area on first call, or clear existing children
         if content_ref['content'] is None:
-            content = scrollable_container(table_container, pady=0, padx=0)
+            if scrollable:
+                content = scrollable_container(table_container, pady=0, padx=0)
+            else:
+                content = ctk.CTkFrame(table_container, fg_color="transparent")
+                content.pack(fill="both", expand=True, padx=0, pady=0)
             content_ref['content'] = content
         else:
             # Clear all children from existing container
@@ -684,10 +688,13 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
             if loading_label:
                 loading_label.destroy()
 
-            # Pagination controls
-            if ps > 0 and total_rows > ps:
+            # Add container for pagination or refresh button (to avoid empty space when no pagination)
+            if (ps > 0 and total_rows > ps) or show_refresh_button:
                 pager = ctk.CTkFrame(content, fg_color="transparent")
                 pager.pack(fill="x", pady=(10, 0), padx=5)
+
+            # Pagination controls
+            if ps > 0 and total_rows > ps:
 
                 def set_page(p: int):
                     pagination_ref["page"] = p
@@ -764,15 +771,15 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
             # Refresh button
             if show_refresh_button:
                 refresh_btn = ctk.CTkButton(
-                    content,
+                    pager,
                     text="⟳ Refresh",
                     command=refresh_table,
-                    height=35,
-                    width=120,
+                    height=32,
+                    width=110,
                     fg_color=("gray70", "gray30"),
                     hover_color=("gray60", "gray25")
                 )
-                refresh_btn.pack(pady=10)
+                refresh_btn.pack(padx=25, side="left"if (ps > 0 and total_rows > ps) else None) # Align left if pagination exists, otherwise right
 
         def render_rows_range(start_idx: int):
             end_idx = len(page_data) if not batch_size else min(start_idx + batch_size, len(page_data))
