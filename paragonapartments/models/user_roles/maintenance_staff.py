@@ -297,7 +297,7 @@ class MaintenanceStaff(User):
                 show_refresh_button=False,
                 render_batch_size=20,
                 page_size=9,
-                scrollable=True
+                scrollable=False
             )
 
             # Refresh button

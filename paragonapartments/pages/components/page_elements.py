@@ -542,11 +542,11 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                on_update=None, on_delete=None, refresh_data=None,
                show_refresh_button: bool = True,
                render_batch_size: int = 0,
-               page_size: int = 0, scrollable: bool = True,
+               page_size: int = 0, scrollable: bool = False,
                **_kwargs):
     """Create a data table with optional CRUD operations.
     
-    This creates a scrollable table that displays data with optional edit and delete
+    This creates table that displays data with optional edit and delete
     functionality for each row. If create callback is provided, an "Add Row" button appears.
     
     Args:
@@ -566,7 +566,8 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
         show_refresh_button: Whether to show a refresh button for manual data refresh
         render_batch_size: If > 0, renders rows in batches of this size to keep UI responsive
         page_size: If > 0, enables pagination with this many rows per page
-        
+        scrollable: Whether to render the table inside a scrollable container (recommended for large tables)
+
     Returns:
         Tuple of (table_container, refresh_function):
         - table_container: The table widget

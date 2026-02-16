@@ -446,8 +446,8 @@ class Manager(User):
                 refresh_data=get_data,
                 on_delete=self.delete_location,
                 on_update=self.edit_location,
-                scrollable=False,
-                page_size=9
+                page_size=9,
+                scrollable=False
             )
 
         # Set the button command to open the popup with the locations table
