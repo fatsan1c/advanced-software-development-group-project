@@ -284,48 +284,12 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
             if field_subtype == 'password':
                 widget.configure(show="•")
             elif field_subtype == 'number':
-                # # NOTE: Using Tk validate/validatecommand can break CustomTkinter placeholders
-                # # on some platforms/themes. We sanitize on key release instead.
-                # def sanitize_number(_event=None):
-                #     current = widget.get()
-                #     cleaned = "".join(ch for ch in current if ch.isdigit())
-                #     if cleaned != current:
-                #         widget.delete(0, "end")
-                #         widget.insert(0, cleaned)
-                # widget.bind("<KeyRelease>", sanitize_number)
-
-######## Old code reverted because of issues ####################
                 def only_numbers(proposed_value):
                     return proposed_value.isdigit() or proposed_value == ""
                 vcmd = (widget.register(only_numbers), '%P')
                 widget.configure(validate="key", validatecommand=vcmd)
-######## Old code reverted because of issues ####################
 
             elif field_subtype == 'currency':
-                # # NOTE: Using Tk validate/validatecommand can break CustomTkinter placeholders
-                # # on some platforms/themes. We sanitize on key release instead.
-                # def sanitize_currency(_event=None):
-                #     current = widget.get()
-                #     # Keep digits and at most one dot
-                #     cleaned_chars = []
-                #     dot_seen = False
-                #     for ch in current:
-                #         if ch.isdigit():
-                #             cleaned_chars.append(ch)
-                #         elif ch == "." and not dot_seen:
-                #             cleaned_chars.append(ch)
-                #             dot_seen = True
-                #     cleaned = "".join(cleaned_chars)
-                #     # Enforce max 2 decimals
-                #     if "." in cleaned:
-                #         left, right = cleaned.split(".", 1)
-                #         cleaned = left + "." + right[:2]
-                #     if cleaned != current:
-                #         widget.delete(0, "end")
-                #         widget.insert(0, cleaned)
-                # widget.bind("<KeyRelease>", sanitize_currency)
-
-######## Old code reverted because of issues ####################
                 # Currency validation: allows numbers with optional decimal and max 2 decimal places
                 # Pattern: digits (optional: decimal point + max 2 digits)
                 def validate_currency(proposed_value):
@@ -334,7 +298,6 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
                 
                 vcmd = (widget.register(validate_currency), '%P')
                 widget.configure(validate="key", validatecommand=vcmd)
-######## Old code reverted because of issues ####################
 
             elif field_subtype == 'date':
                 # Date validation: allows DD-MM-YYYY format with required hyphens
@@ -593,12 +556,16 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
             - 'key': Data key for this column (required)
             - 'width': Column width in pixels (default: 150)
             - 'editable': Whether this column is editable (default: True if table editable)
+            - 'format': Optional format for displaying data (e.g. "currency")
         data: List of dictionaries representing rows (optional, can be loaded later)
         editable: Enable edit functionality for rows
         deletable: Enable delete functionality for rows
         on_update: Callback function(row_data, updated_data) for updating a row
         on_delete: Callback function(row_data) for deleting a row
         refresh_data: Callback function() that returns updated data list
+        show_refresh_button: Whether to show a refresh button for manual data refresh
+        render_batch_size: If > 0, renders rows in batches of this size to keep UI responsive
+        page_size: If > 0, enables pagination with this many rows per page
         
     Returns:
         Tuple of (table_container, refresh_function):
@@ -673,10 +640,12 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                 anchor="w"
             )
             header_cell.pack(side="left", padx=5, pady=8)
-            vertical_divider(header_row, padx=(0, 8))
+            if col != columns[-1]:  # Don't add divider after last column
+                vertical_divider(header_row, padx=(0, 8))
         
         # Actions column header if editable or deletable
         if editable or deletable:
+            vertical_divider(header_row, padx=(0, 8))
             ctk.CTkLabel(
                 header_row,
                 text="Actions",
