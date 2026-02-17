@@ -1,4 +1,4 @@
-﻿import customtkinter as ctk
+import customtkinter as ctk
 import pages.components.page_elements as pe
 import database_operations.repos.user_repository as user_repo
 
@@ -64,29 +64,12 @@ class User:
         # Centered content wrapper
         top_content = pe.content_container(parent=home_page, anchor="nw", fill="x", marginy=(10, 0))
 
-        # Display username and location in the top left corner
-        ctk.CTkLabel(
-            top_content, 
-            text=self.username + (f" - {self.location}" if self.location else ""), 
-            font=("Arial", 24)
-        ).pack(side="left", padx=15)
-
         # Display role and "Dashboard" in the center
         ctk.CTkLabel(
             top_content, 
             text=self.role + " Dashboard",
             font=("Arial", 24)
         ).place(relx=0.5, rely=0.5, anchor="center")
-
-        # Logout button in the top right corner
-        ctk.CTkButton(
-            top_content, 
-            text="Logout",
-            width=80,
-            height=40,
-            font=("Arial", 17),
-            command=lambda: self.logout(home_page)
-        ).pack(side="right", padx=10)
 
         # Change password popup trigger in the top right corner, next to logout
         _, open_popup = pe.popup_card(home_page, title="Change Password", small=True, generate_button=False)
@@ -101,16 +84,30 @@ class User:
             ]
             pe.form_element(content, fields, name="Change Password", submit_text="Change Password", on_submit=self.change_password, small=True)
 
-        # Change password button
+        # Top-right account actions
+        actions = ctk.CTkFrame(top_content, fg_color="transparent")
+        actions.pack(side="right", padx=10)
+
         ctk.CTkButton(
-            home_page, 
-            text="Change password",
+            actions,
+            text="Logout",
+            width=96,
+            height=36,
+            font=("Arial", 14, "bold"),
+            command=lambda: self.logout(home_page),
+            fg_color=("#2F7FD8", "#2F7FD8"),
+            hover_color=("#2569B3", "#2569B3"),
+        ).pack(anchor="e")
+
+        ctk.CTkButton(
+            actions,
+            text="Change Password",
             bg_color="transparent",
             fg_color="transparent",
             hover_color=("gray90", "gray20"),
             text_color=("black", "white"),
-            height=12,
-            width=10,
+            height=18,
+            width=96,
             command=setup_popup,
-            font=("Arial", 10),
-        ).pack(anchor="ne", padx=15, pady=0)
+            font=("Arial", 12),
+        ).pack(anchor="e", pady=(3, 0))
