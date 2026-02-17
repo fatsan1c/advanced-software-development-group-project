@@ -1,24 +1,60 @@
 from database_operations.db_execute import execute_query
 import database_operations.repos.location_repository as location_repo
 
-def create_tenant(name, NI_number, email, phone, occupation=None, references=None):
+def create_tenant(first_name, last_name, date_of_birth, NI_number, email, phone, occupation=None, annual_salary=None, pets='N', right_to_rent='N', credit_check='Pending'):
     """Create a new tenant in the database.
     
     Required fields:
-        name - Tenant's full name
+        first_name - Tenant's first name
+        last_name - Tenant's last name
+        date_of_birth - Date of birth (YYYY-MM-DD)
         NI_number - National Insurance number
         email - Email address
         phone - Phone number
     Optional fields:
         occupation - Tenant's occupation
-        references - References information
+        annual_salary - Annual salary
+        pets - Whether tenant has pets (Y/N)
+        right_to_rent - Right to rent status (Y/N)
+        credit_check - Credit check status (default: 'Pending')
     """
     query = """
-    INSERT INTO tenants (name, NI_number, email, phone, occupation, reference_info)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO tenants (first_name, last_name, date_of_birth, NI_number, email, phone, occupation, annual_salary, pets, right_to_rent, credit_check)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
-    params = (name, NI_number, email, phone, occupation, references)
+    params = (first_name, last_name, date_of_birth, NI_number, email, phone, occupation, annual_salary, pets, right_to_rent, credit_check)
     return execute_query(query, params, commit=True)
+
+def update_tenant(tenant_id, **kwargs):
+    """Update tenant information in the database.
+    
+    Args:
+        tenant_id - ID of the tenant to update
+        **kwargs - Fields to update (first_name, last_name, date_of_birth, NI_number, 
+                   email, phone, occupation, annual_salary, pets, right_to_rent, credit_check)
+    
+    Returns:
+        True if successful, False otherwise
+    """
+    # Build dynamic UPDATE query based on provided fields
+    valid_fields = ['first_name', 'last_name', 'date_of_birth', 'NI_number', 'email', 
+                    'phone', 'occupation', 'annual_salary', 'pets', 'right_to_rent', 'credit_check']
+    
+    updates = []
+    params = []
+    
+    for field, value in kwargs.items():
+        if field in valid_fields:
+            updates.append(f"{field} = ?")
+            params.append(value)
+    
+    if not updates:
+        return False
+    
+    params.append(tenant_id)
+    query = f"UPDATE tenants SET {', '.join(updates)} WHERE tenant_ID = ?"
+    
+    return execute_query(query, tuple(params), commit=True)
 
 def create_lease_agreement(tenant_id, apartment_id, start_date, end_date, monthly_rent):
     """Create a new lease agreement in the database.
@@ -75,17 +111,21 @@ def get_all_tenants(location=None):
         location_id = location_data['location_ID']
         
         # Filter by location through lease_agreements and apartments
+        # Use subquery to ensure each tenant appears only once
         query = """
-        SELECT DISTINCT t.* 
+        SELECT t.* 
         FROM tenants t
-        INNER JOIN lease_agreements la ON t.tenant_ID = la.tenant_ID
-        INNER JOIN apartments a ON la.apartment_ID = a.apartment_ID
-        WHERE a.location_ID = ?
-        ORDER BY t.name
+        WHERE t.tenant_ID IN (
+            SELECT DISTINCT la.tenant_ID 
+            FROM lease_agreements la
+            INNER JOIN apartments a ON la.apartment_ID = a.apartment_ID
+            WHERE a.location_ID = ?
+        )
+        ORDER BY t.first_name, t.last_name
         """
         return execute_query(query, (location_id,), fetch_all=True)
     else:
-        query = "SELECT * FROM tenants ORDER BY name"
+        query = "SELECT * FROM tenants ORDER BY first_name, last_name"
         return execute_query(query, fetch_all=True)
 
 def search_tenants(search_term, location=None):
@@ -100,23 +140,27 @@ def search_tenants(search_term, location=None):
         location_id = location_data['location_ID']
         
         # Filter by location through lease_agreements and apartments
+        # Use subquery to ensure each tenant appears only once
         query = """
-        SELECT DISTINCT t.* 
+        SELECT t.* 
         FROM tenants t
-        INNER JOIN lease_agreements la ON t.tenant_ID = la.tenant_ID
-        INNER JOIN apartments a ON la.apartment_ID = a.apartment_ID
-        WHERE (t.name LIKE ? OR t.email LIKE ? OR t.NI_number LIKE ? OR t.phone LIKE ?)
-        AND a.location_ID = ?
-        ORDER BY t.name
+        WHERE (t.first_name LIKE ? OR t.last_name LIKE ? OR t.email LIKE ? OR t.NI_number LIKE ? OR t.phone LIKE ?)
+        AND t.tenant_ID IN (
+            SELECT DISTINCT la.tenant_ID 
+            FROM lease_agreements la
+            INNER JOIN apartments a ON la.apartment_ID = a.apartment_ID
+            WHERE a.location_ID = ?
+        )
+        ORDER BY t.first_name, t.last_name
         """
-        return execute_query(query, (search_pattern, search_pattern, search_pattern, search_pattern, location_id), fetch_all=True)
+        return execute_query(query, (search_pattern, search_pattern, search_pattern, search_pattern, search_pattern, location_id), fetch_all=True)
     else:
         query = """
         SELECT * FROM tenants 
-        WHERE name LIKE ? OR email LIKE ? OR NI_number LIKE ? OR phone LIKE ?
-        ORDER BY name
+        WHERE first_name LIKE ? OR last_name LIKE ? OR email LIKE ? OR NI_number LIKE ? OR phone LIKE ?
+        ORDER BY first_name, last_name
         """
-        return execute_query(query, (search_pattern, search_pattern, search_pattern, search_pattern), fetch_all=True)
+        return execute_query(query, (search_pattern, search_pattern, search_pattern, search_pattern, search_pattern), fetch_all=True)
 
 def create_maintenance_request(apartment_id, tenant_id, issue_description, priority_level, reported_date):
     """Create a new maintenance request."""
@@ -149,7 +193,7 @@ def get_all_maintenance_requests(location=None):
         
         query = """
         SELECT mr.*, 
-               t.name as tenant_name,
+               (t.first_name || ' ' || t.last_name) as tenant_name,
                a.apartment_address
         FROM maintenance_requests mr
         LEFT JOIN tenants t ON mr.tenant_ID = t.tenant_ID
@@ -161,7 +205,7 @@ def get_all_maintenance_requests(location=None):
     else:
         query = """
         SELECT mr.*, 
-               t.name as tenant_name,
+               (t.first_name || ' ' || t.last_name) as tenant_name,
                a.apartment_address
         FROM maintenance_requests mr
         LEFT JOIN tenants t ON mr.tenant_ID = t.tenant_ID
@@ -199,7 +243,7 @@ def get_all_complaints(location=None):
         
         query = """
         SELECT c.*, 
-               t.name as tenant_name
+               (t.first_name || ' ' || t.last_name) as tenant_name
         FROM complaint c
         LEFT JOIN tenants t ON c.tenant_ID = t.tenant_ID
         LEFT JOIN lease_agreements la ON t.tenant_ID = la.tenant_ID
@@ -212,7 +256,7 @@ def get_all_complaints(location=None):
     else:
         query = """
         SELECT c.*, 
-               t.name as tenant_name
+               (t.first_name || ' ' || t.last_name) as tenant_name
         FROM complaint c
         LEFT JOIN tenants t ON c.tenant_ID = t.tenant_ID
         ORDER BY c.resolved, c.date_submitted DESC

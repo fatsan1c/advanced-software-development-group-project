@@ -164,7 +164,7 @@ def create_database():
     # Insert apartments
     apartments_data = [
         (1,1,'Apartment 1',1,850,1), (2,1,'Apartment 2',2,1050,1), (3,1,'Apartment 3',3,1350,1),
-        (4,1,'Apartment 4',2,1100,1), (5,1,'Apartment 5',1,900,1), (6,1,'Apartment 6',2,1000,0),
+        (4,1,'Apartment 4',2,1100,1), (5,1,'Apartment 5',1,900,1), (6,1,'Apartment 6',2,1000,1),
         (7,1,'Apartment 7',1,820,0), (8,1,'Apartment 8',3,1400,0), (9,2,'Apartment 1',1,700,1),
         (10,2,'Apartment 2',2,850,1), (11,2,'Apartment 3',3,1100,1), (12,2,'Apartment 4',2,900,1),
         (13,2,'Apartment 5',1,750,1), (14,2,'Apartment 6',2,830,0), (15,2,'Apartment 7',1,680,0),
@@ -198,7 +198,8 @@ def create_database():
         (17,'Mia','Roberts','1994-09-16','MR778899A','mia.roberts@demo.com','07444444442','Veterinarian',38000,'Y','Y','Passed'),
         (18,'Ethan','Wood','1986-12-29','EW889900C','ethan.wood@demo.com','07444444443','Project Manager',47000,'N','Y','Passed'),
         (19,'Grace','Hall','1995-03-22','GH990011B','grace.hall@demo.com','07444444444','Social Worker',29000,'N','Y','Passed'),
-        (20,'Oliver','Price','1992-08-14','OP001122D','oliver.price@demo.com','07444444445','IT Support',34000,'Y','Y','Passed')
+        (20,'Oliver','Price','1992-08-14','OP001122D','oliver.price@demo.com','07444444445','IT Support',34000,'Y','Y','Passed'),
+        (21,'Alice','Smith','1997-03-15','AS143456P','alice.smith@demo.com','07111111112','Professor',65000,'N','Y','Passed')
     ]
     cursor.executemany("INSERT INTO tenants VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", tenants_data)
     
@@ -213,7 +214,8 @@ def create_database():
         (13,13,19,'2024-03-01','2025-03-01',2000,1), (14,14,20,'2024-04-01','2025-04-01',1700,1),
         (15,15,21,'2024-05-01','2025-05-01',1200,1), (16,16,25,'2024-01-01','2025-01-01',900,1),
         (17,17,26,'2024-02-01','2025-02-01',780,1), (18,18,27,'2024-03-01','2025-03-01',1150,1),
-        (19,19,28,'2024-04-01','2025-04-01',950,1), (20,20,29,'2024-05-01','2025-05-01',720,1)
+        (19,19,28,'2024-04-01','2025-04-01',950,1), (20,20,29,'2024-05-01','2025-05-01',720,1),
+        (21,21,6,'2024-06-01','2025-06-01',950,1)
     ]
     cursor.executemany("INSERT INTO lease_agreements VALUES (?, ?, ?, ?, ?, ?, ?)", leases_data)
     

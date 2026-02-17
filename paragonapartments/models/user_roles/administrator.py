@@ -31,10 +31,10 @@ class Administrator(User):
 # ============================= ^ Admin functions ^ =====================================
     
 # ============================= v Homepage UI Content v =====================================
-    def load_homepage_content(self, home_page):
+    def load_homepage_content(self, home_page, home_page_instance=None):
         """Load Administrator-specific homepage content."""
         # Load base content first
-        super().load_homepage_content(home_page)
+        super().load_homepage_content(home_page, home_page_instance)
         
         # Create a row container for the administrator's homepage content
         row1 = pe.row_container(parent=home_page)

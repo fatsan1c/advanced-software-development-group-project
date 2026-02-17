@@ -196,10 +196,10 @@ class Manager(User):
 # ============================= ^ Manager functions ^ =====================================
 
 # ============================= v Homepage UI Content v =====================================
-    def load_homepage_content(self, home_page):
+    def load_homepage_content(self, home_page, home_page_instance=None):
         """Load Manager-specific homepage content."""
         # Load base content first
-        super().load_homepage_content(home_page)
+        super().load_homepage_content(home_page, home_page_instance)
 
         container = pe.scrollable_container(parent=home_page)
 

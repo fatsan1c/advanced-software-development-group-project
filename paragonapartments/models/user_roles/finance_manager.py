@@ -28,10 +28,10 @@ class FinanceManager(User):
 # ============================= ^ Admin functions ^ =====================================
     
 # ============================= v Homepage UI Content v =====================================
-    def load_homepage_content(self, home_page):
+    def load_homepage_content(self, home_page, home_page_instance=None):
         """Load Finance Manager-specific homepage content."""
         # Load base content first
-        super().load_homepage_content(home_page)
+        super().load_homepage_content(home_page, home_page_instance)
 
         row1 = pe.row_container(parent=home_page)
         

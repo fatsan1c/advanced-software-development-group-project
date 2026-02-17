@@ -41,10 +41,10 @@ class User:
         """Return a string representation of the user profile."""
         return f"User(username='{self.username}', role='{self.role}', location='{self.location}')"
     
-    def logout(self, home_page):
+    def logout(self, home_page_instance):
         """Log the user out of the system."""
         print(f"{self.username} has logged out.")
-        home_page.close_page()
+        home_page_instance.close_page()
 
     def change_password(self, values):
         """Change the user's password."""
@@ -59,7 +59,7 @@ class User:
         else:
             return "Failed to change password. Please check your old password."
 
-    def load_homepage_content(self, home_page):
+    def load_homepage_content(self, home_page, home_page_instance=None):
         """Initialize and display home page content."""
         # Centered content wrapper
         top_content = pe.content_container(parent=home_page, anchor="nw", fill="x", marginy=(10, 0))
@@ -85,7 +85,7 @@ class User:
             width=80,
             height=40,
             font=("Arial", 17),
-            command=lambda: self.logout(home_page)
+            command=lambda: self.logout(home_page_instance)
         ).pack(side="right", padx=10)
 
         # Change password popup trigger in the top right corner, next to logout
