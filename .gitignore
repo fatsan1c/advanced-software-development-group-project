@@ -9,3 +9,8 @@ venv/
 # Editor/IDE
 .vscode/
 .idea/
+
+# Local folders to exclude from commits
+backend/
+clients/
+tests/

@@ -1,6 +1,12 @@
 import customtkinter as ctk
 import re
 from PIL import Image
+from datetime import datetime
+
+try:
+    from tkcalendar import Calendar  # type: ignore[reportMissingImports]
+except Exception:
+    Calendar = None
 
 # Import page elements for use in user dashboard and other pages
 
@@ -194,7 +200,25 @@ def row_container(parent, pady=0):
     return row
 
 
-def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pady=5, field_per_row=2, small=False):
+def form_element(
+    parent,
+    fields,
+    name,
+    submit_text="Submit",
+    on_submit=None,
+    pady=5,
+    field_per_row=2,
+    small=False,
+    expand: bool = True,
+    fill: str = "both",
+    submit_button_height: int | None = None,
+    submit_button_font_size: int | None = None,
+    submit_fg_color=None,
+    submit_hover_color=None,
+    submit_text_color=None,
+    input_corner_radius: int | None = None,
+    submit_corner_radius: int | None = None,
+):
     """Create a form with customizable fields and a submit button.
     
     Args:
@@ -240,7 +264,7 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
     row_pady = 3 if small else 5
     
     form = ctk.CTkFrame(parent, fg_color="transparent")
-    form.pack(fill="both", expand=True, pady=pady)
+    form.pack(fill=fill, expand=expand, pady=pady)
 
     if name:
         ctk.CTkLabel(
@@ -274,12 +298,15 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
         
         # Create appropriate input widget
         if field_type == 'text':
-            widget = ctk.CTkEntry(
-                field_frame,
-                placeholder_text=field_name,
-                height=input_height,
-                font=("Arial", input_font_size)
-            )
+            final_input_corner_radius = int(input_corner_radius) if input_corner_radius else None
+            entry_kwargs = {
+                "placeholder_text": field.get("placeholder", field_name),
+                "height": input_height,
+                "font": ("Arial", input_font_size),
+            }
+            if final_input_corner_radius:
+                entry_kwargs["corner_radius"] = final_input_corner_radius
+            widget = ctk.CTkEntry(field_frame, **entry_kwargs)
 
             if field_subtype == 'password':
                 widget.configure(show="•")
@@ -300,18 +327,175 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
                 widget.configure(validate="key", validatecommand=vcmd)
 
             elif field_subtype == 'date':
-                # Date validation: allows DD-MM-YYYY format with required hyphens
+                # Date validation: allows DD/MM/YYYY format with required slashes.
                 def validate_date(proposed_value):
-                    # Matches: empty or DD-MM-YYYY format (progressive: "", "0", "01", "01-", "01-0", "01-02", "01-02-", "01-02-2026")
-                    # Enforces hyphens in correct positions
-                    return re.match(r'^(\d{0,2}(-\d{0,2}(-\d{0,4})?)?)?$', proposed_value) is not None
+                    # Progressive format: "", "0", "01", "01/", "01/0", "01/02", "01/02/", "01/02/2026"
+                    return re.match(r'^(\d{0,2}(\/\d{0,2}(\/\d{0,4})?)?)?$', proposed_value) is not None
                 
+                # Add calendar picker trigger next to date fields.
+                date_row = ctk.CTkFrame(field_frame, fg_color="transparent")
+                date_row.pack(fill="x", expand=True)
+
+                # Recreate inside date_row instead of re-packing into a different parent.
+                # This avoids layout collapse where only the calendar icon appears.
+                widget.destroy()
+                entry_kwargs["width"] = 140 if small else 180
+                widget = ctk.CTkEntry(date_row, **entry_kwargs)
                 vcmd = (widget.register(validate_date), '%P')
                 widget.configure(validate="key", validatecommand=vcmd)
+                widget.pack(side="left", fill="x", expand=True)
+
+                def parse_entry_date(value: str):
+                    v = (value or "").strip()
+                    if not v:
+                        return None
+                    try:
+                        return datetime.strptime(v, "%d/%m/%Y").date()
+                    except Exception:
+                        return None
+
+                def open_calendar():
+                    top_level = parent.winfo_toplevel()
+                    popup = ctk.CTkToplevel(top_level)
+                    popup.title("Select Date")
+                    popup.geometry("360x430")
+                    popup.resizable(False, False)
+                    popup.transient(top_level)
+                    popup.grab_set()
+
+                    selected = parse_entry_date(widget.get())
+                    selected = selected or datetime.now().date()
+
+                    mode = str(ctk.get_appearance_mode()).lower()
+                    is_dark = mode == "dark"
+
+                    shell = ctk.CTkFrame(
+                        popup,
+                        corner_radius=12,
+                        fg_color=("#F3F4F6", "#1F232A"),
+                        border_width=1,
+                        border_color=("#D8DCE2", "#2C313A"),
+                    )
+                    shell.pack(fill="both", expand=True, padx=8, pady=8)
+
+                    ctk.CTkLabel(
+                        shell,
+                        text="Pick a Date",
+                        font=("Arial", 24, "bold"),
+                        text_color=("#22252B", "#E9ECF2"),
+                    ).pack(anchor="w", padx=12, pady=(12, 4))
+
+                    ctk.CTkLabel(
+                        shell,
+                        text="Format: DD/MM/YYYY",
+                        font=("Arial", 12),
+                        text_color=("#5E6672", "#AAB2BE"),
+                    ).pack(anchor="w", padx=12, pady=(0, 8))
+
+                    if Calendar is None:
+                        ctk.CTkLabel(
+                            shell,
+                            text="Calendar unavailable.\nInstall tkcalendar package.",
+                            justify="center",
+                            font=("Arial", 12),
+                        ).pack(pady=18)
+                        ctk.CTkButton(shell, text="Close", command=popup.destroy, width=120).pack(pady=(10, 0))
+                        return
+
+                    cal_kwargs = {
+                        "selectmode": "day",
+                        "date_pattern": "dd/mm/yyyy",
+                        "year": selected.year,
+                        "month": selected.month,
+                        "day": selected.day,
+                    }
+                    if is_dark:
+                        cal_kwargs.update(
+                            {
+                                "font": ("Arial", 17),
+                                "headersfont": ("Arial", 15, "bold"),
+                                "background": "#2A2F36",
+                                "foreground": "#E9ECF2",
+                                "bordercolor": "#2A2F36",
+                                "headersbackground": "#222831",
+                                "headersforeground": "#E9ECF2",
+                                "normalbackground": "#2A2F36",
+                                "normalforeground": "#E9ECF2",
+                                "weekendbackground": "#2A2F36",
+                                "weekendforeground": "#E9ECF2",
+                                "othermonthbackground": "#2A2F36",
+                                "othermonthforeground": "#7F8A98",
+                                "selectbackground": "#2F7FD8",
+                                "selectforeground": "#FFFFFF",
+                            }
+                        )
+                    else:
+                        cal_kwargs.update(
+                            {
+                                "font": ("Arial", 17),
+                                "headersfont": ("Arial", 15, "bold"),
+                                "background": "#FFFFFF",
+                                "foreground": "#1B2430",
+                                "bordercolor": "#D7DBE2",
+                                "headersbackground": "#EEF2F7",
+                                "headersforeground": "#1B2430",
+                                "normalbackground": "#FFFFFF",
+                                "normalforeground": "#1B2430",
+                                "selectbackground": "#2F7FD8",
+                                "selectforeground": "#FFFFFF",
+                            }
+                        )
+
+                    cal = Calendar(
+                        shell,
+                        **cal_kwargs,
+                        showweeknumbers=False,
+                    )
+                    cal.pack(fill="both", expand=True, padx=12, pady=(4, 10))
+
+                    def apply_date():
+                        widget.delete(0, "end")
+                        widget.insert(0, cal.get_date())  # dd/mm/yyyy
+                        popup.destroy()
+
+                    btn_row = ctk.CTkFrame(shell, fg_color="transparent")
+                    btn_row.pack(fill="x", padx=10, pady=(0, 10))
+                    ctk.CTkButton(
+                        btn_row,
+                        text="Cancel",
+                        command=popup.destroy,
+                        width=104,
+                        height=34,
+                        font=("Arial", 14),
+                        fg_color=("gray80", "gray28"),
+                        hover_color=("gray70", "gray33"),
+                    ).pack(side="left")
+                    ctk.CTkButton(
+                        btn_row,
+                        text="Use Date",
+                        command=apply_date,
+                        width=104,
+                        height=34,
+                        font=("Arial", 14),
+                        fg_color=("#2F7FD8", "#2F7FD8"),
+                        hover_color=("#2569B3", "#2569B3"),
+                    ).pack(side="right")
+
+                ctk.CTkButton(
+                    date_row,
+                    text="📅",
+                    width=34,
+                    height=input_height,
+                    font=("Arial", 13),
+                    command=open_calendar,
+                    fg_color=("gray80", "gray25"),
+                    hover_color=("gray70", "gray30"),
+                ).pack(side="left", padx=(6, 0))
 
             if field_default:
                 widget.insert(0, str(field_default))
-            widget.pack(fill="x")
+            if field_subtype != 'date':
+                widget.pack(fill="x")
             
         elif field_type == 'dropdown':
             options = field.get('options', [])
@@ -422,13 +606,20 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
                             if options:
                                 widget.set(options[0])
     
+    final_button_height = int(submit_button_height) if submit_button_height else button_height
+    final_button_font_size = int(submit_button_font_size) if submit_button_font_size else button_font_size
+    final_submit_corner_radius = int(submit_corner_radius) if submit_corner_radius else 8
+
     submit_button = ctk.CTkButton(
         form,
         text=submit_text,
         command=handle_submit,
-        height=button_height,
-        font=("Arial", button_font_size, "bold"),
-        corner_radius=8
+        height=final_button_height,
+        font=("Arial", final_button_font_size, "bold"),
+        corner_radius=final_submit_corner_radius,
+        fg_color=submit_fg_color,
+        hover_color=submit_hover_color,
+        text_color=submit_text_color,
     )
     submit_button.pack(pady=(10, 5), padx=10, fill="x")
     
