@@ -397,6 +397,197 @@ def get_financial_summary(location: str | None = None, as_of: str | None = None)
     }
 
 
+def get_payment_receipt(payment_id: int):
+    """
+    Retrieve a single payment receipt record (joined view).
+
+    Returns:
+        dict: {
+          payment_ID, payment_date, amount,
+          invoice_ID, amount_due, issue_date, due_date, paid,
+          tenant_ID, tenant_name, city
+        } or None
+    """
+    query = f"""
+        SELECT
+            p.payment_ID,
+            p.payment_date,
+            p.amount,
+            p.invoice_ID,
+            i.amount_due,
+            i.issue_date,
+            i.due_date,
+            i.paid,
+            t.tenant_ID,
+            {_tenant_name_select_sql()},
+            l.city
+        {_payment_base_join_sql()}
+        WHERE p.payment_ID = ?
+        LIMIT 1
+    """
+    return execute_query(query, (int(payment_id),), fetch_one=True)
+
+
+def get_payment_notifications(location: str | None = None, days_overdue: int = 7, as_of: str | None = None):
+    """
+    Dataset for generating payment notifications.
+
+    Returns late unpaid invoices that are overdue by at least N days.
+
+    Args:
+        location (str, optional): City name or None/'all' for all locations.
+        days_overdue (int): Minimum days overdue (default: 7).
+        as_of (str, optional): 'YYYY-MM-DD'. Defaults to SQLite date('now').
+
+    Returns:
+        list: Rows including tenant identity + contact fields where available.
+    """
+    city = _normalize_location(location)
+    days = max(0, int(days_overdue))
+
+    # due_date <= as_of - days_overdue
+    if as_of:
+        cutoff_expr = "date(?, '-' || ? || ' day')"
+        params = [as_of, days]
+    else:
+        cutoff_expr = "date('now', '-' || ? || ' day')"
+        params = [days]
+
+    query = f"""
+        SELECT
+            i.invoice_ID,
+            i.tenant_ID,
+            {_tenant_name_select_sql()},
+            l.city,
+            i.amount_due,
+            i.due_date,
+            i.issue_date,
+            t.email,
+            t.phone
+        {_invoice_base_join_sql()}
+        WHERE i.paid = 0
+          AND date(i.due_date) <= {cutoff_expr}
+          {"AND l.city = ?" if city else ""}
+        ORDER BY date(i.due_date) ASC, i.invoice_ID ASC
+    """
+
+    if city:
+        params.append(city)
+    return execute_query(query, tuple(params), fetch_all=True)
+
+
+def get_invoice_balance(invoice_id: int):
+    """
+    Compute invoice balance as amount_due - SUM(payments.amount).
+
+    Returns:
+        dict: {'invoice_ID': int, 'amount_due': float, 'paid_total': float, 'balance': float} or None
+    """
+    query = """
+        SELECT
+            i.invoice_ID,
+            i.amount_due,
+            COALESCE(SUM(p.amount), 0) AS paid_total,
+            (i.amount_due - COALESCE(SUM(p.amount), 0)) AS balance
+        FROM invoices i
+        LEFT JOIN payments p ON p.invoice_ID = i.invoice_ID
+        WHERE i.invoice_ID = ?
+        GROUP BY i.invoice_ID, i.amount_due
+    """
+    return execute_query(query, (int(invoice_id),), fetch_one=True)
+
+
+def mark_invoice_paid(invoice_id: int, paid: int = 1):
+    """
+    Explicitly set invoice paid flag.
+
+    Args:
+        invoice_id (int): Invoice ID
+        paid (int): 0 or 1
+
+    Returns:
+        bool: True if updated, False otherwise
+    """
+    paid_val = 1 if int(paid) else 0
+    result = execute_query(
+        "UPDATE invoices SET paid = ? WHERE invoice_ID = ?",
+        (paid_val, int(invoice_id)),
+        commit=True
+    )
+    return result is not None and result > 0
+
+
+def get_collected_vs_outstanding(location: str | None = None, start_date: str | None = None, end_date: str | None = None):
+    """
+    Compare collected vs outstanding over an optional date range.
+
+    Notes:
+    - Invoice range is applied to invoices.issue_date.
+    - Payment range is applied to payments.payment_date.
+    - Location is inferred from ACTIVE leases.
+
+    Returns:
+        dict: {
+          'total_invoiced': float,
+          'total_collected': float,
+          'total_outstanding': float
+        }
+    """
+    city = _normalize_location(location)
+
+    inv_filters = []
+    inv_params = []
+    if start_date:
+        inv_filters.append("date(i.issue_date) >= date(?)")
+        inv_params.append(start_date)
+    if end_date:
+        inv_filters.append("date(i.issue_date) <= date(?)")
+        inv_params.append(end_date)
+    if city:
+        inv_filters.append("l.city = ?")
+        inv_params.append(city)
+    inv_where = " AND ".join(inv_filters) if inv_filters else "1=1"
+
+    # Total invoiced
+    inv_query = f"""
+        SELECT COALESCE(SUM(i.amount_due), 0) AS total_invoiced
+        {_invoice_base_join_sql()}
+        WHERE {inv_where}
+    """
+    inv = execute_query(inv_query, tuple(inv_params), fetch_one=True) or {}
+
+    pay_filters = []
+    pay_params = []
+    if start_date:
+        pay_filters.append("date(p.payment_date) >= date(?)")
+        pay_params.append(start_date)
+    if end_date:
+        pay_filters.append("date(p.payment_date) <= date(?)")
+        pay_params.append(end_date)
+    if city:
+        pay_filters.append("l.city = ?")
+        pay_params.append(city)
+    pay_where = " AND ".join(pay_filters) if pay_filters else "1=1"
+
+    # Total collected
+    pay_query = f"""
+        SELECT COALESCE(SUM(p.amount), 0) AS total_collected
+        {_payment_base_join_sql()}
+        WHERE {pay_where}
+    """
+    pay = execute_query(pay_query, tuple(pay_params), fetch_one=True) or {}
+
+    total_invoiced = float(inv.get("total_invoiced") or 0)
+    total_collected = float(pay.get("total_collected") or 0)
+    total_outstanding = total_invoiced - total_collected
+
+    return {
+        "total_invoiced": total_invoiced,
+        "total_collected": total_collected,
+        "total_outstanding": total_outstanding,
+    }
+
+
 def _setup_graph_cleanup(parent, canvas, fig):
     """
     Set up cleanup for matplotlib canvas to prevent callback errors.
@@ -425,13 +616,12 @@ def create_financial_summary_graph(parent, location: str | None = None):
     """
     summary = get_financial_summary(location)
     total_invoiced = float(summary.get("total_invoiced", 0) or 0)
-    total_collected = float(summary.get("total_collected", 0) or 0)
     outstanding = float(summary.get("outstanding", 0) or 0)
     late_count = int(summary.get("late_invoice_count", 0) or 0)
 
-    labels = ["Invoiced", "Collected", "Outstanding"]
-    values = np.array([total_invoiced, total_collected, outstanding], dtype=float)
-    colors = ["#3B8ED0", "#4CAF50", "#FF9800"]  # Blue, Green, Orange
+    labels = ["Invoiced", "Outstanding"]
+    values = np.array([total_invoiced, outstanding], dtype=float)
+    colors = ["#3B8ED0", "#FF9800"]  # Blue, Orange
 
     fig, ax = plt.subplots(figsize=(9, 6))
     x = np.arange(len(labels))

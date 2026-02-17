@@ -9,3 +9,7 @@ venv/
 # Editor/IDE
 .vscode/
 .idea/
+
+# Local SQLite databases
+paragonapartments/database/paragonapartments.db
+*.db
