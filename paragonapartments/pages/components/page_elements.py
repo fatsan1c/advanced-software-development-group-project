@@ -202,10 +202,9 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
         fields: List of field dictionaries with keys:
             - 'name': Field name/label (required)
             - 'type': Input type - 'text', 'dropdown', 'checkbox' (default: 'text')
-            - 'subtype': Subtype for text fields - 'text', 'number', 'password', 'currency' (default: 'text')
+            - 'subtype': Subtype for text fields - 'text', 'number', 'password', 'currency', 'date' (default: 'text')
             - 'options': List of options for dropdown (required if type='dropdown')
             - 'default': Default value
-            - 'placeholder': Placeholder text for text fields
             - 'required': Whether field is required (default: False)
             - 'small': Use smaller sizing for compact forms (default: False)
         submit_text: Text for the submit button
@@ -228,7 +227,7 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
             return True  # Success
         
         fields = [
-            {'name': 'Username', 'type': 'text', 'placeholder': 'Enter username', 'required': True},
+            {'name': 'Username', 'type': 'text', 'required': True},
             {'name': 'Role', 'type': 'dropdown', 'options': ['Admin', 'User'], 'default': 'User'}
         ]
         form, error_label = form_element(parent, fields, submit_text="Create Account", on_submit=handle_submit)
@@ -277,7 +276,7 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
         if field_type == 'text':
             widget = ctk.CTkEntry(
                 field_frame,
-                placeholder_text=field.get('placeholder', field_name),
+                placeholder_text=field_name,
                 height=input_height,
                 font=("Arial", input_font_size)
             )
@@ -289,6 +288,7 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
                     return proposed_value.isdigit() or proposed_value == ""
                 vcmd = (widget.register(only_numbers), '%P')
                 widget.configure(validate="key", validatecommand=vcmd)
+
             elif field_subtype == 'currency':
                 # Currency validation: allows numbers with optional decimal and max 2 decimal places
                 # Pattern: digits (optional: decimal point + max 2 digits)
@@ -297,6 +297,16 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
                     return re.match(r'^\d*\.?\d{0,2}$', proposed_value) is not None
                 
                 vcmd = (widget.register(validate_currency), '%P')
+                widget.configure(validate="key", validatecommand=vcmd)
+
+            elif field_subtype == 'date':
+                # Date validation: allows DD-MM-YYYY format with required hyphens
+                def validate_date(proposed_value):
+                    # Matches: empty or DD-MM-YYYY format (progressive: "", "0", "01", "01-", "01-0", "01-02", "01-02-", "01-02-2026")
+                    # Enforces hyphens in correct positions
+                    return re.match(r'^(\d{0,2}(-\d{0,2}(-\d{0,4})?)?)?$', proposed_value) is not None
+                
+                vcmd = (widget.register(validate_date), '%P')
                 widget.configure(validate="key", validatecommand=vcmd)
 
             if field_default:
@@ -528,8 +538,12 @@ def popup_card(parent, title, button_text="", small=False, button_size="medium",
     return button, open_popup
 
 
-def data_table(parent, columns, data=None, editable=False, deletable=False, 
-               on_update=None, on_delete=None, on_create=None, refresh_data=None):
+def data_table(parent, columns, data=None, editable=False, deletable=False,
+               on_update=None, on_delete=None, refresh_data=None,
+               show_refresh_button: bool = True,
+               render_batch_size: int = 0,
+               page_size: int = 0, scrollable: bool = True,
+               **_kwargs):
     """Create a data table with optional CRUD operations.
     
     This creates a scrollable table that displays data with optional edit and delete
@@ -542,13 +556,16 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
             - 'key': Data key for this column (required)
             - 'width': Column width in pixels (default: 150)
             - 'editable': Whether this column is editable (default: True if table editable)
+            - 'format': Optional format for displaying data (e.g. "currency")
         data: List of dictionaries representing rows (optional, can be loaded later)
         editable: Enable edit functionality for rows
         deletable: Enable delete functionality for rows
         on_update: Callback function(row_data, updated_data) for updating a row
         on_delete: Callback function(row_data) for deleting a row
-        on_create: Callback function(new_data) for creating a new row
         refresh_data: Callback function() that returns updated data list
+        show_refresh_button: Whether to show a refresh button for manual data refresh
+        render_batch_size: If > 0, renders rows in batches of this size to keep UI responsive
+        page_size: If > 0, enables pagination with this many rows per page
         
     Returns:
         Tuple of (table_container, refresh_function):
@@ -579,7 +596,7 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
         
         table, refresh = data_table(parent, columns, editable=True, deletable=True,
                                    on_update=update_row, on_delete=delete_row,
-                                   on_create=create_row, refresh_data=get_data)
+                                   refresh_data=get_data)
     """
     # Main table container
     table_container = ctk.CTkFrame(parent)
@@ -587,15 +604,21 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
     
     # Store reference to content area for refreshing
     content_ref = {'content': None}
+    pagination_ref = {"page": 1, "total_pages": 1}
     
     def refresh_table():
         """Refresh the table data"""
         # Get fresh data if refresh callback provided
         current_data = refresh_data() if refresh_data else data or []
+        total_rows = len(current_data)
         
         # Create scrollable content area on first call, or clear existing children
         if content_ref['content'] is None:
-            content = scrollable_container(table_container, pady=0, padx=0)
+            if scrollable:
+                content = scrollable_container(table_container, pady=0, padx=0)
+            else:
+                content = ctk.CTkFrame(table_container, fg_color="transparent")
+                content.pack(fill="both", expand=True, padx=0, pady=0)
             content_ref['content'] = content
         else:
             # Clear all children from existing container
@@ -617,10 +640,12 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                 anchor="w"
             )
             header_cell.pack(side="left", padx=5, pady=8)
-            vertical_divider(header_row, padx=(0, 8))
+            if col != columns[-1]:  # Don't add divider after last column
+                vertical_divider(header_row, padx=(0, 8))
         
         # Actions column header if editable or deletable
         if editable or deletable:
+            vertical_divider(header_row, padx=(0, 8))
             ctk.CTkLabel(
                 header_row,
                 text="Actions",
@@ -629,35 +654,172 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                 anchor="center"
             ).pack(side="right", padx=5, pady=8)
         
-        # Data rows
-        for row_data in current_data:
-            create_row_widget(content, row_data, columns, editable, deletable, 
-                            on_update, on_delete, refresh_table)
-        
-        # Add new row button
-        if on_create:
-            add_btn = ctk.CTkButton(
-                content,
-                text="+ Add New Row",
-                command=lambda: create_new_row_dialog(columns, on_create, refresh_table),
-                height=35,
-                fg_color=("gray70", "gray30"),
-                hover_color=("gray60", "gray25")
-            )
-            add_btn.pack(side="left", pady=10)
+        # Pagination math (in-memory pagination; keeps UI responsive and avoids rendering all rows)
+        ps = int(page_size or 0)
+        if ps > 0:
+            total_pages = max(1, (total_rows + ps - 1) // ps)
+            pagination_ref["total_pages"] = total_pages
+            pagination_ref["page"] = max(1, min(int(pagination_ref["page"]), total_pages))
+            start = (pagination_ref["page"] - 1) * ps
+            end = start + ps
+            page_data = current_data[start:end]
+        else:
+            pagination_ref["total_pages"] = 1
+            pagination_ref["page"] = 1
+            page_data = current_data
 
-                # Refresh button
-        refresh_btn = ctk.CTkButton(
-            content,
-            text="⟳ Refresh",
-            command=refresh_table,
-            height=35,
-            width=120,
-            fg_color=("gray70", "gray30"),
-            hover_color=("gray60", "gray25")
-        )
-        refresh_btn.pack(pady=10)
+        # Data rows (optionally render in batches to keep UI responsive)
+        batch_size = int(render_batch_size or 0)
+        batch_size = batch_size if batch_size > 0 else 0
+
+        # Loading indicator for large tables
+        loading_label = None
+        if batch_size and len(page_data) > batch_size:
+            loading_label = ctk.CTkLabel(
+                content,
+                text=f"Loading {len(page_data)} rows...",
+                font=("Arial", 12),
+                text_color=("gray25", "gray70"),
+            )
+            loading_label.pack(anchor="w", padx=5, pady=(8, 2))
+
+        def finalize_controls():
+            """Add table-level controls after rows render."""
+            if loading_label:
+                loading_label.destroy()
+
+            # Add container for pagination or refresh button (to avoid empty space when no pagination)
+            if (ps > 0 and total_rows > ps) or show_refresh_button:
+                pager = ctk.CTkFrame(content, fg_color="transparent")
+                pager.pack(fill="x", pady=(10, 0), padx=5)
+
+            # Pagination controls
+            if ps > 0 and total_rows > ps:
+
+                def set_page(p: int):
+                    pagination_ref["page"] = p
+                    refresh_table()
+
+                prev_btn = ctk.CTkButton(
+                    pager,
+                    text="← Prev",
+                    width=90,
+                    height=32,
+                    command=lambda: set_page(max(1, pagination_ref["page"] - 1)),
+                    state="normal" if pagination_ref["page"] > 1 else "disabled",
+                    fg_color=("gray70", "gray30"),
+                    hover_color=("gray60", "gray25"),
+                )
+                prev_btn.pack(side="left")
+
+                # Page buttons (compact window with first/last)
+                page_btn_frame = ctk.CTkFrame(pager, fg_color="transparent")
+                page_btn_frame.pack(side="left", padx=10)
+
+                cur = pagination_ref["page"]
+                total = pagination_ref["total_pages"]
+
+                def add_page_button(label, page_num=None, disabled=False):
+                    btn = ctk.CTkButton(
+                        page_btn_frame,
+                        text=str(label),
+                        width=38,
+                        height=32,
+                        command=(lambda p=page_num: set_page(p)) if page_num else None,
+                        state="disabled" if disabled else "normal",
+                        fg_color=("gray70", "gray30"),
+                        hover_color=("gray60", "gray25"),
+                    )
+                    btn.pack(side="left", padx=2)
+
+                # Determine which page numbers to show
+                window = 2
+                pages = []
+                pages.append(1)
+                for p in range(max(2, cur - window), min(total, cur + window) + 1):
+                    pages.append(p)
+                if total not in pages:
+                    pages.append(total)
+
+                # Render with ellipses
+                last = None
+                for p in pages:
+                    if last is not None and p - last > 1:
+                        add_page_button("…", disabled=True)
+                    add_page_button(p, page_num=p, disabled=(p == cur))
+                    last = p
+
+                next_btn = ctk.CTkButton(
+                    pager,
+                    text="Next →",
+                    width=90,
+                    height=32,
+                    command=lambda: set_page(min(total, pagination_ref["page"] + 1)),
+                    state="normal" if pagination_ref["page"] < total else "disabled",
+                    fg_color=("gray70", "gray30"),
+                    hover_color=("gray60", "gray25"),
+                )
+                next_btn.pack(side="left", padx=(10, 0))
+
+                ctk.CTkLabel(
+                    pager,
+                    text=f"Page {cur} / {total} ({total_rows} rows)",
+                    font=("Arial", 12),
+                    text_color=("gray25", "gray70"),
+                ).pack(side="right")
+
+            # Refresh button
+            if show_refresh_button:
+                refresh_btn = ctk.CTkButton(
+                    pager,
+                    text="⟳ Refresh",
+                    command=refresh_table,
+                    height=32,
+                    width=110,
+                    fg_color=("gray70", "gray30"),
+                    hover_color=("gray60", "gray25")
+                )
+                refresh_btn.pack(padx=25, side="left"if (ps > 0 and total_rows > ps) else None) # Align left if pagination exists, otherwise right
+
+        def render_rows_range(start_idx: int):
+            end_idx = len(page_data) if not batch_size else min(start_idx + batch_size, len(page_data))
+            for row_data in page_data[start_idx:end_idx]:
+                create_row_widget(
+                    content,
+                    row_data,
+                    columns,
+                    editable,
+                    deletable,
+                    on_update,
+                    on_delete,
+                    refresh_table,
+                )
+
+            if end_idx < len(page_data):
+                # Schedule next batch; keeps UI responsive during heavy renders
+                table_container.after(1, lambda: render_rows_range(end_idx))
+            else:
+                finalize_controls()
+
+        if batch_size:
+            render_rows_range(0)
+        else:
+            for row_data in page_data:
+                create_row_widget(content, row_data, columns, editable, deletable,
+                                 on_update, on_delete, refresh_table)
+            finalize_controls()
     
+    # Expose pagination controls to callers (backwards-compatible)
+    def _set_page(p: int):
+        pagination_ref["page"] = int(p)
+        refresh_table()
+
+    def _reset_page():
+        pagination_ref["page"] = 1
+
+    refresh_table.set_page = _set_page  # type: ignore[attr-defined]
+    refresh_table.reset_page = _reset_page  # type: ignore[attr-defined]
+
     def create_row_widget(parent_widget, row_data, cols, is_editable, is_deletable, 
                          update_callback, delete_callback, refresh_callback):
         """Create a single row in the table"""
@@ -671,7 +833,25 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
             col_width = col.get('width', 150)
             col_key = col['key']
             col_editable = col.get('editable', True)
-            value = str(row_data.get(col_key, ''))
+            raw_value = row_data.get(col_key, '')
+
+            # Optional formatting helpers (backwards-compatible)
+            value = raw_value
+            col_format = col.get("format")
+            if col_format == "currency":
+                try:
+                    if raw_value == "" or raw_value is None:
+                        value = ""
+                    else:
+                        value = f"£{float(raw_value):,.2f}"
+                except Exception:
+                    value = str(raw_value)
+            else:
+                value = str(raw_value)
+                if col.get("prefix") and value:
+                    value = f"{col['prefix']}{value}"
+                if col.get("suffix") and value:
+                    value = f"{value}{col['suffix']}"
             
             cell_frame = ctk.CTkFrame(row, fg_color="transparent")
             cell_frame.pack(side="left", padx=5, pady=5)
@@ -728,6 +908,10 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                 widget_info = cell_widgets[col_key]
                 label = widget_info['label']
                 current_value = label.cget("text")
+
+                # If the column is formatted as currency, strip formatting for editing
+                if col.get("format") == "currency" and isinstance(current_value, str):
+                    current_value = current_value.replace("£", "").replace(",", "").strip()
                 
                 # Replace label with entry
                 label.pack_forget()
@@ -776,50 +960,6 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                 refresh_callback()
             else:
                 print(f"Delete failed: {result}")
-    
-    # un-tested possibly contains bugs
-    def create_new_row_dialog(cols, create_callback, refresh_callback):
-        """Open dialog to create new row"""
-        fields = [
-            {
-                'name': col['name'],
-                'type': 'text',
-                'placeholder': col['name']
-            }
-            for col in cols if col.get('editable', True)
-        ]
-        
-        def handle_create(values):
-            # Map field names back to keys
-            new_data = {}
-            for col in cols:
-                if col.get('editable', True):
-                    new_data[col['key']] = values.get(col['name'], '')
-            
-            result = create_callback(new_data)
-            if result is True:
-                refresh_callback()
-                return True
-            else:
-                return f"Create failed: {result}"
-        
-        # Create popup with form
-        button, open_popup = popup_card(
-            table_container,
-            "Add New",
-            "Create New Row",
-            small=True,
-            button_size="medium"
-        )
-        
-        content = open_popup()
-        form, error = form_element(
-            content,
-            fields,
-            name=None,
-            submit_text="Create",
-            on_submit=handle_create
-        )
     
     # Initial table load
     refresh_table()
