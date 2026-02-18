@@ -1,6 +1,7 @@
 import customtkinter as ctk
 import re
 from PIL import Image
+from pages.components.auto_hide_scrollable_frame import AutoHideScrollableFrame
 
 # Import page elements for use in user dashboard and other pages
 
@@ -164,6 +165,8 @@ def action_button(parent, text, command, size="medium", pady=5, padx=5, side=Non
 def scrollable_container(parent, expand=True, fill="both", pady=10, padx=10):
     """Create a scrollable container for content that may exceed visible area.
     
+    Automatically hides scrollbar when all content fits on screen.
+    
     Args:
         parent: The parent container
         expand: Whether container expands to fill space
@@ -172,9 +175,9 @@ def scrollable_container(parent, expand=True, fill="both", pady=10, padx=10):
         padx: Horizontal padding
         
     Returns:
-        The scrollable container (add widgets to this)
+        The scrollable container (add widgets directly to this)
     """
-    scrollable = ctk.CTkScrollableFrame(parent, fg_color="transparent")
+    scrollable = AutoHideScrollableFrame(parent, fg_color="transparent", scroll_speed=2)
     scrollable.pack(expand=expand, fill=fill, pady=pady, padx=padx)
     return scrollable
 
