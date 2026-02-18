@@ -159,21 +159,23 @@ class FrontDeskStaff(User):
 # ============================= ^ Front Desk functions ^ =====================================
 
 # ============================= v Homepage UI Content v =====================================
-    def load_homepage_content(self, home_page, home_page_instance=None):
+    def load_homepage_content(self, home_page):
         """Load Front Desk Staff-specific homepage content."""
         # Load base content first
-        super().load_homepage_content(home_page, home_page_instance)
+        super().load_homepage_content(home_page)
+
+        container = pe.scrollable_container(parent=home_page)
         
         # First row - Tenant Management
-        row1 = pe.row_container(parent=home_page)
+        row1 = pe.row_container(parent=container)
         self.load_tenant_content(row1)
         
         # Second row - Apartment Search
-        row2 = pe.row_container(parent=home_page)
+        row2 = pe.row_container(parent=container)
         self.load_apartment_search_content(row2)
         
         # Third row - Maintenance and Complaints
-        row3 = pe.row_container(parent=home_page)
+        row3 = pe.row_container(parent=container)
         self.load_maintenance_content(row3)
         self.load_complaints_content(row3)
 

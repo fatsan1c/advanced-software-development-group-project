@@ -115,10 +115,10 @@ class FinanceManager(User):
 # ============================= ^ Finance Manager functions ^ =====================================
 
 # ============================= v Homepage UI Content v =====================================
-    def load_homepage_content(self, home_page, home_page_instance=None):
+    def load_homepage_content(self, home_page):
         """Load Finance Manager-specific homepage content."""
         # Load base content first
-        super().load_homepage_content(home_page, home_page_instance)
+        super().load_homepage_content(home_page)
 
         container = pe.scrollable_container(parent=home_page)
 

@@ -41,15 +41,8 @@ class HomePage(ctk.CTkFrame):
         )
         theme_button.pack(side="bottom", anchor="sw", padx=10, pady=10)
 
-        # Create scrollable frame for content
-        scrollable_content = ctk.CTkScrollableFrame(
-            self,
-            fg_color="transparent"
-        )
-        scrollable_content.pack(fill="both", expand=True, padx=0, pady=0)
-
         # Load the home page content based on the user role
-        user.load_homepage_content(scrollable_content, home_page_instance=self)
+        user.load_homepage_content(self)
     
     def close_page(self):
         """Close the home page frame and return to login."""

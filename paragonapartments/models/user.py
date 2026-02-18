@@ -1,4 +1,4 @@
-import customtkinter as ctk
+﻿import customtkinter as ctk
 import pages.components.page_elements as pe
 import database_operations.repos.user_repository as user_repo
 
@@ -41,10 +41,10 @@ class User:
         """Return a string representation of the user profile."""
         return f"User(username='{self.username}', role='{self.role}', location='{self.location}')"
     
-    def logout(self, home_page_instance):
+    def logout(self, home_page):
         """Log the user out of the system."""
         print(f"{self.username} has logged out.")
-        home_page_instance.close_page()
+        home_page.close_page()
 
     def change_password(self, values):
         """Change the user's password."""
@@ -59,7 +59,7 @@ class User:
         else:
             return "Failed to change password. Please check your old password."
 
-    def load_homepage_content(self, home_page, home_page_instance=None):
+    def load_homepage_content(self, home_page):
         """Initialize and display home page content."""
         # Centered content wrapper
         top_content = pe.content_container(parent=home_page, anchor="nw", fill="x", marginy=(10, 0))
@@ -85,7 +85,7 @@ class User:
             width=80,
             height=40,
             font=("Arial", 17),
-            command=lambda: self.logout(home_page_instance)
+            command=lambda: self.logout(home_page)
         ).pack(side="right", padx=10)
 
         # Change password popup trigger in the top right corner, next to logout

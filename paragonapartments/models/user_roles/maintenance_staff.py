@@ -149,7 +149,7 @@ class MaintenanceStaff(User):
 
 # ============================= v Homepage UI Content v =====================================
     
-    def load_homepage_content(self, home_page, home_page_instance=None):
+    def load_homepage_content(self, home_page):
         """Load Maintenance Staff-specific homepage content."""
         # Load base content first
         super().load_homepage_content(home_page)
