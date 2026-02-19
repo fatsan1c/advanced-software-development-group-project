@@ -67,8 +67,14 @@ class AutoHideScrollableFrame(CTkScrollableFrame):
         self.after_idle(self._finish_loading)
     
     def destroy(self):
+        """Cleanup before destroying the widget."""
         if self._pending_update:
             self.after_cancel(self._pending_update)
+            self._pending_update = None
+        
+        # Mark as destroyed to prevent further operations
+        self._is_loading = True  # Prevent any pending visibility updates
+        
         super().destroy()
     
     def _finish_loading(self):
@@ -146,8 +152,15 @@ class AutoHideScrollableFrame(CTkScrollableFrame):
     
     def _mouse_wheel_all(self, event):
         """Handle mousewheel scrolling with auto-hide check."""
-        # Only scroll if scrollbar is visible
-        if not self._scrollbar.winfo_ismapped():
+        # Check if widget still exists before accessing it
+        try:
+            if not self._scrollbar.winfo_exists():
+                return
+            # Only scroll if scrollbar is visible
+            if not self._scrollbar.winfo_ismapped():
+                return
+        except Exception:
+            # Widget was destroyed, stop processing
             return
         
         # Call parent implementation with scroll speed applied
