@@ -51,13 +51,16 @@ class User:
         old_password = values.get('Old Password', '')
         new_password = values.get('New Password', '')
 
-        # Request password change from the user repository
-        success = user_repo.change_password(self.username, old_password, new_password)
+        try:
+            # Request password change from the user repository
+            success = user_repo.change_password(self.username, old_password, new_password)
 
-        if success:
-            return True
-        else:
-            return "Failed to change password. Please check your old password."
+            if success:
+                return True
+            else:
+                return "Failed to change password. Please check your old password."
+        except Exception as e:
+            return f"Failed to change password: {str(e)}"
 
     def load_homepage_content(self, home_page):
         """Initialize and display home page content."""

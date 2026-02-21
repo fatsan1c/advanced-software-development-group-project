@@ -89,7 +89,7 @@ def create_database():
     CREATE TABLE users (
         user_ID INTEGER PRIMARY KEY AUTOINCREMENT,
         location_ID INTEGER,
-        username TEXT NOT NULL,
+        username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         role TEXT,
         FOREIGN KEY (location_ID) REFERENCES locations(location_ID)

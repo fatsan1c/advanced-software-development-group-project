@@ -35,12 +35,16 @@ class Manager(User):
         Returns:
             int: Number of occupied apartments
         """
-        occupied_count = apartment_repo.get_all_occupancy(location)
-        if location and location.lower() != "all":
-            print(f"Occupied apartments in {location}: {occupied_count}")
-        else:
-            print(f"Total occupied apartments: {occupied_count}")
-        return occupied_count
+        try:
+            occupied_count = apartment_repo.get_all_occupancy(location)
+            if location and location.lower() != "all":
+                print(f"Occupied apartments in {location}: {occupied_count}")
+            else:
+                print(f"Total occupied apartments: {occupied_count}")
+            return occupied_count
+        except Exception as e:
+            print(f"Error retrieving occupancy data: {e}")
+            return 0
 
     # unused for now. May be used in future for more reports or graphs.
     def generate_reports(self, location: str):
@@ -496,11 +500,17 @@ class Manager(User):
     def load_account_content(self, row):
         accounts_card = pe.function_card(row, "Manage Accounts", side="left", pady=6, padx=8)
 
+        try:
+            location_options = ['None'] + location_repo.get_all_cities()
+        except Exception as e:
+            print(f"Error loading locations: {e}")
+            location_options = ['None']
+
         fields = [
             {'name': 'Username', 'type': 'text', 'required': True},
             {'name': 'Role', 'type': 'dropdown', 'options': ['Admin', 'Manager', 'Finance Manager', 'Frontdesk', 'Maintenance'], 'required': True},
             {'name': 'Password', 'type': 'text', 'required': True},
-            {'name': 'Location', 'type': 'dropdown', 'options': ['None'] + location_repo.get_all_cities(), 'required': False}
+            {'name': 'Location', 'type': 'dropdown', 'options': location_options, 'required': False}
         ]
 
         pe.form_element(
@@ -551,12 +561,16 @@ class Manager(User):
             columns = [
                 {'name': 'ID', 'key': 'user_ID', 'width': 80, 'editable': False},
                 {'name': 'Username', 'key': 'username', 'width': 200},
-                {'name': 'Location', 'key': 'city', 'width': 200},
-                {'name': 'Role', 'key': 'role', 'width': 150}
+                {'name': 'Location', 'key': 'city', 'width': 200, 'format': 'dropdown', 'options': ['None'] + location_repo.get_all_cities()},
+                {'name': 'Role', 'key': 'role', 'width': 150, 'format': 'dropdown', 'options': ['Admin', 'Manager', 'Finance Manager', 'Frontdesk', 'Maintenance']}
             ]
 
             def get_data():
-                return user_repo.get_all_users()
+                try:
+                    return user_repo.get_all_users()
+                except Exception as e:
+                    print(f"Error loading users: {e}")
+                    return []
 
             _, refresh_table = pe.data_table(
                 content,
@@ -918,7 +932,11 @@ class Manager(User):
             ]
 
             def get_data():
-                return location_repo.get_all_locations()
+                try:
+                    return location_repo.get_all_locations()
+                except Exception as e:
+                    print(f"Error loading locations: {e}")
+                    return []
 
             _, refresh_table = pe.data_table(
                 content,
@@ -945,9 +963,14 @@ class Manager(User):
 
         loc_btn.configure(command=setup_loc_popup)
 
-        # Right column: Add Apartment + Edit Apartments
+        try:
+            location_options = location_repo.get_all_cities()
+        except Exception as e:
+            print(f"Error loading locations: {e}")
+            location_options = []
+
         apartment_fields = [
-            {'name': 'Location', 'type': 'dropdown', 'options': location_repo.get_all_cities(), 'required': True},
+            {'name': 'Location', 'type': 'dropdown', 'options': location_options, 'required': True},
             {'name': 'Apartment Address', 'type': 'text', 'required': True},
             {'name': 'Number of Beds', 'type': 'text', 'subtype': 'number', 'required': True},
             {'name': 'Monthly Rent', 'type': 'text', 'subtype': 'currency', 'required': True},
@@ -1001,23 +1024,32 @@ class Manager(User):
 
             ctk.CTkLabel(header, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
 
-            cities = ["All Locations"] + location_repo.get_all_cities()
+            try:
+                cities = ["All Locations"] + location_repo.get_all_cities()
+            except Exception as e:
+                print(f"Error loading cities: {e}")
+                cities = ["All Locations"]
+                
             location_dropdown = ctk.CTkComboBox(header, values=cities, width=220, font=("Arial", 13))
             location_dropdown.set("All Locations")
             location_dropdown.pack(side="left")
 
             columns = [
                 {'name': 'ID', 'key': 'apartment_ID', 'width': 80, 'editable': False},
-                {'name': 'Location', 'key': 'city', 'width': 150},
+                {'name': 'Location', 'key': 'city', 'width': 150, 'format': 'dropdown', 'options': location_options},
                 {'name': 'Address', 'key': 'apartment_address', 'width': 150},
-                {'name': 'Beds', 'key': 'number_of_beds', 'width': 80},
+                {'name': 'Beds', 'key': 'number_of_beds', 'width': 80, "format": "number"},
                 {'name': 'Monthly Rent', 'key': 'monthly_rent', 'width': 120, "format": "currency"},
-                {'name': 'Status', 'key': 'status', 'width': 100}
+                {'name': 'Status', 'key': 'status', 'width': 100, "format": "dropdown", 'options': ["Vacant", "Occupied"]}
             ]
 
             def get_data():
-                loc = location_dropdown.get()
-                return apartment_repo.get_all_apartments(location=loc)
+                try:
+                    loc = location_dropdown.get()
+                    return apartment_repo.get_all_apartments(location=loc)
+                except Exception as e:
+                    print(f"Error loading apartments: {e}")
+                    return []
 
             _, refresh_table = pe.data_table(
                 content,

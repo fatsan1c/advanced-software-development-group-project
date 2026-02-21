@@ -188,7 +188,12 @@ class FinanceManager(User):
             text_color=("gray35", "gray75"),
         ).pack(side="left", padx=(0, 10))
 
-        cities = ["All Locations"] + location_repo.get_all_cities()
+        try:
+            cities = ["All Locations"] + location_repo.get_all_cities()
+        except Exception as e:
+            print(f"Error loading cities: {e}")
+            cities = ["All Locations"]
+
         location_dropdown = ctk.CTkComboBox(location_wrap, values=cities, width=240, font=("Arial", 13))
         location_dropdown.set("All Locations")
         location_dropdown.pack(side="left")
@@ -230,12 +235,15 @@ class FinanceManager(User):
         outstanding_value = stat_card(stats, "Outstanding")
 
         def update_summary():
-            location = self._selected_location(location_dropdown.get())
-            summary = self.generate_financial_reports(location)
-            invoiced_value.configure(text=f"£{summary['total_invoiced']:,.2f}")
-            collected_value.configure(text=f"£{summary['total_collected']:,.2f}")
-            outstanding_value.configure(text=f"£{summary['outstanding']:,.2f}")
-            late_badge.configure(text=f"Late invoices: {summary['late_invoice_count']}")
+            try:
+                location = self._selected_location(location_dropdown.get())
+                summary = self.generate_financial_reports(location)
+                invoiced_value.configure(text=f"£{summary['total_invoiced']:,.2f}")
+                collected_value.configure(text=f"£{summary['total_collected']:,.2f}")
+                outstanding_value.configure(text=f"£{summary['outstanding']:,.2f}")
+                late_badge.configure(text=f"Late invoices: {summary['late_invoice_count']}")
+            except Exception as e:
+                late_badge.configure(text=f"Error: {str(e)}", text_color="red")
 
         # Replace View Summary with a graph popup (summary still auto-refreshes on dropdown change)
         button, open_popup = pe.popup_card(
@@ -626,7 +634,12 @@ class FinanceManager(User):
 
             ctk.CTkLabel(header, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
 
-            cities = ["All Locations"] + location_repo.get_all_cities()
+            try:
+                cities = ["All Locations"] + location_repo.get_all_cities()
+            except Exception as e:
+                print(f"Error loading cities: {e}")
+                cities = ["All Locations"]
+                
             location_dropdown = ctk.CTkComboBox(header, values=cities, width=220, font=("Arial", 13))
             location_dropdown.set("All Locations")
             location_dropdown.pack(side="left")
@@ -637,14 +650,18 @@ class FinanceManager(User):
                 {"name": "Tenant", "key": "tenant_name", "width": 120, "editable": False},
                 {"name": "City", "key": "city", "width": 90, "editable": False},
                 {"name": "Amount", "key": "amount_due", "width": 80, "format": "currency"},
-                {"name": "Due Date", "key": "due_date", "width": 100},
-                {"name": "Issue Date", "key": "issue_date", "width": 100},
+                {"name": "Due Date", "key": "due_date", "width": 100, "format": "date"},
+                {"name": "Issue Date", "key": "issue_date", "width": 100, "format": "date"},
                 {"name": "Paid (0/1)", "key": "paid", "width": 70},
             ]
 
             def get_data():
-                location = self._selected_location(location_dropdown.get())
-                return finance_repo.get_invoices(location)
+                try:
+                    location = self._selected_location(location_dropdown.get())
+                    return finance_repo.get_invoices(location)
+                except Exception as e:
+                    print(f"Error loading invoices: {e}")
+                    return []
 
             _, refresh_table = pe.data_table(
                 content,
@@ -656,7 +673,8 @@ class FinanceManager(User):
                 on_update=self.update_invoice_row,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=10
+                page_size=9,
+                scrollable=False
             )
 
             # Top refresh button next to the dropdown
@@ -904,7 +922,12 @@ class FinanceManager(User):
             header.pack(fill="x", padx=10, pady=(5, 10))
             ctk.CTkLabel(header, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
 
-            cities = ["All Locations"] + location_repo.get_all_cities()
+            try:
+                cities = ["All Locations"] + location_repo.get_all_cities()
+            except Exception as e:
+                print(f"Error loading cities: {e}")
+                cities = ["All Locations"]
+                
             location_dropdown = ctk.CTkComboBox(header, values=cities, width=220, font=("Arial", 13))
             location_dropdown.set("All Locations")
             location_dropdown.pack(side="left")
@@ -919,8 +942,12 @@ class FinanceManager(User):
             ]
 
             def get_data():
-                location = self._selected_location(location_dropdown.get())
-                return finance_repo.get_late_invoices(location)
+                try:
+                    location = self._selected_location(location_dropdown.get())
+                    return finance_repo.get_late_invoices(location)
+                except Exception as e:
+                    print(f"Error loading late invoices: {e}")
+                    return []
 
             _, refresh_table = pe.data_table(
                 content,
@@ -930,7 +957,8 @@ class FinanceManager(User):
                 refresh_data=get_data,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=10
+                page_size=9,
+                scrollable=False
             )
 
             ctk.CTkButton(
@@ -988,7 +1016,12 @@ class FinanceManager(User):
 
             ctk.CTkLabel(header, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
 
-            cities = ["All Locations"] + location_repo.get_all_cities()
+            try:
+                cities = ["All Locations"] + location_repo.get_all_cities()
+            except Exception as e:
+                print(f"Error loading cities: {e}")
+                cities = ["All Locations"]
+                
             location_dropdown = ctk.CTkComboBox(header, values=cities, width=220, font=("Arial", 13))
             location_dropdown.set("All Locations")
             location_dropdown.pack(side="left")
@@ -1003,8 +1036,12 @@ class FinanceManager(User):
             ]
 
             def get_data():
-                location = self._selected_location(location_dropdown.get())
-                return finance_repo.get_payments(location)
+                try:
+                    location = self._selected_location(location_dropdown.get())
+                    return finance_repo.get_payments(location)
+                except Exception as e:
+                    print(f"Error loading payments: {e}")
+                    return []
 
             _, refresh_table = pe.data_table(
                 content,
@@ -1014,7 +1051,8 @@ class FinanceManager(User):
                 refresh_data=get_data,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=10
+                page_size=9,
+                scrollable=False
             )
 
             ctk.CTkButton(
