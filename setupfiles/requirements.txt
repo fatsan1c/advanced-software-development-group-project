@@ -3,3 +3,5 @@ Pillow
 passlib
 matplotlib
 numpy
+scipy
+tkcalendar

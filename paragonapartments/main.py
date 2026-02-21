@@ -19,7 +19,7 @@ class App(ctk.CTk):
         # Set window title and size
         self.title("Paragon Apartment Management Portal")
         width = 1000
-        height = 650
+        height = 720
         self.geometry(self.calculate_centered_geometry(width, height))
 
         # Resolve logos path relative to this file

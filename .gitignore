@@ -9,3 +9,11 @@ venv/
 # Editor/IDE
 .vscode/
 .idea/
+
+# Local folders to exclude from commits
+backend/
+clients/
+tests/
+
+# Generated database (recreate with setup/seed scripts)
+paragonapartments/database/paragonapartments.db
