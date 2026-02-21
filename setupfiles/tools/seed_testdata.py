@@ -2,18 +2,19 @@
 Seed Test Data (Finance + Maintenance)
 
 This tool inserts test data into the existing SQLite database:
-  - invoices (50 by default)
-  - payments for a subset of invoices (30 by default), also marks those invoices as paid
+  - invoices (80 by default) - distributed across ALL cities (Bristol, Cardiff, London, Manchester)
+  - payments for a subset of invoices (50 by default), also marks those invoices as paid
   - GUARANTEES a subset of invoices are unpaid AND overdue (late) for UI testing
+  - Invoices spread over 12 months so Finance/Manager trend charts show meaningful data per city
   - maintenance requests (20 by default) with varying statuses and priorities
 
-It is designed to support Finance Manager and Maintenance Staff UI testing across all locations.
+It is designed to support Finance Manager and Manager UI testing across all locations.
 
 Usage:
-  python setupfiles/tools/seed_testdata.py --reset --invoices 50 --paid 30 --late-unpaid 15
-  python setupfiles/tools/seed_testdata.py --invoices 50 --paid 20
+  python setupfiles/tools/seed_testdata.py --reset --invoices 80 --paid 50 --late-unpaid 20
+  python setupfiles/tools/seed_testdata.py --invoices 80 --paid 50
   python setupfiles/tools/seed_testdata.py --maintenance 20 --completed 10
-  python setupfiles/tools/seed_testdata.py --reset --invoices 50 --maintenance 20
+  python setupfiles/tools/seed_testdata.py --reset --invoices 80 --maintenance 20
 """
 
 from __future__ import annotations
@@ -159,27 +160,43 @@ def seed_finance_data(
     remaining_after_paid = invoices_to_create - paid_to_create
     late_unpaid_to_create = int(max(0, min(late_unpaid_to_create, remaining_after_paid)))
 
-    def make_invoice_row(tenant_id: int, rent: float, paid_flag: int, force_late: bool):
+    # Build month slots so each city gets invoices spread across all months (avoids zeros)
+    month_slots = []
+    y, m = today.year, today.month
+    for _ in range(12):
+        m -= 1
+        if m == 0:
+            m, y = 12, y - 1
+        month_slots.append(date(y, m, 1))
+    month_slots = list(reversed(month_slots))  # oldest first
+
+    def make_invoice_row(tenant_id: int, rent: float, paid_flag: int, force_late: bool, slot_idx: int = 0):
         if paid_flag == 1:
-            # Paid: spread over last ~120 days
-            issue_offset_days = random.randint(0, 120)
-            issue_date = today - timedelta(days=issue_offset_days)
+            # Paid: spread evenly across months so no month has zero
+            base = month_slots[slot_idx % len(month_slots)]
+            day_offset = random.randint(0, min(27, (today - base).days)) if base < today else 0
+            issue_date = base + timedelta(days=day_offset)
             due_date = issue_date + timedelta(days=random.choice([7, 14, 21, 28]))
         elif force_late:
-            # Late unpaid: due_date before today, keep ordering sane
-            issue_offset_days = random.randint(45, 160)
-            issue_date = today - timedelta(days=issue_offset_days)
+            # Late unpaid: spread across months, due_date before today
+            base = month_slots[slot_idx % len(month_slots)]
+            if base >= today:
+                base = today - timedelta(days=90)
+            day_offset = random.randint(0, min(27, (today - base).days)) if base < today else 0
+            issue_date = base + timedelta(days=day_offset)
             due_date = today - timedelta(days=random.randint(1, 45))
             if due_date <= issue_date:
-                # push issue_date further back to preserve due > issue
                 issue_date = due_date - timedelta(days=random.randint(7, 28))
         else:
-            # Upcoming unpaid: due date in the next ~45 days
-            issue_offset_days = random.randint(0, 30)
-            issue_date = today - timedelta(days=issue_offset_days)
-            due_date = today + timedelta(days=random.randint(1, 45))
+            # Upcoming unpaid: spread across months, due in future
+            base = month_slots[slot_idx % len(month_slots)]
+            if base > today:
+                base = today - timedelta(days=30)
+            day_offset = random.randint(0, min(27, (today - base).days)) if base < today else 0
+            issue_date = base + timedelta(days=day_offset)
+            due_date = today + timedelta(days=random.randint(1, 60))
 
-        amount_due = max(50.0, round(rent + random.uniform(-25, 75), 2))
+        amount_due = max(50.0, round(rent + random.uniform(-30, 80), 2))
         return {
             "tenant_id": int(tenant_id),
             "amount_due": float(amount_due),
@@ -188,25 +205,25 @@ def seed_finance_data(
             "paid": int(paid_flag),
         }
 
-    # Distribute each segment across cities so every filter has data.
-    # Segment A: paid
+    # Distribute each segment across ALL cities so every city gets data in every month.
+    # Segment A: paid invoices - spread across months so no zero months in trend charts
     for i in range(paid_to_create):
         city = cities[i % len(cities)]
         tenant_id, rent = next_tenant_for_city(city)
-        invoice_rows.append(make_invoice_row(tenant_id, rent, paid_flag=1, force_late=False))
+        invoice_rows.append(make_invoice_row(tenant_id, rent, paid_flag=1, force_late=False, slot_idx=i))
 
-    # Segment B: late unpaid (guaranteed overdue) - ALSO distributed across all cities
+    # Segment B: late unpaid - spread across months
     for i in range(late_unpaid_to_create):
         city = cities[i % len(cities)]
         tenant_id, rent = next_tenant_for_city(city)
-        invoice_rows.append(make_invoice_row(tenant_id, rent, paid_flag=0, force_late=True))
+        invoice_rows.append(make_invoice_row(tenant_id, rent, paid_flag=0, force_late=True, slot_idx=i))
 
-    # Segment C: upcoming unpaid
+    # Segment C: upcoming unpaid - spread across months
     remaining = invoices_to_create - paid_to_create - late_unpaid_to_create
     for i in range(remaining):
         city = cities[i % len(cities)]
         tenant_id, rent = next_tenant_for_city(city)
-        invoice_rows.append(make_invoice_row(tenant_id, rent, paid_flag=0, force_late=False))
+        invoice_rows.append(make_invoice_row(tenant_id, rent, paid_flag=0, force_late=False, slot_idx=i))
 
     # Safety: keep deterministic length
     invoice_rows = invoice_rows[:invoices_to_create]
@@ -403,9 +420,9 @@ def seed_maintenance_data(
 def main():
     parser = argparse.ArgumentParser(description="Seed finance and maintenance test data into the SQLite DB.")
     # Finance arguments
-    parser.add_argument("--invoices", type=int, default=50, help="Number of invoices to insert (default: 50)")
-    parser.add_argument("--paid", type=int, default=30, help="Number of invoices to mark paid (also inserts payments) (default: 30)")
-    parser.add_argument("--late-unpaid", type=int, default=15, help="Number of invoices to create as unpaid AND overdue (default: 15)")
+    parser.add_argument("--invoices", type=int, default=80, help="Number of invoices to insert across all cities (default: 80)")
+    parser.add_argument("--paid", type=int, default=50, help="Number of invoices to mark paid (also inserts payments) (default: 50)")
+    parser.add_argument("--late-unpaid", type=int, default=20, help="Number of invoices to create as unpaid AND overdue (default: 20)")
     # Maintenance arguments
     parser.add_argument("--maintenance", type=int, default=20, help="Number of maintenance requests to insert (default: 20)")
     parser.add_argument("--completed", type=int, default=10, help="Number of maintenance requests to mark completed (default: 10)")

@@ -6,12 +6,8 @@ Handles invoices, payments, late payment tracking, and financial summaries.
 from __future__ import annotations
 
 from database_operations.db_execute import execute_query
-import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 import numpy as np
+from pages.components.chart_utils import create_bar_chart, create_trend_chart, ACCENT_GREEN, ACCENT_ORANGE, ACCENT_BLUE
 from datetime import date as _date, datetime as _datetime, timedelta as _timedelta
 
 
@@ -399,21 +395,6 @@ def get_financial_summary(location: str | None = None, as_of: str | None = None)
     }
 
 
-def _setup_graph_cleanup(parent, canvas, fig):
-    """
-    Set up cleanup for matplotlib canvas to prevent callback errors.
-    Mirrors the pattern used in apartment_repository.
-    """
-    def cleanup(_event=None):
-        try:
-            canvas.flush_events()
-            plt.close(fig)
-        except Exception:
-            pass
-
-    parent.bind('<Destroy>', cleanup, add='+')
-
-
 def create_financial_summary_graph(parent, location: str | None = None):
     """
     Create and embed a bar chart for invoiced/collected/outstanding for a location.
@@ -431,51 +412,18 @@ def create_financial_summary_graph(parent, location: str | None = None):
     outstanding = float(summary.get("outstanding", 0) or 0)
     late_count = int(summary.get("late_invoice_count", 0) or 0)
 
-    labels = ["Invoiced", "Collected", "Outstanding"]
-    values = np.array([total_invoiced, total_collected, outstanding], dtype=float)
-    colors = ["#3B8ED0", "#4CAF50", "#FF9800"]  # Blue, Green, Orange
-
-    fig, ax = plt.subplots(figsize=(9, 6))
-    x = np.arange(len(labels))
-    bars = ax.bar(x, values, color=colors)
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels)
-
     title_location = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
-    ax.set_title(f"Financial Summary - {title_location}", fontsize=16, fontweight="bold")
-    ax.set_ylabel("Amount (£)", fontsize=12)
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _p: f"£{int(v):,}"))
-
-    # Add value labels
-    for bar in bars:
-        yval = bar.get_height()
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            yval + (max(values) * 0.02 if max(values) > 0 else 1),
-            f"£{yval:,.2f}",
-            ha="center",
-            va="bottom",
-            fontsize=10,
-        )
-
-    # Late count callout
-    ax.text(
-        0.99,
-        0.95,
-        f"Late invoices: {late_count}",
-        transform=ax.transAxes,
-        ha="right",
-        va="top",
-        fontsize=11,
-        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.85),
+    return create_bar_chart(
+        parent,
+        labels=["Invoiced", "Collected", "Outstanding"],
+        values=[total_invoiced, total_collected, outstanding],
+        colors=[ACCENT_BLUE, ACCENT_GREEN, ACCENT_ORANGE],
+        title=f"Financial Summary - {title_location}",
+        y_label="Amount (£)",
+        value_formatter="currency_decimal",
+        overlay_text=f"Late invoices: {late_count}",
+        bar_label_fontsize=10,
     )
-
-    canvas = FigureCanvasTkAgg(fig, master=parent)
-    canvas.draw()
-    canvas.get_tk_widget().pack(fill="both", expand=True, padx=20, pady=20)
-
-    _setup_graph_cleanup(parent, canvas, fig)
-    return canvas
 
 
 def _parse_date(date_str: str | None) -> _date | None:
@@ -934,6 +882,7 @@ def create_collected_trend_graph(
 ):
     """
     Create and embed a multi-series finance trend chart.
+    Uses shared chart_utils.create_trend_chart for consistent styling across dashboards.
     """
     data = get_collected_amount_timeseries(
         location=location,
@@ -941,273 +890,28 @@ def create_collected_trend_graph(
         end_date=end_date,
         grouping=grouping,
     )
-
-    series = data.get("series") or []
-    periods = [row.get("period") for row in series]
-    invoiced_values = np.array([float(row.get("total_invoiced") or 0) for row in series], dtype=float)
-    collected_values = np.array([float(row.get("total_collected") or 0) for row in series], dtype=float)
-    late_values = np.array([float(row.get("late_count") or 0) for row in series], dtype=float)
-
-    fig, ax = plt.subplots(figsize=(11, 6.5))
-    ax2 = ax.twinx()
-
-    x = np.arange(len(periods))
-    # Chart styling inspired by dashboard area-line visuals.
-    fig.patch.set_facecolor("#F4F5F7")
-    ax.set_facecolor("#F4F5F7")
-    ax2.set_facecolor("none")
-
-    # Use visually distinct series colors.
-    c_primary = "#14D6C1"     # Invoiced
-    c_secondary = "#50545D"   # Payments
-    c_tertiary = "#8A8E97"    # Late Invoices
-
-    # Filled primary series (area)
-    ax.fill_between(x, invoiced_values, color=c_primary, alpha=0.22, zorder=1)
-
-    # Thicker lines
-    inv_line = ax.plot(x, invoiced_values, color=c_primary, linewidth=3.0, alpha=0.98, label="Invoiced", zorder=3)[0]
-    col_line = ax.plot(x, collected_values, color=c_secondary, linewidth=2.8, alpha=0.98, label="Payments", zorder=3)[0]
-    late_line = ax2.plot(x, late_values, color=c_tertiary, linewidth=2.8, alpha=0.98, label="Late Invoices", zorder=3)[0]
-
-    # Hollow markers with white center
-    inv_points = ax.scatter(x, invoiced_values, s=170, facecolors="#F4F5F7", edgecolors=c_primary, linewidths=3.0, zorder=4)
-    col_points = ax.scatter(x, collected_values, s=150, facecolors="#F4F5F7", edgecolors=c_secondary, linewidths=2.8, zorder=4)
-    late_points = ax2.scatter(x, late_values, s=150, facecolors="#F4F5F7", edgecolors=c_tertiary, linewidths=2.8, zorder=4)
-
-    grouping_norm = str(data.get("grouping") or grouping or "month").lower()
-    if grouping_norm == "year":
-        tick_rotation = 0
-    elif grouping_norm == "month":
-        tick_rotation = 0
-    else:
-        tick_rotation = 22
-
-    ax.set_xticks(x)
-    ax.set_xticklabels(periods, rotation=tick_rotation, ha="right" if tick_rotation else "center")
-    # Remove side padding so the first/last period sit on the edges.
-    ax.margins(x=0)
-    ax2.margins(x=0)
+    series_data = data.get("series") or []
+    periods = [row.get("period") for row in series_data]
+    invoiced_values = np.array([float(row.get("total_invoiced") or 0) for row in series_data], dtype=float)
+    collected_values = np.array([float(row.get("total_collected") or 0) for row in series_data], dtype=float)
+    late_values = np.array([float(row.get("late_count") or 0) for row in series_data], dtype=float)
 
     title_location = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
-    ax.set_title(
-        f"Finance Trends - {title_location}",
-        fontsize=19,
-        fontweight="bold",
-        color="#2A2D33",
-        y=1.10,  # Keep title clearly at the top of the chart area
+    return create_trend_chart(
+        parent,
+        periods=periods,
+        series=[
+            ("Invoiced", invoiced_values, ACCENT_GREEN),
+            ("Payments", collected_values, "#6B7080"),
+        ],
+        title=f"Finance Trends - {title_location}",
+        y_label="Amount (£)",
+        y_formatter="currency",
+        fill_primary=True,
+        fill_secondary=True,
+        primary_color=ACCENT_GREEN,
+        secondary_axis=("Late Invoices", late_values, "#8E929C"),
+        kpi_style="circle",
+        show_toolbar=True,
+        y_lim_dynamic=True,
     )
-    ax.set_ylabel("Amount (£)", fontsize=13, color="#4C5057")
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _p: f"£{int(v):,}"))
-    # Keep secondary axis for plotting late series, but hide its numeric scale
-    # to avoid confusion with weekly numbers on the chart edge.
-    ax2.set_ylabel("")
-
-    # Use dynamic lower bounds (non-zero aware) so the chart does not
-    # unnecessarily start at 0 when meaningful values are above zero.
-    amount_all = np.concatenate([invoiced_values, collected_values])
-    amount_non_zero = amount_all[amount_all > 0]
-    if amount_non_zero.size > 0:
-        amount_min = float(np.min(amount_non_zero))
-        amount_max = float(np.max(amount_all))
-        span = max(1.0, amount_max - amount_min)
-        lower = max(0.0, amount_min - span * 0.20)
-        upper = amount_max + span * 0.15
-        ax.set_ylim(lower, upper)
-
-    late_non_zero = late_values[late_values > 0]
-    if late_non_zero.size > 0:
-        late_min = float(np.min(late_non_zero))
-        late_max = float(np.max(late_values))
-        l_span = max(1.0, late_max - late_min)
-        l_lower = max(0.0, late_min - l_span * 0.30)
-        l_upper = late_max + l_span * 0.20
-        ax2.set_ylim(l_lower, l_upper)
-    # Graph-paper style background grid pattern.
-    ax.grid(True, axis="y", color="#D5D7DC", alpha=0.9, linewidth=1)
-    ax.grid(True, axis="x", color="#DFE2E8", alpha=0.75, linewidth=0.9)
-
-    # Subtle spine styling (left/bottom only)
-    for s in ("top", "right"):
-        ax.spines[s].set_visible(False)
-        ax2.spines[s].set_visible(False)
-    ax.spines["left"].set_color("#555A63")
-    ax.spines["bottom"].set_color("#555A63")
-    ax.spines["left"].set_linewidth(1.8)
-    ax.spines["bottom"].set_linewidth(1.8)
-    ax2.spines["left"].set_visible(False)
-    ax2.spines["bottom"].set_visible(False)
-    ax.tick_params(axis="x", colors="#434852", labelsize=12)
-    ax.tick_params(axis="y", colors="#434852", labelsize=12)
-    ax2.tick_params(axis="y", which="both", right=False, labelright=False)
-    # Bold month/year x-axis labels and both y-axis number scales
-    for lbl in ax.get_xticklabels():
-        lbl.set_fontweight("bold")
-    for lbl in ax.get_yticklabels():
-        lbl.set_fontweight("bold")
-    # Secondary-axis labels are hidden intentionally.
-
-    # Add minor grid for subtle background pattern.
-    ax.minorticks_on()
-    ax.grid(True, which="minor", axis="both", color="#ECEEF2", alpha=0.7, linewidth=0.6)
-
-    # Combined legend placed outside the plot (top-left).
-    handles = [inv_line, col_line, late_line]
-    labels = [h.get_label() for h in handles]
-    ax.legend(
-        handles,
-        labels,
-        loc="lower left",
-        bbox_to_anchor=(0.0, 1.02),
-        ncol=3,
-        borderaxespad=0.0,
-        framealpha=0.95,
-        facecolor="white",
-        edgecolor="#D0D2D8",
-        fontsize=12,
-    )
-
-    # Reserve right margin for KPI badges
-    # Default subplot layout (matches desired subplot configuration).
-    fig.subplots_adjust(left=0.088, bottom=0.117, right=0.87, top=0.836, wspace=0.2, hspace=0.2)
-
-    def _pct_change(vals: np.ndarray) -> float:
-        if len(vals) < 2:
-            return 0.0
-        first = float(vals[0])
-        last = float(vals[-1])
-        if abs(first) < 1e-9:
-            return 0.0
-        return ((last - first) / abs(first)) * 100.0
-
-    kpis = [
-        ("Invoiced", _pct_change(invoiced_values), c_primary),
-        ("Payments", _pct_change(collected_values), c_secondary),
-        ("Late", _pct_change(late_values), c_tertiary),
-    ]
-
-    # Right-side circular KPI badges (visual cue like provided reference).
-    y_slots = [0.66, 0.48, 0.30]
-    for (name, pct, color), y_pos in zip(kpis, y_slots):
-        sign = "+" if pct >= 0 else ""
-        fig.text(
-            0.94,
-            y_pos,
-            f"{sign}{pct:.2f}%",
-            ha="center",
-            va="center",
-            fontsize=12,
-            color="white",
-            bbox=dict(boxstyle="circle,pad=0.52", fc=color, ec="#D9DBE0", lw=8, alpha=0.98),
-        )
-        fig.text(
-            0.94,
-            y_pos - 0.06,
-            name,
-            ha="center",
-            va="center",
-            fontsize=9,
-            color="#5A5F69",
-        )
-
-    # Hover tooltip for exact period/value inspection.
-    annot = ax.annotate(
-        "",
-        xy=(0, 0),
-        xytext=(12, 12),
-        textcoords="offset points",
-        bbox=dict(boxstyle="round,pad=0.35", fc="white", alpha=0.9),
-        arrowprops=dict(arrowstyle="->"),
-        fontsize=11,
-    )
-    annot.set_visible(False)
-    annot2 = ax2.annotate(
-        "",
-        xy=(0, 0),
-        xytext=(12, 12),
-        textcoords="offset points",
-        bbox=dict(boxstyle="round,pad=0.35", fc="white", alpha=0.9),
-        arrowprops=dict(arrowstyle="->"),
-        fontsize=11,
-    )
-    annot2.set_visible(False)
-
-    def _update_annot(ind, series_label: str, value_fmt: str, target_annot):
-        idx = int(ind["ind"][0])
-        x_val = x[idx]
-        if series_label == "Invoiced":
-            y_val = invoiced_values[idx]
-        elif series_label == "Payments":
-            y_val = collected_values[idx]
-        else:
-            y_val = late_values[idx]
-        target_annot.xy = (x_val, y_val)
-        if value_fmt == "currency":
-            value_text = f"£{y_val:,.2f}"
-        else:
-            value_text = f"{int(y_val)}"
-        target_annot.set_text(f"{periods[idx]}\n{series_label}: {value_text}")
-
-    def _on_move(event):
-        if event.inaxes not in (ax, ax2):
-            changed = False
-            if annot.get_visible():
-                annot.set_visible(False)
-                changed = True
-            if annot2.get_visible():
-                annot2.set_visible(False)
-                changed = True
-            if changed:
-                canvas.draw_idle()
-            return
-
-        hit = False
-        hit_late = False
-        contains_inv, ind_inv = inv_points.contains(event)
-        if contains_inv:
-            _update_annot(ind_inv, "Invoiced", "currency", annot)
-            annot2.set_visible(False)
-            hit = True
-        else:
-            contains_col, ind_col = col_points.contains(event)
-            if contains_col:
-                _update_annot(ind_col, "Payments", "currency", annot)
-                annot2.set_visible(False)
-                hit = True
-            else:
-                contains_late, ind_late = late_points.contains(event)
-                if contains_late:
-                    _update_annot(ind_late, "Late Invoices", "count", annot2)
-                    annot.set_visible(False)
-                    hit = True
-                    hit_late = True
-
-        if hit:
-            if hit_late:
-                annot2.set_visible(True)
-            else:
-                annot.set_visible(True)
-            canvas.draw_idle()
-        else:
-            changed = False
-            if annot.get_visible():
-                annot.set_visible(False)
-                changed = True
-            if annot2.get_visible():
-                annot2.set_visible(False)
-                changed = True
-            if changed:
-                canvas.draw_idle()
-
-    canvas = FigureCanvasTkAgg(fig, master=parent)
-    canvas.mpl_connect("motion_notify_event", _on_move)
-    canvas.draw()
-    canvas.get_tk_widget().pack(fill="both", expand=True, padx=20, pady=20)
-
-    # Add built-in interactive toolbar (home/back, pan, zoom, save).
-    toolbar = NavigationToolbar2Tk(canvas, parent, pack_toolbar=False)
-    toolbar.update()
-    toolbar.pack(fill="x", padx=20, pady=(0, 10))
-
-    _setup_graph_cleanup(parent, canvas, fig)
-    return canvas
