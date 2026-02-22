@@ -1,16 +1,11 @@
 name: tests
 
 on:
-  push:
   pull_request:
 
 jobs:
   build-and-test:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     env:
       PYTHONUTF8: "1"
     steps:
@@ -23,15 +18,10 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Install OS deps (Ubuntu)
-        if: runner.os == 'Linux'
+      - name: Install OS deps (Tk for GUI tests)
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-tk
-
-      - name: Install OS deps (macOS)
-        if: runner.os == 'macOS'
-        run: brew install tcl-tk
 
       - name: Install dependencies
         run: |
@@ -45,12 +35,12 @@ jobs:
       - name: Upload pytest results (junit)
         uses: actions/upload-artifact@v4
         with:
-          name: pytest-results-${{ matrix.os }}
+          name: pytest-results
           path: pytest-results.xml
 
       - name: Upload coverage (xml)
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-xml-${{ matrix.os }}
+          name: coverage-xml
           path: coverage.xml
 

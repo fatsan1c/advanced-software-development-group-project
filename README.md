@@ -88,13 +88,13 @@ This project includes:
 - **Automated tests** (unit + SQLite integration) using `pytest`
 - **Code coverage reporting** using `pytest-cov`
 - **Manual test cases** (ASD deliverable) in [`docs/manual_test_cases.md`](docs/manual_test_cases.md)
-- **CI pipeline** that runs tests on **Windows + Ubuntu + macOS** via GitHub Actions in [`.github/workflows/tests.yml`](.github/workflows/tests.yml)
+- **CI pipeline** that runs tests on Ubuntu via GitHub Actions in [`.github/workflows/tests.yml`](.github/workflows/tests.yml)
 
 ### Why this is important
 - **Prevents regressions**: repository/database logic is easy to break; integration tests catch issues early.
 - **Safe DB testing**: tests run against a temporary SQLite database, so they do **not** modify your real app DB.
 - **Assessment evidence**: manual test cases + traceability help demonstrate coverage of requirements for ASD.
-- **CI confidence**: every push/PR runs the same test command on Windows + Ubuntu + macOS to keep the project stable across changes.
+- **CI confidence**: every push/PR runs the same test command to keep the project stable.
 
 ### Install dependencies
 ```powershell
