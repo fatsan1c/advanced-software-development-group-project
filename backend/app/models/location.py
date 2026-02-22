@@ -12,4 +12,3 @@ class Location(db.Model):
 
     apartments = db.relationship("Apartment", back_populates="location", lazy="select")
     users = db.relationship("User", back_populates="location", lazy="select")
-

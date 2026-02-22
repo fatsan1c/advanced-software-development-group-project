@@ -14,6 +14,9 @@ class Apartment(db.Model):
     occupied = db.Column(db.Integer, default=0)
 
     location = db.relationship("Location", back_populates="apartments", lazy="select")
-    lease_agreements = db.relationship("LeaseAgreement", back_populates="apartment", lazy="select")
-    maintenance_requests = db.relationship("MaintenanceRequest", back_populates="apartment", lazy="select")
-
+    lease_agreements = db.relationship(
+        "LeaseAgreement", back_populates="apartment", lazy="select"
+    )
+    maintenance_requests = db.relationship(
+        "MaintenanceRequest", back_populates="apartment", lazy="select"
+    )

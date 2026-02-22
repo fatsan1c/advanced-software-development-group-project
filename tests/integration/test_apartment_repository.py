@@ -27,4 +27,3 @@ def test_apartment_crud(seed_minimal_data):
 
     assert apartment_repo.update_apartment(apt_id, occupied=1) is True
     assert apartment_repo.delete_apartment(apt_id) is True
-

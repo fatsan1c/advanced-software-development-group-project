@@ -13,4 +13,3 @@ class Complaint(db.Model):
     resolved = db.Column(db.Integer, default=0)
 
     tenant = db.relationship("Tenant", back_populates="complaints", lazy="select")
-

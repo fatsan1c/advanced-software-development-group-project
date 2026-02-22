@@ -24,4 +24,3 @@ def test_create_tenant_persists(seed_minimal_data):
     )
     assert row is not None
     assert row["email"] == "charlie@example.com"
-

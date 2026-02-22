@@ -4,14 +4,15 @@ from pathlib import Path
 from database_operations.repos.user_repository import authenticate_user
 import pages.components.page_elements as pe
 
+
 class LoginPage(ctk.CTkToplevel):
     """Login page window for user authentication."""
-    
+
     def __init__(self, controller, on_login_success=None):
         super().__init__()
         self.controller = controller
         self.on_login_success = on_login_success
-        
+
         # setup window properties
         self.title("Paragon Apartment Login")
         width = 320
@@ -21,7 +22,7 @@ class LoginPage(ctk.CTkToplevel):
 
         # Set icon after delay to allow window initialization
         self.after(210, lambda: self.iconbitmap(controller.current_icon))
-        
+
         # Container to hold all frames
         container = ctk.CTkFrame(self, fg_color="transparent")
         container.pack(fill="both", expand=True)
@@ -35,7 +36,7 @@ class LoginPage(ctk.CTkToplevel):
         # Create inner frame for centered content
         inner_frame = pe.content_container(parent=container)
         inner_frame.place(relx=0.5, rely=0.5, anchor="center")
-        
+
         # Title label
         ctk.CTkLabel(inner_frame, text="Login", font=("Arial", 18)).pack(pady=(8, 2))
 
@@ -45,69 +46,89 @@ class LoginPage(ctk.CTkToplevel):
         # Load and display logo
         try:
             logos_dir = Path(__file__).parent.parent / "icons/paragon_logos"
-            
+
             # Load image and add rounded corners
             img = Image.open(logos_dir / "paragon_logo_full.png")
-            img = pe.round_image_corners(img, radius=20) # Add rounded corners with a radius of 20 pixels
-            
-            logo_image = ctk.CTkImage(
-                light_image=img,
-                dark_image=img,
-                size=(150, 150)
-            )
+            img = pe.round_image_corners(
+                img, radius=20
+            )  # Add rounded corners with a radius of 20 pixels
+
+            logo_image = ctk.CTkImage(light_image=img, dark_image=img, size=(150, 150))
             # Display the logo image
             ctk.CTkLabel(inner_frame, image=logo_image, text="").pack(pady=0)
         except Exception as e:
             print(f"Could not load logo: {e}")
-        
+
         # Username and password entry fields
-        self.username_entry = ctk.CTkEntry(inner_frame, placeholder_text="Username", font=("Arial", 14))
-        self.username_entry.pack(pady=(30,6))
-        self.password_entry = ctk.CTkEntry(inner_frame, placeholder_text="Password", show="*", font=("Arial", 14))
+        self.username_entry = ctk.CTkEntry(
+            inner_frame, placeholder_text="Username", font=("Arial", 14)
+        )
+        self.username_entry.pack(pady=(30, 6))
+        self.password_entry = ctk.CTkEntry(
+            inner_frame, placeholder_text="Password", show="*", font=("Arial", 14)
+        )
         self.password_entry.pack(pady=6)
-        
+
         # Bind Enter key to both entry fields
-        self.username_entry.bind("<Return>", lambda event: self.authenticate(inner_frame, 
-                                                                              username=self.username_entry.get(), 
-                                                                              password=self.password_entry.get()))
-        self.password_entry.bind("<Return>", lambda event: self.authenticate(inner_frame, 
-                                                                              username=self.username_entry.get(), 
-                                                                              password=self.password_entry.get()))
+        self.username_entry.bind(
+            "<Return>",
+            lambda event: self.authenticate(
+                inner_frame,
+                username=self.username_entry.get(),
+                password=self.password_entry.get(),
+            ),
+        )
+        self.password_entry.bind(
+            "<Return>",
+            lambda event: self.authenticate(
+                inner_frame,
+                username=self.username_entry.get(),
+                password=self.password_entry.get(),
+            ),
+        )
         # Login button
-        ctk.CTkButton(inner_frame, text="Login",
-             command=lambda: self.authenticate(inner_frame, username=self.username_entry.get(), 
-                                               password=self.password_entry.get())).pack(pady=(20, 30), padx=40)
-    
+        ctk.CTkButton(
+            inner_frame,
+            text="Login",
+            command=lambda: self.authenticate(
+                inner_frame,
+                username=self.username_entry.get(),
+                password=self.password_entry.get(),
+            ),
+        ).pack(pady=(20, 30), padx=40)
+
     def authenticate(self, container, username: str, password: str) -> bool:
         """Authenticate user credentials."""
         # Authenticate against database
         user = authenticate_user(username, password)
-        
+
         # If authentication is successful, complete login process
         if user:
-            print(f"Login successful: {user['username']} ({user['role']}), {user['city']}")
-            self.complete_login(user['role'], user['city'])
+            print(
+                f"Login successful: {user['username']} ({user['role']}), {user['city']}"
+            )
+            self.complete_login(user["role"], user["city"])
             return True
         else:
             # Show error message
-            if not hasattr(self, 'error_label'):
+            if not hasattr(self, "error_label"):
                 self.error_label = ctk.CTkLabel(
-                    container, 
-                    text="Invalid credentials, please try again.", 
-                    text_color="red"
+                    container,
+                    text="Invalid credentials, please try again.",
+                    text_color="red",
                 )
             self.error_label.pack()
             print("Login failed: Invalid username or password")
             return False
 
-    def complete_login(self, user_type: str, location: str=None):
+    def complete_login(self, user_type: str, location: str = None):
         """Complete login process and notify controller."""
         # get username from login entry field
         username = self.username_entry.get()
-        
+
         # Call the success callback if provided
         if self.on_login_success:
             self.on_login_success(username, user_type, location)
-        
+
         # Close the login window
         self.destroy()

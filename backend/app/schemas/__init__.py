@@ -13,4 +13,3 @@ __all__ = [
     "validate_tenant_create_payload",
     "tenant_response",
 ]
-

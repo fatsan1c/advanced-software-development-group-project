@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from database_operations.db_execute import execute_query
 
-
 _TENANT_NAME_SELECT_SQL: str | None = None
 
 
@@ -54,7 +53,11 @@ def _normalize_location(location: str | None) -> str | None:
     return loc
 
 
-def get_maintenance_requests(location: str | None = None, completed: int | None = None, priority: int | None = None):
+def get_maintenance_requests(
+    location: str | None = None,
+    completed: int | None = None,
+    priority: int | None = None,
+):
     """
     Get maintenance requests enriched with tenant and apartment information.
 
@@ -138,9 +141,15 @@ def get_maintenance_request_by_id(request_id: int):
     return execute_query(query, (int(request_id),), fetch_one=True)
 
 
-def create_maintenance_request(apartment_id: int, tenant_id: int, issue_description: str, 
-                               priority_level: int, reported_date: str | None = None,
-                               scheduled_date: str | None = None, cost: float | None = None):
+def create_maintenance_request(
+    apartment_id: int,
+    tenant_id: int,
+    issue_description: str,
+    priority_level: int,
+    reported_date: str | None = None,
+    scheduled_date: str | None = None,
+    cost: float | None = None,
+):
     """
     Create a new maintenance request.
 
@@ -169,7 +178,7 @@ def create_maintenance_request(apartment_id: int, tenant_id: int, issue_descript
         int(priority_level),
         reported_date,
         scheduled_date,
-        float(cost) if cost is not None else None
+        float(cost) if cost is not None else None,
     )
     return execute_query(query, params, commit=True)
 
@@ -186,17 +195,21 @@ def update_maintenance_request(request_id: int, **kwargs):
         bool: True if update succeeded, False otherwise
     """
     allowed_fields = {
-        'issue_description', 'priority_level', 'scheduled_date', 'completed', 'cost'
+        "issue_description",
+        "priority_level",
+        "scheduled_date",
+        "completed",
+        "cost",
     }
-    
+
     updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
-    
+
     if not updates:
         return False
-    
+
     set_clause = ", ".join([f"{field} = ?" for field in updates.keys()])
     query = f"UPDATE maintenance_requests SET {set_clause} WHERE request_ID = ?"
-    
+
     params = list(updates.values()) + [int(request_id)]
     result = execute_query(query, tuple(params), commit=True)
     return result is not None
@@ -219,7 +232,7 @@ def mark_maintenance_completed(request_id: int, cost: float | None = None):
     else:
         query = "UPDATE maintenance_requests SET completed = 1 WHERE request_ID = ?"
         params = (int(request_id),)
-    
+
     result = execute_query(query, params, commit=True)
     return result is not None
 
@@ -255,7 +268,11 @@ def get_maintenance_stats(location: str | None = None):
     return execute_query(query, params, fetch_one=True)
 
 
-def get_scheduled_maintenance(location: str | None = None, date_from: str | None = None, date_to: str | None = None):
+def get_scheduled_maintenance(
+    location: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+):
     """
     Get scheduled maintenance requests within a date range.
 

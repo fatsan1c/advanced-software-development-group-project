@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 REQUIRED_CREATE_FIELDS = (
     "first_name",
     "last_name",
@@ -13,7 +12,9 @@ REQUIRED_CREATE_FIELDS = (
 )
 
 
-def validate_tenant_create_payload(payload: dict[str, Any]) -> tuple[bool, dict[str, str]]:
+def validate_tenant_create_payload(
+    payload: dict[str, Any],
+) -> tuple[bool, dict[str, str]]:
     """
     Minimal starter validator for tenant create requests.
 
@@ -57,4 +58,3 @@ def tenant_response(row: dict[str, Any]) -> dict[str, Any]:
         "right_to_rent": row.get("right_to_rent"),
         "credit_check": row.get("credit_check"),
     }
-

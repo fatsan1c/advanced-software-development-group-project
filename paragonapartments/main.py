@@ -9,13 +9,15 @@ import ctypes
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
-        
+
         # Set AppUserModelID so Windows treats this as a unique application (fixes taskbar icon)
         try:
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('ParagonApartments.App.1.0')
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+                "ParagonApartments.App.1.0"
+            )
         except:
             pass
-        
+
         # Set window title and size
         self.title("Paragon Apartment Management Portal")
         width = 1000
@@ -30,7 +32,7 @@ class App(ctk.CTk):
 
         # Set application icon using ICO file
         self.change_icon(mode="dark")
-        
+
         # Container to hold all frames
         self.container = ctk.CTkFrame(self, fg_color="transparent")
         self.container.pack(fill="both", expand=True)
@@ -39,7 +41,7 @@ class App(ctk.CTk):
 
         # Store current user and page
         self.current_user = None
-        
+
         # Show login page
         self.show_login()
 
@@ -49,12 +51,14 @@ class App(ctk.CTk):
 
     def show_login(self):
         """Display the login page as a modal dialog."""
-        login_page = self.open_page("LoginPage", controller=self, on_login_success=self.handle_login_success)
-        self.wait_window(login_page)        
-    
-    def handle_login_success(self, username: str, user_type: str, location: str=None):
+        login_page = self.open_page(
+            "LoginPage", controller=self, on_login_success=self.handle_login_success
+        )
+        self.wait_window(login_page)
+
+    def handle_login_success(self, username: str, user_type: str, location: str = None):
         """Handle successful login by creating user and showing home page.
-        
+
         Args:
             username: The logged-in username
             password: The user's password
@@ -62,43 +66,50 @@ class App(ctk.CTk):
         """
         # Create user object
         self.current_user = create_user(username, user_type, location)
-        
+
         # Show home page
-        self.open_page("HomePage", parent=self.container, controller=self, user=self.current_user)
+        self.open_page(
+            "HomePage", parent=self.container, controller=self, user=self.current_user
+        )
 
     def open_page(self, page_name, **kwargs):
         # Setup and open the requested page
         if page_name == "HomePage":
-            home_page = HomePage(kwargs.get("parent"), kwargs.get("controller"), kwargs.get("user"))
+            home_page = HomePage(
+                kwargs.get("parent"), kwargs.get("controller"), kwargs.get("user")
+            )
             home_page.grid(row=0, column=0, sticky="nsew")
             home_page.tkraise()
             return home_page
         elif page_name == "LoginPage":
-            login_page = LoginPage(kwargs.get("controller"), on_login_success=kwargs.get("on_login_success"))
+            login_page = LoginPage(
+                kwargs.get("controller"),
+                on_login_success=kwargs.get("on_login_success"),
+            )
             return login_page
-    
+
     def handle_logout(self):
         """Handle logout by clearing session and returning to login page."""
         # Clear current user reference
         self.current_user = None
         self.withdraw()
-        
+
         # Show login page again
         self.show_login()
-        
+
         # If login was successful, show the main window again; otherwise, close the app
         if self.current_user is not None:
             self.deiconify()
         else:
             self.destroy()
-    
+
     def calculate_centered_geometry(self, width: int, height: int) -> str:
         """Calculate geometry string to center window on screen.
-        
+
         Args:
             width: Window width in pixels
             height: Window height in pixels
-            
+
         Returns:
             str: Geometry string in format 'widthxheight+x+y'
         """
@@ -106,11 +117,11 @@ class App(ctk.CTk):
         screen_height = self.winfo_screenheight()
         x = (screen_width // 2) - (width // 2)
         y = (screen_height // 2) - (height // 2)
-        return f'{width}x{height}+{x}+{y}'
+        return f"{width}x{height}+{x}+{y}"
 
     def change_icon(self, mode: str):
         """Change the application icon.
-        
+
         Args:
             mode: The mode indicating which icon to use ("light" or other)
         """
@@ -124,6 +135,7 @@ class App(ctk.CTk):
             self.iconbitmap(self.current_icon)
         except:
             print(f"Warning: Unable to set application icon from {self.current_icon}")
+
 
 if __name__ == "__main__":
     app = App()

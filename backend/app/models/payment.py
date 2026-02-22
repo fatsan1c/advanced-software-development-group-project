@@ -14,4 +14,3 @@ class Payment(db.Model):
 
     tenant = db.relationship("Tenant", back_populates="payments", lazy="select")
     invoice = db.relationship("Invoice", back_populates="payments", lazy="select")
-

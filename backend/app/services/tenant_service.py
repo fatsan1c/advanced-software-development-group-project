@@ -29,7 +29,11 @@ class TenantService:
             email=str(payload["email"]).strip(),
             phone=str(payload["phone"]).strip(),
             occupation=payload.get("occupation"),
-            annual_salary=float(payload["annual_salary"]) if payload.get("annual_salary") not in (None, "") else None,
+            annual_salary=(
+                float(payload["annual_salary"])
+                if payload.get("annual_salary") not in (None, "")
+                else None
+            ),
             pets=payload.get("pets", "N"),
             right_to_rent=payload.get("right_to_rent", "N"),
             credit_check=payload.get("credit_check", "Pending"),
@@ -40,10 +44,18 @@ class TenantService:
             db.session.commit()
         except IntegrityError:
             db.session.rollback()
-            return False, {"error": "conflict", "details": "NI number or email already exists."}, 409
+            return (
+                False,
+                {"error": "conflict", "details": "NI number or email already exists."},
+                409,
+            )
         except Exception:
             db.session.rollback()
-            return False, {"error": "server_error", "details": "Failed to create tenant."}, 500
+            return (
+                False,
+                {"error": "server_error", "details": "Failed to create tenant."},
+                500,
+            )
 
         return True, {"tenant": tenant_response(self._to_row(tenant))}, 201
 
@@ -63,4 +75,3 @@ class TenantService:
             "right_to_rent": tenant.right_to_rent,
             "credit_check": tenant.credit_check,
         }
-

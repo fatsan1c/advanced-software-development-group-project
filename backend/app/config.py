@@ -20,11 +20,17 @@ class Config:
 
     # Flask-SQLAlchemy config (defaults to the same SQLite file used by the desktop app)
     _DEFAULT_SQLITE_PATH = (
-        Path(__file__).resolve().parents[2] / "clients" / "desktop_ctk" / "paragonapartments" / "database" / "paragonapartments.db"
+        Path(__file__).resolve().parents[2]
+        / "clients"
+        / "desktop_ctk"
+        / "paragonapartments"
+        / "database"
+        / "paragonapartments.db"
     )
-    SQLALCHEMY_DATABASE_URI: str = DATABASE_URL or f"sqlite:///{_DEFAULT_SQLITE_PATH.as_posix()}"
+    SQLALCHEMY_DATABASE_URI: str = (
+        DATABASE_URL or f"sqlite:///{_DEFAULT_SQLITE_PATH.as_posix()}"
+    )
     SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
 
     # Auth placeholders (choose JWT or sessions later)
     SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-change-me")
-

@@ -15,5 +15,6 @@ class LeaseAgreement(db.Model):
     active = db.Column(db.Integer, default=1)
 
     tenant = db.relationship("Tenant", back_populates="lease_agreements", lazy="select")
-    apartment = db.relationship("Apartment", back_populates="lease_agreements", lazy="select")
-
+    apartment = db.relationship(
+        "Apartment", back_populates="lease_agreements", lazy="select"
+    )

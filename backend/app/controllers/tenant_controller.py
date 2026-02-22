@@ -21,4 +21,3 @@ def create_tenant():
     payload = request.get_json(silent=True) or {}
     success, result, status = _service.create_tenant(payload)
     return result, status
-

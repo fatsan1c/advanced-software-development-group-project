@@ -7,7 +7,9 @@ class MaintenanceRequest(db.Model):
     __tablename__ = "maintenance_requests"
 
     request_ID = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    apartment_ID = db.Column(db.Integer, db.ForeignKey("apartments.apartment_ID"), nullable=True)
+    apartment_ID = db.Column(
+        db.Integer, db.ForeignKey("apartments.apartment_ID"), nullable=True
+    )
     tenant_ID = db.Column(db.Integer, db.ForeignKey("tenants.tenant_ID"), nullable=True)
     issue_description = db.Column(db.String)
     priority_level = db.Column(db.Integer)
@@ -16,6 +18,9 @@ class MaintenanceRequest(db.Model):
     completed = db.Column(db.Integer, default=0)
     cost = db.Column(db.Float)
 
-    apartment = db.relationship("Apartment", back_populates="maintenance_requests", lazy="select")
-    tenant = db.relationship("Tenant", back_populates="maintenance_requests", lazy="select")
-
+    apartment = db.relationship(
+        "Apartment", back_populates="maintenance_requests", lazy="select"
+    )
+    tenant = db.relationship(
+        "Tenant", back_populates="maintenance_requests", lazy="select"
+    )

@@ -66,4 +66,3 @@ def test_annual_salary_validation():
     assert is_annual_salary_valid("") is False
     assert is_annual_salary_valid("-1") is False
     assert is_annual_salary_valid("abc") is False
-

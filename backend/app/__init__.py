@@ -30,4 +30,3 @@ def create_app(config_object: type[Config] = Config) -> Flask:
         return {"status": "ok"}
 
     return app
-

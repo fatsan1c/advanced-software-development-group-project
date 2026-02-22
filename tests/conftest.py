@@ -25,17 +25,14 @@ def _create_schema(conn: sqlite3.Connection) -> None:
     cur.execute("PRAGMA foreign_keys = ON;")
 
     # Core tables used across repositories
-    cur.execute(
-        """
+    cur.execute("""
         CREATE TABLE locations (
             location_ID INTEGER PRIMARY KEY AUTOINCREMENT,
             city TEXT UNIQUE,
             address TEXT UNIQUE
         )
-        """
-    )
-    cur.execute(
-        """
+        """)
+    cur.execute("""
         CREATE TABLE apartments (
             apartment_ID INTEGER PRIMARY KEY AUTOINCREMENT,
             location_ID INTEGER,
@@ -45,10 +42,8 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             occupied INTEGER DEFAULT 0,
             FOREIGN KEY (location_ID) REFERENCES locations(location_ID)
         )
-        """
-    )
-    cur.execute(
-        """
+        """)
+    cur.execute("""
         CREATE TABLE tenants (
             tenant_ID INTEGER PRIMARY KEY AUTOINCREMENT,
             first_name TEXT NOT NULL,
@@ -63,10 +58,8 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             right_to_rent TEXT DEFAULT 'N',
             credit_check TEXT DEFAULT 'Pending'
         )
-        """
-    )
-    cur.execute(
-        """
+        """)
+    cur.execute("""
         CREATE TABLE lease_agreements (
             lease_ID INTEGER PRIMARY KEY AUTOINCREMENT,
             tenant_ID INTEGER,
@@ -78,10 +71,8 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             FOREIGN KEY (tenant_ID) REFERENCES tenants(tenant_ID),
             FOREIGN KEY (apartment_ID) REFERENCES apartments(apartment_ID)
         )
-        """
-    )
-    cur.execute(
-        """
+        """)
+    cur.execute("""
         CREATE TABLE users (
             user_ID INTEGER PRIMARY KEY AUTOINCREMENT,
             location_ID INTEGER,
@@ -90,10 +81,8 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             role TEXT,
             FOREIGN KEY (location_ID) REFERENCES locations(location_ID)
         )
-        """
-    )
-    cur.execute(
-        """
+        """)
+    cur.execute("""
         CREATE TABLE invoices (
             invoice_ID INTEGER PRIMARY KEY AUTOINCREMENT,
             tenant_ID INTEGER,
@@ -103,10 +92,8 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             paid INTEGER DEFAULT 0,
             FOREIGN KEY (tenant_ID) REFERENCES tenants(tenant_ID)
         )
-        """
-    )
-    cur.execute(
-        """
+        """)
+    cur.execute("""
         CREATE TABLE payments (
             payment_ID INTEGER PRIMARY KEY AUTOINCREMENT,
             invoice_ID INTEGER,
@@ -116,14 +103,19 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             FOREIGN KEY (invoice_ID) REFERENCES invoices(invoice_ID),
             FOREIGN KEY (tenant_ID) REFERENCES tenants(tenant_ID)
         )
-        """
-    )
+        """)
 
     # Useful indexes (keep tests fast when data grows)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_invoices_tenant ON invoices(tenant_ID)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_invoices_paid_due ON invoices(paid, due_date)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_payments_invoice ON payments(invoice_ID)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_lease_tenant_active ON lease_agreements(tenant_ID, active)")
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_invoices_paid_due ON invoices(paid, due_date)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_payments_invoice ON payments(invoice_ID)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_lease_tenant_active ON lease_agreements(tenant_ID, active)"
+    )
     conn.commit()
 
 
@@ -136,9 +128,15 @@ def _seed_minimal_data(conn: sqlite3.Connection) -> dict:
     cur.execute("PRAGMA foreign_keys = ON;")
 
     # Locations
-    cur.execute("INSERT INTO locations (city, address) VALUES (?, ?)", ("Bristol", "1 Test St, Bristol"))
+    cur.execute(
+        "INSERT INTO locations (city, address) VALUES (?, ?)",
+        ("Bristol", "1 Test St, Bristol"),
+    )
     bristol_id = int(cur.lastrowid)
-    cur.execute("INSERT INTO locations (city, address) VALUES (?, ?)", ("Cardiff", "2 Test St, Cardiff"))
+    cur.execute(
+        "INSERT INTO locations (city, address) VALUES (?, ?)",
+        ("Cardiff", "2 Test St, Cardiff"),
+    )
     cardiff_id = int(cur.lastrowid)
 
     # Apartments
@@ -167,7 +165,19 @@ def _seed_minimal_data(conn: sqlite3.Connection) -> dict:
             occupation, annual_salary, pets, right_to_rent, credit_check
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        ("Alice", "Tenant", "1990-01-01", "AB123456A", "alice@example.com", "07123456789", "Engineer", 50000, "N", "Y", "Passed"),
+        (
+            "Alice",
+            "Tenant",
+            "1990-01-01",
+            "AB123456A",
+            "alice@example.com",
+            "07123456789",
+            "Engineer",
+            50000,
+            "N",
+            "Y",
+            "Passed",
+        ),
     )
     tenant1_id = int(cur.lastrowid)
     cur.execute(
@@ -177,7 +187,19 @@ def _seed_minimal_data(conn: sqlite3.Connection) -> dict:
             occupation, annual_salary, pets, right_to_rent, credit_check
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        ("Bob", "Tenant", "1985-05-05", "AC123456B", "bob@example.com", "07987654321", "Teacher", 42000, "Y", "Y", "Pending"),
+        (
+            "Bob",
+            "Tenant",
+            "1985-05-05",
+            "AC123456B",
+            "bob@example.com",
+            "07987654321",
+            "Teacher",
+            42000,
+            "Y",
+            "Y",
+            "Pending",
+        ),
     )
     tenant2_id = int(cur.lastrowid)
 
@@ -266,5 +288,3 @@ def seed_minimal_data(init_schema: Path) -> dict:
         return _seed_minimal_data(conn)
     finally:
         conn.close()
-
-

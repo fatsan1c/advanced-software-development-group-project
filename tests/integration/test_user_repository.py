@@ -45,4 +45,3 @@ def test_delete_user(seed_minimal_data):
 
     assert user_repo.delete_user(user_id) is True
     assert user_repo.get_user_by_id(user_id) is None
-

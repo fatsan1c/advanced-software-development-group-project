@@ -7,28 +7,34 @@ import os
 from passlib.hash import sha256_crypt
 
 # Path to the SQLite database file (will be stored in the database folder)
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'paragonapartments', 'database', 'paragonapartments.db')
+DB_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+    "paragonapartments",
+    "database",
+    "paragonapartments.db",
+)
+
 
 def create_database():
     """Create SQLite database with schema and data."""
-    
+
     # Create database directory if it doesn't exist
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    
+
     # Remove existing database if it exists
     if os.path.exists(DB_PATH):
         os.remove(DB_PATH)
         print(f"Removed existing database: {DB_PATH}")
-    
+
     # Connect to SQLite database (creates it if it doesn't exist)
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
+
     # Enable foreign keys
     cursor.execute("PRAGMA foreign_keys = ON;")
-    
+
     print("Creating tables...")
-    
+
     # Create locations table
     cursor.execute("""
     CREATE TABLE locations (
@@ -37,7 +43,7 @@ def create_database():
         address TEXT UNIQUE
     )
     """)
-    
+
     # Create apartments table
     cursor.execute("""
     CREATE TABLE apartments (
@@ -50,7 +56,7 @@ def create_database():
         FOREIGN KEY (location_ID) REFERENCES locations(location_ID)
     )
     """)
-    
+
     # Create tenants table
     cursor.execute("""
     CREATE TABLE tenants (
@@ -68,7 +74,7 @@ def create_database():
         credit_check TEXT DEFAULT 'Pending'
     )
     """)
-    
+
     # Create lease_agreements table
     cursor.execute("""
     CREATE TABLE lease_agreements (
@@ -83,7 +89,7 @@ def create_database():
         FOREIGN KEY (apartment_ID) REFERENCES apartments(apartment_ID)
     )
     """)
-    
+
     # Create users table
     cursor.execute("""
     CREATE TABLE users (
@@ -95,7 +101,7 @@ def create_database():
         FOREIGN KEY (location_ID) REFERENCES locations(location_ID)
     )
     """)
-    
+
     # Create invoices table
     cursor.execute("""
     CREATE TABLE invoices (
@@ -108,7 +114,7 @@ def create_database():
         FOREIGN KEY (tenant_ID) REFERENCES tenants(tenant_ID)
     )
     """)
-    
+
     # Create payments table
     cursor.execute("""
     CREATE TABLE payments (
@@ -123,11 +129,19 @@ def create_database():
     """)
 
     # Performance indexes
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_invoices_tenant ON invoices(tenant_ID)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_invoices_paid_due ON invoices(paid, due_date)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_payments_invoice ON payments(invoice_ID)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_lease_tenant_active ON lease_agreements(tenant_ID, active)")
-    
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_invoices_tenant ON invoices(tenant_ID)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_invoices_paid_due ON invoices(paid, due_date)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_payments_invoice ON payments(invoice_ID)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_lease_tenant_active ON lease_agreements(tenant_ID, active)"
+    )
+
     # Create complaint table
     cursor.execute("""
     CREATE TABLE complaint (
@@ -139,7 +153,7 @@ def create_database():
         FOREIGN KEY (tenant_ID) REFERENCES tenants(tenant_ID)
     )
     """)
-    
+
     # Create maintenance_requests table
     cursor.execute("""
     CREATE TABLE maintenance_requests (
@@ -158,26 +172,28 @@ def create_database():
     """)
 
     print("Inserting data...")
-    
+
     # Insert locations
-    cursor.executemany("INSERT INTO locations (location_ID, city, address) VALUES (?, ?, ?)", [
-        (1, 'Bristol', '12 Broadmead, Bristol, BS2 ZPK'),
-        (2, 'Cardiff', '15 Tredegar St, Cardiff, CF5Z 6GP'),
-        (3, 'London', '18 Rupert St, London, EC1A 6IQ'),
-        (4, 'Manchester', '23 Corporation St, Manchester, M3T 3AM')
-    ])
+    cursor.executemany(
+        "INSERT INTO locations (location_ID, city, address) VALUES (?, ?, ?)",
+        [
+            (1, "Bristol", "12 Broadmead, Bristol, BS2 ZPK"),
+            (2, "Cardiff", "15 Tredegar St, Cardiff, CF5Z 6GP"),
+            (3, "London", "18 Rupert St, London, EC1A 6IQ"),
+            (4, "Manchester", "23 Corporation St, Manchester, M3T 3AM"),
+        ],
+    )
 
     # Insert users (with hashed password)
-    users_data = [
-        (1,None,'manager',sha256_crypt.hash('paragon1'),'manager')
-    ]
+    users_data = [(1, None, "manager", sha256_crypt.hash("paragon1"), "manager")]
     cursor.executemany("INSERT INTO users VALUES (?, ?, ?, ?, ?)", users_data)
-    
+
     conn.commit()
     conn.close()
-    
+
     print(f"\n✓ SQLite database created successfully at: {DB_PATH}")
     print(f"Database size: {os.path.getsize(DB_PATH) / 1024:.2f} KB")
+
 
 if __name__ == "__main__":
     create_database()

@@ -10,10 +10,10 @@ def create_user(username: str, user_type: str, location: str = ""):
     from domain.roles.finance_manager import FinanceManager
     from domain.roles.front_desk_staff import FrontDeskStaff
     from domain.roles.maintenance_staff import MaintenanceStaff
-    
+
     # Normalize user type for comparison
     user_type_lower = user_type.lower().replace(" ", "")
-    
+
     # Check user type and return the corresponding user class instance
     if user_type_lower == "administrator" or user_type_lower == "admin":
         return Administrator(username, location)
@@ -31,16 +31,16 @@ def create_user(username: str, user_type: str, location: str = ""):
 
 class User:
     """Base user class for all user types in the system."""
-    
+
     def __init__(self, username: str, role: str, location: str = ""):
         self.username = username
         self.role = role
         self.location = location
-    
+
     def view_profile(self):
         """Return a string representation of the user profile."""
         return f"User(username='{self.username}', role='{self.role}', location='{self.location}')"
-    
+
     def logout(self, home_page):
         """Log the user out of the system."""
         print(f"{self.username} has logged out.")
@@ -48,8 +48,8 @@ class User:
 
     def change_password(self, values):
         """Change the user's password."""
-        old_password = values.get('Old Password', '')
-        new_password = values.get('New Password', '')
+        old_password = values.get("Old Password", "")
+        new_password = values.get("New Password", "")
 
         # Request password change from the user repository
         success = user_repo.change_password(self.username, old_password, new_password)
@@ -62,48 +62,67 @@ class User:
     def load_homepage_content(self, home_page):
         """Initialize and display home page content."""
         # Centered content wrapper
-        top_content = pe.content_container(parent=home_page, anchor="nw", fill="x", marginy=(10, 0))
+        top_content = pe.content_container(
+            parent=home_page, anchor="nw", fill="x", marginy=(10, 0)
+        )
 
         # Display username and location in the top left corner
         ctk.CTkLabel(
-            top_content, 
-            text=self.username + (f" - {self.location}" if self.location else ""), 
-            font=("Arial", 24)
+            top_content,
+            text=self.username + (f" - {self.location}" if self.location else ""),
+            font=("Arial", 24),
         ).pack(side="left", padx=15)
 
         # Display role and "Dashboard" in the center
         ctk.CTkLabel(
-            top_content, 
-            text=self.role + " Dashboard",
-            font=("Arial", 24)
+            top_content, text=self.role + " Dashboard", font=("Arial", 24)
         ).place(relx=0.5, rely=0.5, anchor="center")
 
         # Logout button in the top right corner
         ctk.CTkButton(
-            top_content, 
+            top_content,
             text="Logout",
             width=80,
             height=40,
             font=("Arial", 17),
-            command=lambda: self.logout(home_page)
+            command=lambda: self.logout(home_page),
         ).pack(side="right", padx=10)
 
         # Change password popup trigger in the top right corner, next to logout
-        _, open_popup = pe.popup_card(home_page, title="Change Password", small=True, generate_button=False)
+        _, open_popup = pe.popup_card(
+            home_page, title="Change Password", small=True, generate_button=False
+        )
 
         def setup_popup():
             content = open_popup()
 
             # Define the fields for changing password
             fields = [
-                {'name': 'Old Password', 'type': 'text', 'subtype': 'password', 'required': True},
-                {'name': 'New Password', 'type': 'text', 'subtype': 'password', 'required': True},
+                {
+                    "name": "Old Password",
+                    "type": "text",
+                    "subtype": "password",
+                    "required": True,
+                },
+                {
+                    "name": "New Password",
+                    "type": "text",
+                    "subtype": "password",
+                    "required": True,
+                },
             ]
-            pe.form_element(content, fields, name="Change Password", submit_text="Change Password", on_submit=self.change_password, small=True)
+            pe.form_element(
+                content,
+                fields,
+                name="Change Password",
+                submit_text="Change Password",
+                on_submit=self.change_password,
+                small=True,
+            )
 
         # Change password button
         ctk.CTkButton(
-            home_page, 
+            home_page,
             text="Change password",
             bg_color="transparent",
             fg_color="transparent",
