@@ -15,8 +15,19 @@ Paragon Apartment Management System (PAMS) is a Python-based desktop application
 ## Tech Stack
 - **Language:** Python 3.x  
 - **Database:** SQLite
-- **GUI Framework:** CustomTkinter
-- **Version Control:** Git and GitHub  
+- **Desktop:** CustomTkinter
+- **Backend API:** Flask, Flask-SQLAlchemy (optional)
+
+## Project Structure
+- **`paragonapartments/`** — Desktop app (main entry: `main.py`)
+- **`backend/`** — Flask API (tenant endpoints)
+- **`tests/`** — Unit and integration tests
+- **`setupfiles/`** — Setup scripts and DB tools
+
+### Recent changes
+- **Backend**: Flask API with tenant endpoints; structure: `controllers/`, `services/`, `middlewares/`
+- **Testing**: Pytest suite with unit + integration tests; CI on Windows, Ubuntu, macOS
+- **DB**: Single `create_sqlite_testdata.py` for schema + data; `seed_testdata.py` for bulk finance data
 
 ## Installation
 
@@ -46,10 +57,17 @@ Paragon Apartment Management System (PAMS) is a Python-based desktop application
       - Create a virtual environment
       - Install all dependencies
 
-3. Run the Application:
+3. Run the desktop app:
    ```bash
    python paragonapartments/main.py
    ```
+
+### Backend API (optional)
+From the repo root:
+```bash
+python -c "import sys; sys.path.insert(0, 'backend'); from app import create_app; create_app().run()"
+```
+Uses the same SQLite DB as the desktop app. Endpoints: `GET/POST /tenants/`, `GET /health`.
 
 ## Database
 
@@ -78,11 +96,9 @@ This project includes:
 - **Assessment evidence**: manual test cases + traceability help demonstrate coverage of requirements for ASD.
 - **CI confidence**: every push/PR runs the same test command on Windows + Ubuntu + macOS to keep the project stable across changes.
 
-### Install test dependencies
-Install app dependencies from [`setupfiles/requirements.txt`](setupfiles/requirements.txt). For testing, also install [`setupfiles/requirements-dev.txt`](setupfiles/requirements-dev.txt) (pytest, pytest-cov, black):
-
+### Install dependencies
 ```powershell
-python -m pip install -r setupfiles/requirements.txt -r setupfiles/requirements-dev.txt
+python -m pip install -r setupfiles/requirements.txt
 ```
 
 ### Run automated tests
@@ -168,11 +184,7 @@ For larger datasets, SQLite indexes were added to speed up the common finance qu
 - `payments(invoice_ID)`
 - `lease_agreements(tenant_ID, active)`
 
-Indexes are created automatically when you run the DB creation scripts, and can be applied to an existing DB using:
-
-```bash
-python setupfiles/tools/create_sqlite_indexes.py
-```
+Indexes are created automatically when you run `create_sqlite_testdata.py`.
 
 ### Finance Test Data Seeding (for UI / performance testing)
 

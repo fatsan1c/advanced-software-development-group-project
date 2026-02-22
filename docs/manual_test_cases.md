@@ -3,7 +3,7 @@
 ## Test environment
 - **App type**: Python desktop application (CustomTkinter)
 - **Database**: SQLite (`paragonapartments/database/paragonapartments.db`)
-- **Recommended OS for testing**: Windows 10/11
+- **Recommended OS**: Windows 10/11
 - **Python**: 3.x
 
 ## Test data setup

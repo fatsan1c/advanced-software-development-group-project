@@ -3,8 +3,8 @@ from __future__ import annotations
 from sqlalchemy.exc import IntegrityError
 
 from ..extensions import db
-from ..models.tenant import Tenant
-from ..schemas import tenant_response, validate_tenant_create_payload
+from .tenant_model import Tenant
+from .tenant_schemas import tenant_response, validate_tenant_create_payload
 
 
 class TenantService:

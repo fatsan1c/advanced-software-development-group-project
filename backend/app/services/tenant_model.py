@@ -1,3 +1,8 @@
+"""
+Tenant model for the backend API (SQLAlchemy).
+The desktop app uses paragonapartments/database_operations for data access.
+"""
+
 from __future__ import annotations
 
 from ..extensions import db
@@ -18,13 +23,3 @@ class Tenant(db.Model):
     pets = db.Column(db.String, default="N")
     right_to_rent = db.Column(db.String, default="N")
     credit_check = db.Column(db.String, default="Pending")
-
-    lease_agreements = db.relationship(
-        "LeaseAgreement", back_populates="tenant", lazy="select"
-    )
-    invoices = db.relationship("Invoice", back_populates="tenant", lazy="select")
-    payments = db.relationship("Payment", back_populates="tenant", lazy="select")
-    complaints = db.relationship("Complaint", back_populates="tenant", lazy="select")
-    maintenance_requests = db.relationship(
-        "MaintenanceRequest", back_populates="tenant", lazy="select"
-    )

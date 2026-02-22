@@ -1,3 +1,9 @@
+"""
+Tenant schema layer.
+
+Validates incoming payloads and shapes response payloads for the tenant API.
+"""
+
 from __future__ import annotations
 
 from typing import Any

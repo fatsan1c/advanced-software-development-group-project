@@ -21,8 +21,6 @@ class Config:
     # Flask-SQLAlchemy config (defaults to the same SQLite file used by the desktop app)
     _DEFAULT_SQLITE_PATH = (
         Path(__file__).resolve().parents[2]
-        / "clients"
-        / "desktop_ctk"
         / "paragonapartments"
         / "database"
         / "paragonapartments.db"

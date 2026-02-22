@@ -19,8 +19,9 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_object)
 
-    # DB (optional for now, but models expect this)
+    # DB (optional for now, but Tenant model expects this)
     db.init_app(app)
+    from .services.tenant_model import Tenant  # noqa: F401 - register Tenant with SQLAlchemy
 
     register_error_handlers(app)
     register_blueprints(app)
