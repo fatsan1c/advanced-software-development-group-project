@@ -1,7 +1,6 @@
 import customtkinter as ctk
 import re
 from PIL import Image
-from pages.components.auto_hide_scrollable_frame import AutoHideScrollableFrame
 
 # Import page elements for use in user dashboard and other pages
 
@@ -165,8 +164,6 @@ def action_button(parent, text, command, size="medium", pady=5, padx=5, side=Non
 def scrollable_container(parent, expand=True, fill="both", pady=10, padx=10):
     """Create a scrollable container for content that may exceed visible area.
     
-    Automatically hides scrollbar when all content fits on screen.
-    
     Args:
         parent: The parent container
         expand: Whether container expands to fill space
@@ -175,9 +172,9 @@ def scrollable_container(parent, expand=True, fill="both", pady=10, padx=10):
         padx: Horizontal padding
         
     Returns:
-        The scrollable container (add widgets directly to this)
+        The scrollable container (add widgets to this)
     """
-    scrollable = AutoHideScrollableFrame(parent, fg_color="transparent", scroll_speed=2)
+    scrollable = ctk.CTkScrollableFrame(parent, fg_color="transparent")
     scrollable.pack(expand=expand, fill=fill, pady=pady, padx=padx)
     return scrollable
 
@@ -303,15 +300,14 @@ def form_element(parent, fields, name, submit_text="Submit", on_submit=None, pad
                 widget.configure(validate="key", validatecommand=vcmd)
 
             elif field_subtype == 'date':
-                # Date validation: allows YYYY-MM-DD format with required hyphens
+                # Date validation: allows DD-MM-YYYY format with required hyphens
                 def validate_date(proposed_value):
-                    # Matches: empty or YYYY-MM-DD format (progressive: "", "2", "2026", "2026-", "2026-0", "2026-02", "2026-02-", "2026-02-16")
+                    # Matches: empty or DD-MM-YYYY format (progressive: "", "0", "01", "01-", "01-0", "01-02", "01-02-", "01-02-2026")
                     # Enforces hyphens in correct positions
-                    return re.match(r'^(\d{0,4}(-\d{0,2}(-\d{0,2})?)?)?$', proposed_value) is not None
+                    return re.match(r'^(\d{0,2}(-\d{0,2}(-\d{0,4})?)?)?$', proposed_value) is not None
                 
                 vcmd = (widget.register(validate_date), '%P')
                 widget.configure(validate="key", validatecommand=vcmd)
-                widget.configure(placeholder_text=f"{field_name} (YYYY-MM-DD)")
 
             if field_default:
                 widget.insert(0, str(field_default))
@@ -546,11 +542,11 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                on_update=None, on_delete=None, refresh_data=None,
                show_refresh_button: bool = True,
                render_batch_size: int = 0,
-               page_size: int = 0, scrollable: bool = False,
+               page_size: int = 0, scrollable: bool = True,
                **_kwargs):
     """Create a data table with optional CRUD operations.
     
-    This creates table that displays data with optional edit and delete
+    This creates a scrollable table that displays data with optional edit and delete
     functionality for each row. If create callback is provided, an "Add Row" button appears.
     
     Args:
@@ -560,8 +556,7 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
             - 'key': Data key for this column (required)
             - 'width': Column width in pixels (default: 150)
             - 'editable': Whether this column is editable (default: True if table editable)
-            - 'format': Optional format with validation - "text", "number", "currency", "date", "dropdown"
-            - 'options': List of options for dropdown format (required if format='dropdown')
+            - 'format': Optional format for displaying data (e.g. "currency")
         data: List of dictionaries representing rows (optional, can be loaded later)
         editable: Enable edit functionality for rows
         deletable: Enable delete functionality for rows
@@ -571,8 +566,7 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
         show_refresh_button: Whether to show a refresh button for manual data refresh
         render_batch_size: If > 0, renders rows in batches of this size to keep UI responsive
         page_size: If > 0, enables pagination with this many rows per page
-        scrollable: Whether to render the table inside a scrollable container (recommended for large tables)
-
+        
     Returns:
         Tuple of (table_container, refresh_function):
         - table_container: The table widget
@@ -596,11 +590,8 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
         
         columns = [
             {'name': 'ID', 'key': 'id', 'width': 80, 'editable': False},
-            {'name': 'Username', 'key': 'username', 'width': 200, 'format': 'text'},
-            {'name': 'Status', 'key': 'status', 'width': 150, 'format': 'dropdown', 
-             'options': ['Active', 'Inactive', 'Pending']},
-            {'name': 'Balance', 'key': 'balance', 'width': 150, 'format': 'currency'},
-            {'name': 'Age', 'key': 'age', 'width': 100, 'format': 'number'}
+            {'name': 'Username', 'key': 'username', 'width': 200},
+            {'name': 'Email', 'key': 'email', 'width': 250}
         ]
         
         table, refresh = data_table(parent, columns, editable=True, deletable=True,
@@ -856,7 +847,6 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                 except Exception:
                     value = str(raw_value)
             else:
-                # Default: apply prefix/suffix if specified
                 value = str(raw_value)
                 if col.get("prefix") and value:
                     value = f"{col['prefix']}{value}"
@@ -918,70 +908,21 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                 widget_info = cell_widgets[col_key]
                 label = widget_info['label']
                 current_value = label.cget("text")
-                col_format = col.get("format")
 
-                # Strip formatting based on format type
-                if col_format == "currency" and isinstance(current_value, str):
+                # If the column is formatted as currency, strip formatting for editing
+                if col.get("format") == "currency" and isinstance(current_value, str):
                     current_value = current_value.replace("£", "").replace(",", "").strip()
-                # For other formats, current_value is already in the correct format for editing
                 
-                # Replace label with appropriate widget based on format type
+                # Replace label with entry
                 label.pack_forget()
-                
-                if col_format == "dropdown":
-                    # Create dropdown widget
-                    options = col.get('options', [])
-                    dropdown = ctk.CTkOptionMenu(
-                        label.master,
-                        values=options if options else ["No options"],
-                        width=col.get('width', 150),
-                        height=28,
-                        font=("Arial", 12)
-                    )
-                    
-                    # Set current value if it exists in options
-                    if current_value and options and current_value in options:
-                        dropdown.set(current_value)
-                    elif options:
-                        dropdown.set(options[0])
-                    
-                    dropdown.pack()
-                    edit_data[col_key] = dropdown
-                else:
-                    # Create entry widget with validation
-                    entry = ctk.CTkEntry(
-                        label.master,
-                        width=col.get('width', 150),
-                        font=("Arial", 12)
-                    )
-                    
-                    # Apply real-time validation based on format type
-                    if col_format == "number":
-                        def only_numbers(proposed_value):
-                            return proposed_value.isdigit() or proposed_value == ""
-                        vcmd = (entry.register(only_numbers), '%P')
-                        entry.configure(validate="key", validatecommand=vcmd)
-                    
-                    elif col_format == "currency":
-                        def validate_currency(proposed_value):
-                            # Matches: empty, digits, or digits with .XX format (max 2 decimal places)
-                            return re.match(r'^\d*\.?\d{0,2}$', proposed_value) is not None
-                        vcmd = (entry.register(validate_currency), '%P')
-                        entry.configure(validate="key", validatecommand=vcmd)
-                    
-                    elif col_format == "date":
-                        def validate_date(proposed_value):
-                            # Matches: empty or YYYY-MM-DD format (progressive)
-                            return re.match(r'^(\d{0,4}(-\d{0,2}(-\d{0,2})?)?)?$', proposed_value) is not None
-                        vcmd = (entry.register(validate_date), '%P')
-                        entry.configure(validate="key", validatecommand=vcmd)
-                        entry.configure(placeholder_text="YYYY-MM-DD")
-                    
-                    # For "text" format or no format, no special validation needed
-                    
-                    entry.insert(0, current_value)
-                    entry.pack()
-                    edit_data[col_key] = entry
+                entry = ctk.CTkEntry(
+                    label.master,
+                    width=col.get('width', 150),
+                    font=("Arial", 12)
+                )
+                entry.insert(0, current_value)
+                entry.pack()
+                edit_data[col_key] = entry
         
         # Change edit button to save
         if cell_widgets:
@@ -1001,13 +942,7 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
     
     def save_row(row_data, edit_data, update_callback, refresh_callback):
         """Save edited row data"""
-        # Handle both Entry and OptionMenu widgets
-        updated_data = {}
-        for key, widget in edit_data.items():
-            if isinstance(widget, ctk.CTkOptionMenu):
-                updated_data[key] = widget.get()
-            else:  # CTkEntry
-                updated_data[key] = widget.get()
+        updated_data = {key: entry.get() for key, entry in edit_data.items()}
         
         if update_callback:
             result = update_callback(row_data, updated_data)

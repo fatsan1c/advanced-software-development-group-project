@@ -9,3 +9,12 @@ venv/
 # Editor/IDE
 .vscode/
 .idea/
+
+# Local SQLite databases
+paragonapartments/database/paragonapartments.db
+*.db
+
+# Test artifacts
+.pytest_cache/
+coverage.xml
+pytest-results.xml

@@ -15,14 +15,14 @@ from database_operations.dbfunc import getConnection
 def execute_query(query, params=None, fetch_one=False, fetch_all=False, commit=False):
     """
     Execute a database query with proper connection handling.
-    
+
     Args:
         query (str): SQL query to execute
         params (tuple, optional): Query parameters for parameterized queries
         fetch_one (bool): Return single row as dict
         fetch_all (bool): Return all rows as list of dicts
         commit (bool): Whether to commit the transaction (for INSERT/UPDATE/DELETE)
-        
+
     Returns:
         - If fetch_one: dict or None
         - If fetch_all: list of dicts or []
@@ -35,15 +35,15 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=False, commit=F
     """
     conn = None
     cursor = None
-    
+
     try:
         conn = getConnection()
         if not conn:
             raise sqlite3.Error("Failed to establish database connection")
-        
+
         cursor = conn.cursor()
         cursor.execute(query, params or ())
-        
+
         # Process results based on flags
         if fetch_one:
             row = cursor.fetchone()
@@ -56,10 +56,9 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=False, commit=F
             result = cursor.lastrowid if cursor.lastrowid else cursor.rowcount
         else:
             result = None
-            
+
         return result
-        
-    # Re-raise exceptions with original error info
+
     except sqlite3.IntegrityError as err:
         # Constraint violations (UNIQUE, FOREIGN KEY, etc.)
         print(f"Database integrity error: {err}")

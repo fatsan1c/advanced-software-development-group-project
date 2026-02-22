@@ -5,13 +5,14 @@ Handles location CRUD operations and location information retrieval.
 
 from database_operations.db_execute import execute_query
 
+
 def get_location_by_id(location_id):
     """
     Get location details by location ID.
-    
+
     Args:
         location_id (int): The location ID to look up
-        
+
     Returns:
         dict: Location data if found, None otherwise
               Example: {'location_ID': 1, 'city': 'Bristol', 'address': '...'}
@@ -27,10 +28,10 @@ def get_location_by_id(location_id):
 def get_location_by_city(city):
     """
     Get location details by city name.
-    
+
     Args:
         city (str): The city name to look up
-        
+
     Returns:
         dict: Location data if found, None otherwise
     """
@@ -45,7 +46,7 @@ def get_location_by_city(city):
 def get_all_locations():
     """
     Get all locations from the database.
-    
+
     Returns:
         list: List of location dictionaries, empty list if error
     """
@@ -60,37 +61,37 @@ def get_all_locations():
 def get_all_cities():
     """
     Get all city names from the database.
-    
+
     Returns:
         list: List of city name strings (e.g., ['Bristol', 'Cardiff', 'London'])
     """
     query = "SELECT city FROM locations ORDER BY city"
     result = execute_query(query, fetch_all=True)
-    return [row['city'] for row in result] if result else []
+    return [row["city"] for row in result] if result else []
 
 
 def get_location_id_by_city(city):
     """
     Get location ID by city name.
-    
+
     Args:
         city (str): The city name to look up
-        
+
     Returns:
         int: Location ID if found, None otherwise
     """
     location = get_location_by_city(city)
-    return location['location_ID'] if location else None
+    return location["location_ID"] if location else None
 
 
 def create_location(city, address=None):
     """
     Create a new location in the database.
-    
+
     Args:
         city (str): City name for the new location
         address (str, optional): Physical address
-        
+
     Returns:
         int: ID of newly created location, None if failed
     """
@@ -104,29 +105,29 @@ def create_location(city, address=None):
 def update_location(location_id, **kwargs):
     """
     Update location information.
-    
+
     Args:
         location_id (int): ID of location to update
         **kwargs: Fields to update (city, address)
-        
+
     Returns:
         bool: True if successful, False otherwise
     """
-    allowed_fields = ['city', 'address']
+    allowed_fields = ["city", "address"]
     updates = []
     values = []
-    
+
     for field, value in kwargs.items():
         if field in allowed_fields:
             updates.append(f"{field} = ?")
             values.append(value)
-    
+
     if not updates:
         return False
-    
+
     values.append(location_id)
     query = f"UPDATE locations SET {', '.join(updates)} WHERE location_ID = ?"
-    
+
     result = execute_query(query, tuple(values), commit=True)
     return result is not None and result > 0
 
@@ -134,10 +135,10 @@ def update_location(location_id, **kwargs):
 def delete_location(location_id):
     """
     Delete a location from the database.
-    
+
     Args:
         location_id (int): ID of location to delete
-        
+
     Returns:
         bool: True if successful, False otherwise
     """
@@ -149,10 +150,10 @@ def delete_location(location_id):
 def get_location_stats(location_id):
     """
     Get statistics for a specific location.
-    
+
     Args:
         location_id (int): The location ID
-        
+
     Returns:
         dict: Statistics including user count, apartment count, etc.
     """

@@ -1,4 +1,3 @@
-from email import header
 import customtkinter as ctk
 import pages.components.page_elements as pe
 import database_operations.repos.user_repository as user_repo
@@ -24,16 +23,12 @@ class Manager(User):
         Returns:
             int: Number of occupied apartments
         """
-        try:
-            occupied_count = apartment_repo.get_all_occupancy(location)
-            if location and location.lower() != "all":
-                print(f"Occupied apartments in {location}: {occupied_count}")
-            else:
-                print(f"Total occupied apartments: {occupied_count}")
-            return occupied_count
-        except Exception as e:
-            print(f"Error retrieving occupancy data: {e}")
-            return 0
+        occupied_count = apartment_repo.get_all_occupancy(location)
+        if location and location.lower() != "all":
+            print(f"Occupied apartments in {location}: {occupied_count}")
+        else:
+            print(f"Total occupied apartments: {occupied_count}")
+        return occupied_count
 
     # unused for now. May be used in future for more reports or graphs.
     def generate_reports(self, location: str):
@@ -233,11 +228,7 @@ class Manager(User):
         occupancy_card = pe.function_card(row, "Apartment Occupancy", side="left")
         
         # Get all cities for dropdown
-        try:
-            cities = ['All Locations'] + location_repo.get_all_cities()
-        except Exception as e:
-            print(f"Error loading cities: {e}")
-            cities = ['All Locations']
+        cities = ['All Locations'] + location_repo.get_all_cities()
         
         # Create dropdown
         location_dropdown = ctk.CTkComboBox(
@@ -261,22 +252,19 @@ class Manager(User):
         
         # Function to update display
         def update_occupancy_display(choice=None):
-            try:
-                location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
-                occupied_count = self.view_apartment_occupancy(location)
-                total_count = apartment_repo.get_total_apartments(location)
-                available_count = total_count - occupied_count
-                
-                if location == "all":
-                    result_label.configure(
-                        text=f"Occupied: {occupied_count} | Available: {available_count} | Total: {total_count}"
-                    )
-                else:
-                    result_label.configure(
-                        text=f"{location} - Occupied: {occupied_count} | Available: {available_count} | Total: {total_count}"
-                    )
-            except Exception as e:
-                result_label.configure(text=f"Error loading data: {str(e)}", text_color="red")
+            location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
+            occupied_count = self.view_apartment_occupancy(location)
+            total_count = apartment_repo.get_total_apartments(location)
+            available_count = total_count - occupied_count
+            
+            if location == "all":
+                result_label.configure(
+                    text=f"Occupied: {occupied_count} | Available: {available_count} | Total: {total_count}"
+                )
+            else:
+                result_label.configure(
+                    text=f"{location} - Occupied: {occupied_count} | Available: {available_count} | Total: {total_count}"
+                )
         
         update_occupancy_display()  # Auto-update when loading the page
         location_dropdown.configure(command=update_occupancy_display)
@@ -291,12 +279,9 @@ class Manager(User):
         )
 
         def setup_graph_popup():
-            try:
-                content = open_popup_func()
-                location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
-                apartment_repo.create_occupancy_graph(content, location)
-            except Exception as e:
-                print(f"Error creating occupancy graph: {e}")
+            content = open_popup_func()
+            location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
+            apartment_repo.create_occupancy_graph(content, location)
 
         button.configure(command=setup_graph_popup)
 
@@ -305,17 +290,11 @@ class Manager(User):
 
         # Choose field for creating new account form 
         # - username, role (dropdown), password, location (dropdown)
-        try:
-            location_options = ['None'] + location_repo.get_all_cities()
-        except Exception as e:
-            print(f"Error loading locations: {e}")
-            location_options = ['None']
-            
         fields = [
             {'name': 'Username', 'type': 'text', 'required': True},
             {'name': 'Role', 'type': 'dropdown', 'options': ['Admin', 'Manager', 'Finance Manager', 'Frontdesk', 'Maintenance'], 'required': True},
             {'name': 'Password', 'type': 'text', 'required': True},
-            {'name': 'Location', 'type': 'dropdown', 'options': location_options, 'required': False}
+            {'name': 'Location', 'type': 'dropdown', 'options': ['None'] + location_repo.get_all_cities(), 'required': False}
         ]
 
         # create form for creating new accounts with above fields
@@ -336,17 +315,13 @@ class Manager(User):
             columns = [
                 {'name': 'ID', 'key': 'user_ID', 'width': 80, 'editable': False},
                 {'name': 'Username', 'key': 'username', 'width': 200},
-                {'name': 'Location', 'key': 'city', 'width': 200, 'format': 'dropdown', 'options': ['None'] + location_repo.get_all_cities()},
-                {'name': 'Role', 'key': 'role', 'width': 150, 'format': 'dropdown', 'options': ['Admin', 'Manager', 'Finance Manager', 'Frontdesk', 'Maintenance']}
+                {'name': 'Location', 'key': 'city', 'width': 200},
+                {'name': 'Role', 'key': 'role', 'width': 150}
             ]
 
             # Function to fetch user data for the table
             def get_data():
-                try:
-                    return user_repo.get_all_users()
-                except Exception as e:
-                    print(f"Error loading users: {e}")
-                    return []
+                return user_repo.get_all_users()
 
             # Create editable and deletable data table for user accounts
             pe.data_table(
@@ -369,11 +344,8 @@ class Manager(User):
         reports_card = pe.function_card(row, "Performance Reports", side="left")
 
         # Get all cities for dropdown
-        try:
-            cities = ['All Locations'] + location_repo.get_all_cities()
-        except Exception as e:
-            print(f"Error loading cities: {e}")
-            cities = ['All Locations']        
+        cities = ['All Locations'] + location_repo.get_all_cities()
+        
         # Create dropdown
         location_dropdown = ctk.CTkComboBox(
             reports_card,
@@ -396,23 +368,20 @@ class Manager(User):
         
         # Function to update display
         def update_performance_display(choice=None):
-            try:
-                location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
-                actual_revenue = apartment_repo.get_monthly_revenue(location)
-                potential_revenue = apartment_repo.get_potential_revenue(location)
-                lost_revenue = potential_revenue - actual_revenue
-                
-                # Format the revenue numbers
-                if location == "all":
-                    result_label.configure(
-                        text=f"Actual: £{actual_revenue:,.2f} | Lost: £{lost_revenue:,.2f} | Potential: £{potential_revenue:,.2f}"
-                    )
-                else:
-                    result_label.configure(
-                        text=f"{location} - Actual: £{actual_revenue:,.2f} | Lost: £{lost_revenue:,.2f} | Potential: £{potential_revenue:,.2f}"
-                    )
-            except Exception as e:
-                result_label.configure(text=f"Error loading revenue data: {str(e)}", text_color="red")
+            location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
+            actual_revenue = apartment_repo.get_monthly_revenue(location)
+            potential_revenue = apartment_repo.get_potential_revenue(location)
+            lost_revenue = potential_revenue - actual_revenue
+            
+            # Format the revenue numbers
+            if location == "all":
+                result_label.configure(
+                    text=f"Actual: £{actual_revenue:,.2f} | Lost: £{lost_revenue:,.2f} | Potential: £{potential_revenue:,.2f}"
+                )
+            else:
+                result_label.configure(
+                    text=f"{location} - Actual: £{actual_revenue:,.2f} | Lost: £{lost_revenue:,.2f} | Potential: £{potential_revenue:,.2f}"
+                )
         
         update_performance_display()  # Auto-update when loading the page
         location_dropdown.configure(command=update_performance_display)
@@ -465,11 +434,7 @@ class Manager(User):
 
             # Function to fetch location data for the table
             def get_data():
-                try:
-                    return location_repo.get_all_locations()
-                except Exception as e:
-                    print(f"Error loading locations: {e}")
-                    return []
+                return location_repo.get_all_locations()
 
             # Create editable and deletable data table for locations
             pe.data_table(
@@ -480,22 +445,16 @@ class Manager(User):
                 refresh_data=get_data,
                 on_delete=self.delete_location,
                 on_update=self.edit_location,
-                page_size=9,
-                scrollable=False
+                scrollable=False,
+                page_size=9
             )
 
         # Set the button command to open the popup with the locations table
         button.configure(command=setup_popup)
 
         # Define fields for adding a new apartment
-        try:
-            location_options = location_repo.get_all_cities()
-        except Exception as e:
-            print(f"Error loading locations: {e}")
-            location_options = []
-            
         fields = [
-            {'name': 'Location', 'type': 'dropdown', 'options': location_options, 'required': True},
+            {'name': 'Location', 'type': 'dropdown', 'options': location_repo.get_all_cities(), 'required': True},
             {'name': 'Apartment Address', 'type': 'text', 'required': True},
             {'name': 'Number of Beds', 'type': 'text', 'subtype': 'number', 'required': True},
             {'name': 'Monthly Rent', 'type': 'text', 'subtype': 'currency', 'required': True},
@@ -519,12 +478,7 @@ class Manager(User):
             header = ctk.CTkFrame(content, fg_color="transparent")
             header.pack(fill="x", padx=10, pady=(5, 0))
 
-            try:
-                cities = ["All Locations"] + location_repo.get_all_cities()
-            except Exception as e:
-                print(f"Error loading cities: {e}")
-                cities = ["All Locations"]
-                
+            cities = ["All Locations"] + location_repo.get_all_cities()
             location_dropdown = ctk.CTkComboBox(header, values=cities, width=220, font=("Arial", 13))
             location_dropdown.set("All Locations")
             location_dropdown.pack(side="left")
@@ -532,21 +486,17 @@ class Manager(User):
             # Define columns for apartment data table
             columns = [
                 {'name': 'ID', 'key': 'apartment_ID', 'width': 80, 'editable': False},
-                {'name': 'Location', 'key': 'city', 'width': 150, 'format': 'dropdown', 'options': location_options},
+                {'name': 'Location', 'key': 'city', 'width': 150},
                 {'name': 'Address', 'key': 'apartment_address', 'width': 150},
-                {'name': 'Beds', 'key': 'number_of_beds', 'width': 80, "format": "number"},
+                {'name': 'Beds', 'key': 'number_of_beds', 'width': 80},
                 {'name': 'Monthly Rent', 'key': 'monthly_rent', 'width': 120, "format": "currency"},
-                {'name': 'Status', 'key': 'status', 'width': 100, "format": "dropdown", 'options': ["Vacant", "Occupied"]}
+                {'name': 'Status', 'key': 'status', 'width': 100}
             ]
 
             # Function to fetch apartment data for the table
             def get_data():
-                try:
-                    location = location_dropdown.get()
-                    return apartment_repo.get_all_apartments(location=location)
-                except Exception as e:
-                    print(f"Error loading apartments: {e}")
-                    return []
+                location = location_dropdown.get()
+                return apartment_repo.get_all_apartments(location=location)
 
             # Create editable and deletable data table for apartments
             _, refresh_table = pe.data_table(
