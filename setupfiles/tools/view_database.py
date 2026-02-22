@@ -121,7 +121,7 @@ def view_database(detailed=True, table_name=None):
     # Check if database exists
     if not os.path.exists(DB_PATH):
         print(f"❌ Database not found at: {DB_PATH}")
-        print("Run 'python setupfiles/create_sqlite_db.py' to create the database.")
+        print("Run 'python setupfiles/tools/create_sqlite_testdata.py' to create the database.")
         return
 
     # Connect to database

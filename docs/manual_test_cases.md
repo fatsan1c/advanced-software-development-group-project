@@ -11,14 +11,14 @@
 Run from the repository root:
 
 ```bash
-python setupfiles/tools/create_sqlite_db.py
+python setupfiles/tools/create_sqlite_testdata.py
 ```
 
 ### (Optional) Seed finance-heavy data for UI/performance testing
 This creates large repeatable invoice/payment datasets across all locations:
 
 ```bash
-python setupfiles/tools/seed_finance_testdata.py --reset --invoices 500 --paid 300 --late-unpaid 120
+python setupfiles/tools/seed_testdata.py --reset --invoices 150 --paid 100 --late-unpaid 30
 ```
 
 ## Default credentials (from `README.md`)

@@ -55,13 +55,13 @@ Paragon Apartment Management System (PAMS) is a Python-based desktop application
 
 The database includes pre-populated sample data:
 - 4 locations (Bristol, Cardiff, London, Manchester)
-- 32 apartments across all locations
-- 20 tenants with active leases
+- 40 apartments across all locations
+- 40 tenants with 34 active leases
 - 15 user accounts with various roles
 
 To recreate or reset the database, run:
 ```bash
-python setupfiles/tools/create_sqlite_db.py
+python setupfiles/tools/create_sqlite_testdata.py
 ```
 
 ## Testing (Automated + ASD Manual Test Cases)
@@ -79,10 +79,10 @@ This project includes:
 - **CI confidence**: every push/PR runs the same test command on Windows + Ubuntu + macOS to keep the project stable across changes.
 
 ### Install test dependencies
-Testing dependencies are included in [`setupfiles/requirements.txt`](setupfiles/requirements.txt), so one install covers both app + tests:
+Install app dependencies from [`setupfiles/requirements.txt`](setupfiles/requirements.txt). For testing, also install [`setupfiles/requirements-dev.txt`](setupfiles/requirements-dev.txt) (pytest, pytest-cov, black):
 
 ```powershell
-python -m pip install -r setupfiles/requirements.txt
+python -m pip install -r setupfiles/requirements.txt -r setupfiles/requirements-dev.txt
 ```
 
 ### Run automated tests
@@ -95,7 +95,7 @@ python -m pytest
 Run a specific file:
 
 ```powershell
-python -m pytest tests\integration\test_finance_repository.py
+python -m pytest tests/test_integration.py
 ```
 
 ### Run coverage (and generate `coverage.xml`)
@@ -179,11 +179,11 @@ python setupfiles/tools/create_sqlite_indexes.py
 You can generate repeatable invoice/payment datasets across all locations using:
 
 ```bash
-python setupfiles/tools/seed_finance_testdata.py --reset --invoices 500 --paid 300 --late-unpaid 120
+python setupfiles/tools/seed_testdata.py --reset --invoices 150 --paid 100 --late-unpaid 30
 ```
 This will create:
-- **500 invoices** total
-- **300 payments** (paid invoices)
+- **150 invoices** total (default)
+- **100 payments** (paid invoices)
 - A guaranteed set of **late/unpaid** invoices distributed across locations (so filters like Cardiff are never empty)
 
 After seeding, you can validate performance in the app by opening:
@@ -192,6 +192,8 @@ After seeding, you can validate performance in the app by opening:
 - Finance Manager → **View Payments**
 
 ## Default Login Credentials
+
+Change these in production environments.
 
 | Username | Password | Role | Location |
 |----------|----------|------|----------|

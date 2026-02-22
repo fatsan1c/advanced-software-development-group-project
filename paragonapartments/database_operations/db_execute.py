@@ -39,13 +39,8 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=False, commit=F
     try:
         conn = getConnection()
         if not conn:
-<<<<<<< Updated upstream
             raise sqlite3.Error("Failed to establish database connection")
-        
-=======
-            return None if fetch_one else ([] if fetch_all else None)
 
->>>>>>> Stashed changes
         cursor = conn.cursor()
         cursor.execute(query, params or ())
 
@@ -63,17 +58,11 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=False, commit=F
             result = None
 
         return result
-<<<<<<< Updated upstream
-        
-    # Re-raise exceptions with original error info
+
     except sqlite3.IntegrityError as err:
         # Constraint violations (UNIQUE, FOREIGN KEY, etc.)
         print(f"Database integrity error: {err}")
         raise
-=======
-
-    # Handle specific database errors and general exceptions
->>>>>>> Stashed changes
     except sqlite3.Error as err:
         # Other database errors
         print(f"Database error: {err}")

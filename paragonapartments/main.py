@@ -15,7 +15,7 @@ class App(ctk.CTk):
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
                 "ParagonApartments.App.1.0"
             )
-        except:
+        except Exception:
             pass
 
         # Set window title and size
@@ -133,7 +133,7 @@ class App(ctk.CTk):
 
         try:
             self.iconbitmap(self.current_icon)
-        except:
+        except Exception:
             print(f"Warning: Unable to set application icon from {self.current_icon}")
 
 

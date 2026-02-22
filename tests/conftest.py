@@ -104,6 +104,31 @@ def _create_schema(conn: sqlite3.Connection) -> None:
             FOREIGN KEY (tenant_ID) REFERENCES tenants(tenant_ID)
         )
         """)
+    cur.execute("""
+        CREATE TABLE complaint (
+            complaint_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+            tenant_ID INTEGER,
+            description TEXT,
+            date_submitted TEXT,
+            resolved INTEGER DEFAULT 0,
+            FOREIGN KEY (tenant_ID) REFERENCES tenants(tenant_ID)
+        )
+        """)
+    cur.execute("""
+        CREATE TABLE maintenance_requests (
+            request_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+            apartment_ID INTEGER,
+            tenant_ID INTEGER,
+            issue_description TEXT,
+            priority_level INTEGER,
+            reported_date TEXT,
+            scheduled_date TEXT,
+            completed INTEGER DEFAULT 0,
+            cost REAL,
+            FOREIGN KEY (apartment_ID) REFERENCES apartments(apartment_ID),
+            FOREIGN KEY (tenant_ID) REFERENCES tenants(tenant_ID)
+        )
+        """)
 
     # Useful indexes (keep tests fast when data grows)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_invoices_tenant ON invoices(tenant_ID)")

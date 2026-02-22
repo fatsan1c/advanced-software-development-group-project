@@ -55,10 +55,10 @@ Write-Host ""
 $dbPath = "paragonapartments\database\paragonapartments.db"
 if (Test-Path $dbPath) {
     Write-Host "Database already exists, skipping creation..." -ForegroundColor Cyan
-    Write-Host "To recreate the database, run: python setupfiles\tools\create_sqlite_db.py" -ForegroundColor Gray
+    Write-Host "To recreate the database, run: python setupfiles\tools\create_sqlite_testdata.py" -ForegroundColor Gray
 } else {
     Write-Host "Creating SQLite database..." -ForegroundColor Yellow
-    python setupfiles\tools\create_sqlite_db.py
+    python setupfiles\tools\create_sqlite_testdata.py
 }
 
 Write-Host ""

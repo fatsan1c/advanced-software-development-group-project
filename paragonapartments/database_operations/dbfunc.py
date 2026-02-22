@@ -17,7 +17,7 @@ def getConnection():
         # Check if database file exists
         if not db_path.exists():
             print(f"Database does not exist at: {db_path}")
-            print("Run setupfiles/create_sqlite_db.py to create the database")
+            print("Run setupfiles/tools/create_sqlite_testdata.py to create the database")
             return None
 
         # Connect to SQLite database
