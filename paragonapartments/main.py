@@ -4,6 +4,8 @@ from pages.login_page import LoginPage
 from models.user import create_user
 from pathlib import Path
 import ctypes
+import sys
+import threading
 
 
 class App(ctk.CTk):
@@ -137,5 +139,22 @@ class App(ctk.CTk):
             print(f"Warning: Unable to set application icon from {self.current_icon}")
 
 
+def _start_backend():
+    """Start the Flask backend API in a background thread."""
+    backend_dir = Path(__file__).resolve().parents[1] / "backend"
+    if backend_dir.exists():
+        sys.path.insert(0, str(backend_dir))
+        try:
+            from app import create_app
+            flask_app = create_app()
+            flask_app.run(host="127.0.0.1", port=5000, use_reloader=False, threaded=True)
+        except ImportError:
+            pass  # Flask not installed or backend not available
+
+
 if __name__ == "__main__":
+    # Start backend API in background (optional)
+    backend_thread = threading.Thread(target=_start_backend, daemon=True)
+    backend_thread.start()
+
     app = App()

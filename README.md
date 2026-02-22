@@ -57,17 +57,11 @@ Paragon Apartment Management System (PAMS) is a Python-based desktop application
       - Create a virtual environment
       - Install all dependencies
 
-3. Run the desktop app:
+3. Run the app (desktop + backend API):
    ```bash
    python paragonapartments/main.py
    ```
-
-### Backend API (optional)
-From the repo root:
-```bash
-python -c "import sys; sys.path.insert(0, 'backend'); from app import create_app; create_app().run()"
-```
-Uses the same SQLite DB as the desktop app. Endpoints: `GET/POST /tenants/`, `GET /health`.
+   Starts the desktop app and the backend API at `http://127.0.0.1:5000` (GET/POST `/tenants/`, GET `/health`).
 
 ## Database
 
