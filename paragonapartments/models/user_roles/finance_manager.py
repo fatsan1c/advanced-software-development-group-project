@@ -139,12 +139,7 @@ class FinanceManager(User):
     def load_summary_content(self, row):
         summary_card = pe.function_card(row, "Financial Summary", side="left")
 
-        try:
-            cities = ["All Locations"] + location_repo.get_all_cities()
-        except Exception as e:
-            print(f"Error loading cities: {e}")
-            cities = ["All Locations"]
-            
+        cities = ["All Locations"] + location_repo.get_all_cities()
         location_dropdown = ctk.CTkComboBox(
             summary_card,
             values=cities,
@@ -163,19 +158,15 @@ class FinanceManager(User):
         result_label.pack(pady=10, padx=20)
 
         def update_summary():
-            try:
-                location = self._selected_location(location_dropdown.get())
-                summary = self.generate_financial_reports(location)
-                result_label.configure(
-                    text=(
-                        f"Invoiced: £{summary['total_invoiced']:,.2f} | "
-                        f"Collected: £{summary['total_collected']:,.2f} | "
-                        f"Outstanding: £{summary['outstanding']:,.2f}\n"
-                        f"Late invoices: {summary['late_invoice_count']}"
-                    )
+            location = self._selected_location(location_dropdown.get())
+            summary = self.generate_financial_reports(location)
+            result_label.configure(
+                text=(
+                    f"Invoiced: £{summary['total_invoiced']:,.2f} | "
+                    f"Outstanding: £{summary['outstanding']:,.2f}\n"
+                    f"Late invoices: {summary['late_invoice_count']}"
                 )
-            except Exception as e:
-                result_label.configure(text=f"Error loading summary: {str(e)}", text_color="red")
+            )
 
         # Replace View Summary with a graph popup (summary still auto-refreshes on dropdown change)
         button, open_popup = pe.popup_card(
@@ -187,12 +178,9 @@ class FinanceManager(User):
         )
 
         def setup_graph_popup():
-            try:
-                content = open_popup()
-                location = self._selected_location(location_dropdown.get())
-                finance_repo.create_financial_summary_graph(content, location)
-            except Exception as e:
-                print(f"Error creating financial summary graph: {e}")
+            content = open_popup()
+            location = self._selected_location(location_dropdown.get())
+            finance_repo.create_financial_summary_graph(content, location)
 
         button.configure(command=setup_graph_popup)
 
@@ -239,12 +227,7 @@ class FinanceManager(User):
 
             ctk.CTkLabel(header, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
 
-            try:
-                cities = ["All Locations"] + location_repo.get_all_cities()
-            except Exception as e:
-                print(f"Error loading cities: {e}")
-                cities = ["All Locations"]
-                
+            cities = ["All Locations"] + location_repo.get_all_cities()
             location_dropdown = ctk.CTkComboBox(header, values=cities, width=220, font=("Arial", 13))
             location_dropdown.set("All Locations")
             location_dropdown.pack(side="left")
@@ -255,18 +238,14 @@ class FinanceManager(User):
                 {"name": "Tenant", "key": "tenant_name", "width": 120, "editable": False},
                 {"name": "City", "key": "city", "width": 90, "editable": False},
                 {"name": "Amount", "key": "amount_due", "width": 80, "format": "currency"},
-                {"name": "Due Date", "key": "due_date", "width": 100, "format": "date"},
-                {"name": "Issue Date", "key": "issue_date", "width": 100, "format": "date"},
+                {"name": "Due Date", "key": "due_date", "width": 100},
+                {"name": "Issue Date", "key": "issue_date", "width": 100},
                 {"name": "Paid (0/1)", "key": "paid", "width": 70},
             ]
 
             def get_data():
-                try:
-                    location = self._selected_location(location_dropdown.get())
-                    return finance_repo.get_invoices(location)
-                except Exception as e:
-                    print(f"Error loading invoices: {e}")
-                    return []
+                location = self._selected_location(location_dropdown.get())
+                return finance_repo.get_invoices(location)
 
             _, refresh_table = pe.data_table(
                 content,
@@ -278,8 +257,7 @@ class FinanceManager(User):
                 on_update=self.update_invoice_row,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=9,
-                scrollable=False
+                page_size=10
             )
 
             # Top refresh button next to the dropdown
@@ -327,12 +305,7 @@ class FinanceManager(User):
             header.pack(fill="x", padx=10, pady=(5, 10))
             ctk.CTkLabel(header, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
 
-            try:
-                cities = ["All Locations"] + location_repo.get_all_cities()
-            except Exception as e:
-                print(f"Error loading cities: {e}")
-                cities = ["All Locations"]
-                
+            cities = ["All Locations"] + location_repo.get_all_cities()
             location_dropdown = ctk.CTkComboBox(header, values=cities, width=220, font=("Arial", 13))
             location_dropdown.set("All Locations")
             location_dropdown.pack(side="left")
@@ -347,12 +320,8 @@ class FinanceManager(User):
             ]
 
             def get_data():
-                try:
-                    location = self._selected_location(location_dropdown.get())
-                    return finance_repo.get_late_invoices(location)
-                except Exception as e:
-                    print(f"Error loading late invoices: {e}")
-                    return []
+                location = self._selected_location(location_dropdown.get())
+                return finance_repo.get_late_invoices(location)
 
             _, refresh_table = pe.data_table(
                 content,
@@ -362,8 +331,7 @@ class FinanceManager(User):
                 refresh_data=get_data,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=9,
-                scrollable=False
+                page_size=10
             )
 
             ctk.CTkButton(
@@ -421,12 +389,7 @@ class FinanceManager(User):
 
             ctk.CTkLabel(header, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
 
-            try:
-                cities = ["All Locations"] + location_repo.get_all_cities()
-            except Exception as e:
-                print(f"Error loading cities: {e}")
-                cities = ["All Locations"]
-                
+            cities = ["All Locations"] + location_repo.get_all_cities()
             location_dropdown = ctk.CTkComboBox(header, values=cities, width=220, font=("Arial", 13))
             location_dropdown.set("All Locations")
             location_dropdown.pack(side="left")
@@ -441,12 +404,8 @@ class FinanceManager(User):
             ]
 
             def get_data():
-                try:
-                    location = self._selected_location(location_dropdown.get())
-                    return finance_repo.get_payments(location)
-                except Exception as e:
-                    print(f"Error loading payments: {e}")
-                    return []
+                location = self._selected_location(location_dropdown.get())
+                return finance_repo.get_payments(location)
 
             _, refresh_table = pe.data_table(
                 content,
@@ -456,8 +415,7 @@ class FinanceManager(User):
                 refresh_data=get_data,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=9,
-                scrollable=False
+                page_size=10
             )
 
             ctk.CTkButton(

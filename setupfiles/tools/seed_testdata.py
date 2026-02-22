@@ -24,6 +24,7 @@ import random
 import sqlite3
 from datetime import date, timedelta
 
+
 # Path to the SQLite database file
 DB_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
@@ -51,7 +52,8 @@ def _fetch_active_leases(conn):
     """
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
             la.tenant_ID AS tenant_id,
             la.monthly_rent AS monthly_rent,
@@ -61,7 +63,8 @@ def _fetch_active_leases(conn):
         JOIN locations l ON a.location_ID = l.location_ID
         WHERE la.active = 1
         ORDER BY l.city, la.tenant_ID
-        """)
+        """
+    )
     return [dict(r) for r in cur.fetchall()]
 
 
@@ -72,7 +75,8 @@ def _fetch_apartments_with_tenants(conn):
     """
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
             a.apartment_ID AS apartment_id,
             la.tenant_ID AS tenant_id,
@@ -82,7 +86,8 @@ def _fetch_apartments_with_tenants(conn):
         JOIN locations l ON a.location_ID = l.location_ID
         WHERE la.active = 1
         ORDER BY l.city, a.apartment_ID
-        """)
+        """
+    )
     return [dict(r) for r in cur.fetchall()]
 
 
@@ -128,17 +133,13 @@ def seed_finance_data(
 
     leases = _fetch_active_leases(conn)
     if not leases:
-        raise RuntimeError(
-            "No active leases found; cannot distribute finance data across locations."
-        )
+        raise RuntimeError("No active leases found; cannot distribute finance data across locations.")
 
     # Group tenants by city so we can distribute paid/late/unpaid across all locations.
     city_to_tenants = {}
     for row in leases:
         city = row.get("city") or "(no_city)"
-        city_to_tenants.setdefault(city, []).append(
-            (int(row["tenant_id"]), float(row["monthly_rent"]))
-        )
+        city_to_tenants.setdefault(city, []).append((int(row["tenant_id"]), float(row["monthly_rent"])))
     cities = sorted(city_to_tenants.keys())
     city_idx = {c: 0 for c in cities}
 
@@ -156,9 +157,7 @@ def seed_finance_data(
     invoices_to_create = int(max(0, invoices_to_create))
     paid_to_create = int(max(0, min(paid_to_create, invoices_to_create)))
     remaining_after_paid = invoices_to_create - paid_to_create
-    late_unpaid_to_create = int(
-        max(0, min(late_unpaid_to_create, remaining_after_paid))
-    )
+    late_unpaid_to_create = int(max(0, min(late_unpaid_to_create, remaining_after_paid)))
 
     def make_invoice_row(tenant_id: int, rent: float, paid_flag: int, force_late: bool):
         if paid_flag == 1:
@@ -194,26 +193,20 @@ def seed_finance_data(
     for i in range(paid_to_create):
         city = cities[i % len(cities)]
         tenant_id, rent = next_tenant_for_city(city)
-        invoice_rows.append(
-            make_invoice_row(tenant_id, rent, paid_flag=1, force_late=False)
-        )
+        invoice_rows.append(make_invoice_row(tenant_id, rent, paid_flag=1, force_late=False))
 
     # Segment B: late unpaid (guaranteed overdue) - ALSO distributed across all cities
     for i in range(late_unpaid_to_create):
         city = cities[i % len(cities)]
         tenant_id, rent = next_tenant_for_city(city)
-        invoice_rows.append(
-            make_invoice_row(tenant_id, rent, paid_flag=0, force_late=True)
-        )
+        invoice_rows.append(make_invoice_row(tenant_id, rent, paid_flag=0, force_late=True))
 
     # Segment C: upcoming unpaid
     remaining = invoices_to_create - paid_to_create - late_unpaid_to_create
     for i in range(remaining):
         city = cities[i % len(cities)]
         tenant_id, rent = next_tenant_for_city(city)
-        invoice_rows.append(
-            make_invoice_row(tenant_id, rent, paid_flag=0, force_late=False)
-        )
+        invoice_rows.append(make_invoice_row(tenant_id, rent, paid_flag=0, force_late=False))
 
     # Safety: keep deterministic length
     invoice_rows = invoice_rows[:invoices_to_create]
@@ -225,13 +218,7 @@ def seed_finance_data(
             INSERT INTO invoices (tenant_ID, amount_due, due_date, issue_date, paid)
             VALUES (?, ?, ?, ?, ?)
             """,
-            (
-                row["tenant_id"],
-                row["amount_due"],
-                row["due_date"],
-                row["issue_date"],
-                row["paid"],
-            ),
+            (row["tenant_id"], row["amount_due"], row["due_date"], row["issue_date"], row["paid"]),
         )
         inserted_invoice_ids.append(int(cur.lastrowid))
 
@@ -239,9 +226,7 @@ def seed_finance_data(
     for idx in range(paid_to_create):
         invoice_id = inserted_invoice_ids[idx]
         inv = invoice_rows[idx]
-        payment_date = date.fromisoformat(inv["issue_date"]) + timedelta(
-            days=random.randint(0, 10)
-        )
+        payment_date = date.fromisoformat(inv["issue_date"]) + timedelta(days=random.randint(0, 10))
 
         cur.execute(
             """
@@ -323,9 +308,7 @@ def seed_maintenance_data(
 
     apartments = _fetch_apartments_with_tenants(conn)
     if not apartments:
-        raise RuntimeError(
-            "No active leases found; cannot create maintenance requests."
-        )
+        raise RuntimeError("No active leases found; cannot create maintenance requests.")
 
     # Normalize counts
     requests_to_create = int(max(0, requests_to_create))
@@ -338,17 +321,15 @@ def seed_maintenance_data(
     def make_request_row(apartment_id: int, tenant_id: int, is_completed: bool):
         issue = random.choice(ISSUES)
         priority = random.randint(1, 5)  # 1=low, 5=urgent
-
+        
         # Reported date: within last 90 days
         reported_offset = random.randint(0, 90)
         reported_date = today - timedelta(days=reported_offset)
-
+        
         # Scheduled date logic
         if is_completed:
             # Completed requests had scheduled dates in the past
-            scheduled_offset = (
-                random.randint(1, reported_offset) if reported_offset > 0 else 0
-            )
+            scheduled_offset = random.randint(1, reported_offset) if reported_offset > 0 else 0
             scheduled_date = today - timedelta(days=scheduled_offset)
         else:
             # Pending requests: some scheduled in the future, some not scheduled yet
@@ -356,7 +337,7 @@ def seed_maintenance_data(
                 scheduled_date = today + timedelta(days=random.randint(1, 30))
             else:
                 scheduled_date = None
-
+        
         # Cost: completed ones have costs, pending high-priority might have estimates
         if is_completed:
             cost = round(random.uniform(50, 800), 2)
@@ -364,7 +345,7 @@ def seed_maintenance_data(
             cost = round(random.uniform(100, 600), 2)  # Estimated cost
         else:
             cost = None
-
+        
         return {
             "apartment_id": int(apartment_id),
             "tenant_id": int(tenant_id),
@@ -379,16 +360,12 @@ def seed_maintenance_data(
     # Create completed requests
     for i in range(completed_to_create):
         apt = apartments[i % len(apartments)]
-        request_rows.append(
-            make_request_row(apt["apartment_id"], apt["tenant_id"], is_completed=True)
-        )
+        request_rows.append(make_request_row(apt["apartment_id"], apt["tenant_id"], is_completed=True))
 
     # Create pending requests
     for i in range(requests_to_create - completed_to_create):
         apt = apartments[(i + completed_to_create) % len(apartments)]
-        request_rows.append(
-            make_request_row(apt["apartment_id"], apt["tenant_id"], is_completed=False)
-        )
+        request_rows.append(make_request_row(apt["apartment_id"], apt["tenant_id"], is_completed=False))
 
     # Safety: keep deterministic length
     request_rows = request_rows[:requests_to_create]
@@ -424,56 +401,19 @@ def seed_maintenance_data(
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Seed finance and maintenance test data into the SQLite DB."
-    )
+    parser = argparse.ArgumentParser(description="Seed finance and maintenance test data into the SQLite DB.")
     # Finance arguments
-    parser.add_argument(
-        "--invoices",
-        type=int,
-        default=50,
-        help="Number of invoices to insert (default: 50)",
-    )
-    parser.add_argument(
-        "--paid",
-        type=int,
-        default=30,
-        help="Number of invoices to mark paid (also inserts payments) (default: 30)",
-    )
-    parser.add_argument(
-        "--late-unpaid",
-        type=int,
-        default=15,
-        help="Number of invoices to create as unpaid AND overdue (default: 15)",
-    )
+    parser.add_argument("--invoices", type=int, default=50, help="Number of invoices to insert (default: 50)")
+    parser.add_argument("--paid", type=int, default=30, help="Number of invoices to mark paid (also inserts payments) (default: 30)")
+    parser.add_argument("--late-unpaid", type=int, default=15, help="Number of invoices to create as unpaid AND overdue (default: 15)")
     # Maintenance arguments
-    parser.add_argument(
-        "--maintenance",
-        type=int,
-        default=20,
-        help="Number of maintenance requests to insert (default: 20)",
-    )
-    parser.add_argument(
-        "--completed",
-        type=int,
-        default=10,
-        help="Number of maintenance requests to mark completed (default: 10)",
-    )
+    parser.add_argument("--maintenance", type=int, default=20, help="Number of maintenance requests to insert (default: 20)")
+    parser.add_argument("--completed", type=int, default=10, help="Number of maintenance requests to mark completed (default: 10)")
     # Common arguments
-    parser.add_argument(
-        "--reset",
-        action="store_true",
-        help="Delete existing invoices/payments/maintenance requests before seeding",
-    )
-    parser.add_argument(
-        "--seed", type=int, default=42, help="Random seed (default: 42)"
-    )
-    parser.add_argument(
-        "--finance-only", action="store_true", help="Seed only finance data"
-    )
-    parser.add_argument(
-        "--maintenance-only", action="store_true", help="Seed only maintenance data"
-    )
+    parser.add_argument("--reset", action="store_true", help="Delete existing invoices/payments/maintenance requests before seeding")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed (default: 42)")
+    parser.add_argument("--finance-only", action="store_true", help="Seed only finance data")
+    parser.add_argument("--maintenance-only", action="store_true", help="Seed only maintenance data")
     args = parser.parse_args()
 
     seed_finance = not args.maintenance_only
@@ -502,15 +442,13 @@ def main():
 
     print(f"OK: Test data seeded into: {DB_PATH}")
     print()
-
+    
     if finance_counts:
         if not args.reset:
-            print(
-                f"Finance - Inserted this run -> Invoices: {finance_inserted['invoices']} | Payments: {finance_inserted['payments']}"
-            )
+            print(f"Finance - Inserted this run -> Invoices: {finance_inserted['invoices']} | Payments: {finance_inserted['payments']}")
         print(f"Finance - Total Invoices: {finance_counts['invoices']}")
         print(f"Finance - Total Payments: {finance_counts['payments']}")
-
+        
     if maintenance_stats:
         if not args.reset:
             print(f"Maintenance - Inserted this run: {maintenance_stats['inserted']}")
@@ -519,3 +457,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -7,11 +7,11 @@ from __future__ import annotations
 
 from database_operations.db_execute import execute_query
 import matplotlib
-
-matplotlib.use("Agg")  # Use non-interactive backend
+matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
+
 
 _TENANT_NAME_SELECT_SQL: str | None = None
 
@@ -166,13 +166,7 @@ def get_late_invoices(location: str | None = None, as_of: str | None = None):
     return execute_query(query, tuple(params), fetch_all=True)
 
 
-def create_invoice(
-    tenant_id: int,
-    amount_due: float,
-    due_date: str,
-    issue_date: str | None = None,
-    paid: int = 0,
-):
+def create_invoice(tenant_id: int, amount_due: float, due_date: str, issue_date: str | None = None, paid: int = 0):
     """
     Create a new invoice.
 
@@ -191,11 +185,7 @@ def create_invoice(
         INSERT INTO invoices (tenant_ID, amount_due, due_date, issue_date, paid)
         VALUES (?, ?, ?, COALESCE(?, date('now')), ?)
     """
-    return execute_query(
-        query,
-        (int(tenant_id), float(amount_due), due_date, issue_date_expr, int(paid)),
-        commit=True,
-    )
+    return execute_query(query, (int(tenant_id), float(amount_due), due_date, issue_date_expr, int(paid)), commit=True)
 
 
 def get_invoice_by_id(invoice_id: int):
@@ -282,13 +272,7 @@ def get_payments(location: str | None = None):
     return execute_query(query, params, fetch_all=True)
 
 
-def record_payment(
-    invoice_id: int,
-    tenant_id: int,
-    amount: float,
-    payment_date: str | None = None,
-    mark_invoice_paid: bool = True,
-):
+def record_payment(invoice_id: int, tenant_id: int, amount: float, payment_date: str | None = None, mark_invoice_paid: bool = True):
     """
     Record a payment, optionally marking the invoice as paid.
 
@@ -306,26 +290,22 @@ def record_payment(
     inv = execute_query(
         "SELECT invoice_ID, tenant_ID, paid FROM invoices WHERE invoice_ID = ?",
         (int(invoice_id),),
-        fetch_one=True,
+        fetch_one=True
     )
     if not inv:
         raise ValueError(f"Invoice ID {invoice_id} does not exist.")
     if int(inv.get("tenant_ID")) != int(tenant_id):
-        raise ValueError(
-            f"Invoice {invoice_id} belongs to tenant ID {inv.get('tenant_ID')}, not {tenant_id}."
-        )
+        raise ValueError(f"Invoice {invoice_id} belongs to tenant ID {inv.get('tenant_ID')}, not {tenant_id}.")
     if int(inv.get("paid") or 0) == 1:
         raise ValueError(f"Invoice {invoice_id} is already marked as paid.")
 
     existing = execute_query(
         "SELECT payment_ID FROM payments WHERE invoice_ID = ? LIMIT 1",
         (int(invoice_id),),
-        fetch_one=True,
+        fetch_one=True
     )
     if existing:
-        raise ValueError(
-            f"A payment has already been recorded for invoice {invoice_id}."
-        )
+        raise ValueError(f"A payment has already been recorded for invoice {invoice_id}.")
 
     payment_date_expr = payment_date if payment_date else None
     insert_query = """
@@ -335,7 +315,7 @@ def record_payment(
     payment_id = execute_query(
         insert_query,
         (int(invoice_id), int(tenant_id), payment_date_expr, float(amount)),
-        commit=True,
+        commit=True
     )
 
     if payment_id is None:
@@ -345,7 +325,7 @@ def record_payment(
         execute_query(
             "UPDATE invoices SET paid = 1 WHERE invoice_ID = ?",
             (int(invoice_id),),
-            commit=True,
+            commit=True
         )
 
     return payment_id
@@ -448,9 +428,7 @@ def get_payment_receipt(payment_id: int):
     return execute_query(query, (int(payment_id),), fetch_one=True)
 
 
-def get_payment_notifications(
-    location: str | None = None, days_overdue: int = 7, as_of: str | None = None
-):
+def get_payment_notifications(location: str | None = None, days_overdue: int = 7, as_of: str | None = None):
     """
     Dataset for generating payment notifications.
 
@@ -534,16 +512,12 @@ def mark_invoice_paid(invoice_id: int, paid: int = 1):
     result = execute_query(
         "UPDATE invoices SET paid = ? WHERE invoice_ID = ?",
         (paid_val, int(invoice_id)),
-        commit=True,
+        commit=True
     )
     return result is not None and result > 0
 
 
-def get_collected_vs_outstanding(
-    location: str | None = None,
-    start_date: str | None = None,
-    end_date: str | None = None,
-):
+def get_collected_vs_outstanding(location: str | None = None, start_date: str | None = None, end_date: str | None = None):
     """
     Compare collected vs outstanding over an optional date range.
 
@@ -619,7 +593,6 @@ def _setup_graph_cleanup(parent, canvas, fig):
     Set up cleanup for matplotlib canvas to prevent callback errors.
     Mirrors the pattern used in apartment_repository.
     """
-
     def cleanup(_event=None):
         try:
             canvas.flush_events()
@@ -627,7 +600,7 @@ def _setup_graph_cleanup(parent, canvas, fig):
         except Exception:
             pass
 
-    parent.bind("<Destroy>", cleanup, add="+")
+    parent.bind('<Destroy>', cleanup, add='+')
 
 
 def create_financial_summary_graph(parent, location: str | None = None):
@@ -656,14 +629,8 @@ def create_financial_summary_graph(parent, location: str | None = None):
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
 
-    title_location = (
-        location
-        if location and str(location).lower() not in {"all", "all locations"}
-        else "All Locations"
-    )
-    ax.set_title(
-        f"Financial Summary - {title_location}", fontsize=16, fontweight="bold"
-    )
+    title_location = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
+    ax.set_title(f"Financial Summary - {title_location}", fontsize=16, fontweight="bold")
     ax.set_ylabel("Amount (£)", fontsize=12)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _p: f"£{int(v):,}"))
 
