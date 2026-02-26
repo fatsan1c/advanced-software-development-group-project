@@ -1,5 +1,6 @@
 import customtkinter as ctk
 import pages.components.page_elements as pe
+import pages.components.input_validation as input_validation
 import database_operations.repos.finance_repository as finance_repo
 import database_operations.repos.location_repository as location_repo
 from models.user import User
@@ -31,20 +32,11 @@ class FinanceManager(User):
 
     def _ui_date_to_db(self, date_str: str | None) -> str | None:
         """
-        Validate and normalize UI date string (YYYY-MM-DD format).
+        Validate and normalize UI date string to database format (YYYY-MM-DD).
         Returns None for blank values.
+        Uses centralized input_validation module.
         """
-        if date_str is None:
-            return None
-        s = str(date_str).strip()
-        if not s:
-            return None
-        try:
-            # Validate format by parsing
-            datetime.strptime(s, "%Y-%m-%d")
-            return s
-        except Exception as e:
-            raise ValueError(f"Invalid date '{date_str}'. Expected YYYY-MM-DD.") from e
+        return input_validation.normalize_date_to_db(date_str)
 
     def create_invoice(self, values):
         """Create a new invoice."""

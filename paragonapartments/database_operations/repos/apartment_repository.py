@@ -7,6 +7,7 @@ import calendar as _calendar
 from database_operations.db_execute import execute_query
 from datetime import date as _date, datetime as _datetime, timedelta as _timedelta
 import numpy as np
+import pages.components.input_validation as input_validation
 from pages.components.chart_utils import (
     ACCENT_GREEN,
     ACCENT_ORANGE,
@@ -81,16 +82,11 @@ def _normalize_location(location):
 
 
 def _parse_date(date_str):
-    """Parse YYYY-MM-DD or DD/MM/YYYY to date. Returns None if invalid."""
-    if not date_str or not str(date_str).strip():
-        return None
-    s = str(date_str).strip()
-    for fmt in ("%Y-%m-%d", "%d/%m/%Y"):
-        try:
-            return _datetime.strptime(s, fmt).date()
-        except Exception:
-            continue
-    return None
+    """
+    Parse date string with multiple format support (YYYY-MM-DD or DD/MM/YYYY).
+    Returns None if invalid. Uses centralized input_validation module.
+    """
+    return input_validation.parse_date(date_str)
 
 
 def _get_earliest_lease_date(location=None):

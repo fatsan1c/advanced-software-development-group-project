@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from database_operations.db_execute import execute_query
 import numpy as np
+import pages.components.input_validation as input_validation
 from pages.components.chart_utils import create_bar_chart, create_trend_chart, ACCENT_GREEN, ACCENT_ORANGE, ACCENT_BLUE
 from datetime import date as _date, datetime as _datetime, timedelta as _timedelta
 
@@ -429,22 +430,22 @@ def create_financial_summary_graph(parent, location: str | None = None):
 def _parse_date(date_str: str | None) -> _date | None:
     """
     Parse a date string into a date, or return None for blank.
-
-    Supported formats:
-    - YYYY-MM-DD (ISO format)
+    Supports YYYY-MM-DD format. Uses centralized input_validation module.
+    
+    Raises:
+        ValueError: If date is provided but invalid
     """
     if date_str is None:
         return None
     s = str(date_str).strip()
     if not s:
         return None
-    try:
-        parts = s.split("-")
-        if len(parts) == 3 and len(parts[0]) == 4:
-            return _datetime.strptime(s, "%Y-%m-%d").date()
-        raise ValueError("Invalid date pattern")
-    except Exception as e:
-        raise ValueError(f"Invalid date '{date_str}'. Expected YYYY-MM-DD.") from e
+    
+    # Use centralized validation - only accept YYYY-MM-DD format
+    parsed = input_validation.parse_date(s, formats=["%Y-%m-%d"])
+    if parsed is None:
+        raise ValueError(f"Invalid date '{date_str}'. Expected YYYY-MM-DD.")
+    return parsed
 
 
 def _month_key(d: _date) -> str:
