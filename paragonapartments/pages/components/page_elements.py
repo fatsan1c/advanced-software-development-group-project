@@ -2,6 +2,7 @@ import customtkinter as ctk
 import re
 from PIL import Image
 from datetime import datetime
+from config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER
 
 try:
     from tkcalendar import Calendar  # type: ignore[reportMissingImports]
@@ -10,6 +11,307 @@ except Exception:
 from pages.components.auto_hide_scrollable_frame import AutoHideScrollableFrame
 
 # Import page elements for use in user dashboard and other pages
+
+# ============================= Date Utility Functions =============================
+def parse_date_string(date_str):
+    """
+    Parse a date string in YYYY-MM-DD format to a date object.
+    
+    Args:
+        date_str: String in YYYY-MM-DD format
+        
+    Returns:
+        date object or None if invalid/empty
+    """
+    s = (date_str or "").strip()
+    if not s:
+        return None
+    try:
+        return datetime.strptime(s, "%Y-%m-%d").date()
+    except Exception:
+        return None
+
+
+def open_date_picker(entry_widget, parent_window):
+    """
+    Open a calendar date picker popup for an entry widget.
+    
+    Args:
+        entry_widget: CTkEntry widget to update with selected date
+        parent_window: Parent window for the popup (usually content.winfo_toplevel())
+    """
+    popup = ctk.CTkToplevel(parent_window)
+    popup.title("Select Date")
+    popup.geometry("360x430")
+    popup.resizable(False, False)
+    popup.transient(parent_window)
+    popup.grab_set()
+
+    # Parse current value or default to today
+    selected = parse_date_string(entry_widget.get())
+    selected = selected or datetime.now().date()
+
+    # Determine theme
+    mode = str(ctk.get_appearance_mode()).lower()
+    is_dark = mode == "dark"
+
+    # Create styled shell frame
+    shell = ctk.CTkFrame(
+        popup,
+        corner_radius=12,
+        fg_color=("#F3F4F6", "#1F232A"),
+        border_width=1,
+        border_color=("#D8DCE2", "#2C313A"),
+    )
+    shell.pack(fill="both", expand=True, padx=8, pady=8)
+
+    # Header
+    ctk.CTkLabel(
+        shell,
+        text="Pick a Date",
+        font=("Arial", 24, "bold"),
+        text_color=("#22252B", "#E9ECF2"),
+    ).pack(anchor="w", padx=12, pady=(12, 4))
+
+    ctk.CTkLabel(
+        shell,
+        text="Format: YYYY-MM-DD",
+        font=("Arial", 12),
+        text_color=("#5E6672", "#AAB2BE"),
+    ).pack(anchor="w", padx=12, pady=(0, 8))
+
+    # Calendar widget (if available)
+    if Calendar is None:
+        ctk.CTkLabel(
+            shell,
+            text="Calendar unavailable.\nInstall tkcalendar package.",
+            justify="center",
+            font=("Arial", 12),
+        ).pack(pady=18)
+        ctk.CTkButton(shell, text="Close", command=popup.destroy, width=120).pack(pady=(10, 0))
+        return
+
+    # Calendar configuration
+    cal_kwargs = {
+        "selectmode": "day",
+        "date_pattern": "yyyy-mm-dd",
+        "year": selected.year,
+        "month": selected.month,
+        "day": selected.day,
+    }
+    
+    # Theme-specific styling
+    if is_dark:
+        cal_kwargs.update(
+            {
+                "font": ("Arial", 17),
+                "headersfont": ("Arial", 15, "bold"),
+                "background": "#2A2F36",
+                "foreground": "#E9ECF2",
+                "bordercolor": "#2A2F36",
+                "headersbackground": "#222831",
+                "headersforeground": "#E9ECF2",
+                "normalbackground": "#2A2F36",
+                "normalforeground": "#E9ECF2",
+                "weekendbackground": "#2A2F36",
+                "weekendforeground": "#E9ECF2",
+                "othermonthbackground": "#2A2F36",
+                "othermonthforeground": "#7F8A98",
+                "selectbackground": PRIMARY_BLUE,
+                "selectforeground": "#FFFFFF",
+            }
+        )
+    else:
+        cal_kwargs.update(
+            {
+                "font": ("Arial", 17),
+                "headersfont": ("Arial", 15, "bold"),
+                "background": "#FFFFFF",
+                "foreground": "#1B2430",
+                "bordercolor": "#D7DBE2",
+                "headersbackground": "#EEF2F7",
+                "headersforeground": "#1B2430",
+                "normalbackground": "#FFFFFF",
+                "normalforeground": "#1B2430",
+                "selectbackground": PRIMARY_BLUE,
+                "selectforeground": "#FFFFFF",
+            }
+        )
+
+    cal = Calendar(
+        shell,
+        **cal_kwargs,
+        showweeknumbers=False,
+    )
+    cal.pack(fill="both", expand=True, padx=12, pady=(4, 10))
+
+    # Apply selected date to entry
+    def apply_date():
+        entry_widget.delete(0, "end")
+        entry_widget.insert(0, cal.get_date())
+        popup.destroy()
+
+    # Button row
+    btn_row = ctk.CTkFrame(shell, fg_color="transparent")
+    btn_row.pack(fill="x", padx=10, pady=(0, 10))
+    
+    ctk.CTkButton(
+        btn_row,
+        text="Cancel",
+        command=popup.destroy,
+        width=104,
+        height=34,
+        font=("Arial", 14),
+        fg_color=("gray80", "gray28"),
+        hover_color=("gray70", "gray33"),
+    ).pack(side="left")
+    
+    ctk.CTkButton(
+        btn_row,
+        text="Use Date",
+        command=apply_date,
+        width=104,
+        height=34,
+        font=("Arial", 14),
+        fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
+        hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
+    ).pack(side="right")
+
+# ============================= End Date Utilities =============================
+
+# ============================= Button Styling Utilities =============================
+def style_primary_button(button, font_size=14):
+    """
+    Apply primary button styling (for main CTAs like "View Graphs").
+    
+    Args:
+        button: CTkButton widget to style
+        font_size: Font size for button text (default: 14)
+    """
+    try:
+        from config.theme import ROUND_BTN
+        button.configure(
+            height=40,
+            font=("Arial", font_size, "bold"),
+            corner_radius=ROUND_BTN,
+            fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
+            hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
+        )
+        button.pack_configure(fill="x", padx=6, pady=(2, 0))
+    except Exception:
+        pass
+
+
+def style_secondary_button(button, font_size=13):
+    """
+    Apply secondary button styling (for edit/management actions).
+    
+    Args:
+        button: CTkButton widget to style
+        font_size: Font size for button text (default: 13)
+    """
+    try:
+        from config.theme import ROUND_BTN
+        button.configure(
+            height=40,
+            font=("Arial", font_size, "bold"),
+            corner_radius=ROUND_BTN,
+            fg_color=("gray85", "gray25"),
+            hover_color=("gray80", "gray30"),
+            text_color=("gray15", "gray92"),
+        )
+        button.pack_configure(pady=(4, 0))
+    except Exception:
+        pass
+
+# ============================= End Button Styling =============================
+
+# ============================= Common UI Patterns =============================
+def create_refresh_button(parent, command, side="left", padx=(12, 0)):
+    """
+    Create a standardized refresh button.
+    
+    Args:
+        parent: Parent widget
+        command: Function to call when clicked
+        side: Pack side (default: "left")
+        padx: Padding x (default: (12, 0))
+        
+    Returns:
+        The created button
+    """
+    button = ctk.CTkButton(
+        parent,
+        text="⟳ Refresh",
+        command=command,
+        height=32,
+        width=120,
+        fg_color=("gray70", "gray30"),
+        hover_color=("gray60", "gray25")
+    )
+    button.pack(side=side, padx=padx)
+    return button
+
+
+def create_debounced_refresh(widget, callback, delay_ms=150):
+    """
+    Create a debounced refresh function for dropdowns.
+    
+    Args:
+        widget: Widget to attach after() to (usually the card/content widget)
+        callback: Function to call after debounce
+        delay_ms: Delay in milliseconds (default: 150)
+        
+    Returns:
+        Tuple of (refresh_timer dict, schedule_refresh function)
+        
+    Example:
+        timer, schedule = pe.create_debounced_refresh(card, update_display)
+        dropdown.configure(command=schedule)
+    """
+    refresh_timer = {"id": None}
+    
+    def schedule_refresh(_choice=None):
+        if refresh_timer["id"] is not None:
+            try:
+                widget.after_cancel(refresh_timer["id"])
+            except Exception:
+                pass
+        refresh_timer["id"] = widget.after(delay_ms, callback)
+    
+    return refresh_timer, schedule_refresh
+
+
+def create_popup_header_with_location(content):
+    """
+    Create a popup header with location dropdown.
+    
+    Args:
+        content: Parent content widget
+        
+    Returns:
+        Tuple of (header frame, location_dropdown widget)
+    """
+    from database_operations.repos import location_repository as location_repo
+    
+    header = ctk.CTkFrame(content, fg_color="transparent")
+    header.pack(fill="x", padx=10, pady=(5, 10))
+    
+    ctk.CTkLabel(header, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
+    
+    try:
+        cities = ["All Locations"] + location_repo.get_all_cities()
+    except Exception as e:
+        print(f"Error loading cities: {e}")
+        cities = ["All Locations"]
+    
+    location_dropdown = ctk.CTkComboBox(header, values=cities, width=220, font=("Arial", 13))
+    location_dropdown.set("All Locations")
+    location_dropdown.pack(side="left")
+    
+    return header, location_dropdown
+
+# ============================= End Common UI Patterns =============================
 
 def content_container(parent, anchor=None, side=None,
                      margin=10, marginx=None, marginy=None,
@@ -330,10 +632,10 @@ def form_element(
                 widget.configure(validate="key", validatecommand=vcmd)
 
             elif field_subtype == 'date':
-                # Date validation: allows DD/MM/YYYY format with required slashes.
+                # Date validation: allows YYYY-MM-DD format with required hyphens.
                 def validate_date(proposed_value):
-                    # Progressive format: "", "0", "01", "01/", "01/0", "01/02", "01/02/", "01/02/2026"
-                    return re.match(r'^(\d{0,2}(\/\d{0,2}(\/\d{0,4})?)?)?$', proposed_value) is not None
+                    # Progressive format: "", "2", "20", "202", "2026", "2026-", "2026-0", "2026-02", "2026-02-", "2026-02-26"
+                    return re.match(r'^(\d{0,4}(-\d{0,2}(-\d{0,2})?)?)?$', proposed_value) is not None
                 
                 # Add calendar picker trigger next to date fields.
                 date_row = ctk.CTkFrame(field_frame, fg_color="transparent")
@@ -353,7 +655,7 @@ def form_element(
                     if not v:
                         return None
                     try:
-                        return datetime.strptime(v, "%d/%m/%Y").date()
+                        return datetime.strptime(v, "%Y-%m-%d").date()
                     except Exception:
                         return None
 
@@ -390,7 +692,7 @@ def form_element(
 
                     ctk.CTkLabel(
                         shell,
-                        text="Format: DD/MM/YYYY",
+                        text="Format: YYYY-MM-DD",
                         font=("Arial", 12),
                         text_color=("#5E6672", "#AAB2BE"),
                     ).pack(anchor="w", padx=12, pady=(0, 8))
@@ -407,7 +709,7 @@ def form_element(
 
                     cal_kwargs = {
                         "selectmode": "day",
-                        "date_pattern": "dd/mm/yyyy",
+                        "date_pattern": "yyyy-mm-dd",
                         "year": selected.year,
                         "month": selected.month,
                         "day": selected.day,
@@ -428,7 +730,7 @@ def form_element(
                                 "weekendforeground": "#E9ECF2",
                                 "othermonthbackground": "#2A2F36",
                                 "othermonthforeground": "#7F8A98",
-                                "selectbackground": "#2F7FD8",
+                                "selectbackground": PRIMARY_BLUE,
                                 "selectforeground": "#FFFFFF",
                             }
                         )
@@ -444,7 +746,7 @@ def form_element(
                                 "headersforeground": "#1B2430",
                                 "normalbackground": "#FFFFFF",
                                 "normalforeground": "#1B2430",
-                                "selectbackground": "#2F7FD8",
+                                "selectbackground": PRIMARY_BLUE,
                                 "selectforeground": "#FFFFFF",
                             }
                         )
@@ -458,7 +760,7 @@ def form_element(
 
                     def apply_date():
                         widget.delete(0, "end")
-                        widget.insert(0, cal.get_date())  # dd/mm/yyyy
+                        widget.insert(0, cal.get_date())  # yyyy-mm-dd
                         popup.destroy()
 
                     btn_row = ctk.CTkFrame(shell, fg_color="transparent")
@@ -480,8 +782,8 @@ def form_element(
                         width=104,
                         height=34,
                         font=("Arial", 14),
-                        fg_color=("#2F7FD8", "#2F7FD8"),
-                        hover_color=("#2569B3", "#2569B3"),
+                        fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
+                        hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
                     ).pack(side="right")
 
                 ctk.CTkButton(
@@ -730,6 +1032,133 @@ def popup_card(parent, title, button_text="", small=False, button_size="medium",
         button = None
     
     return button, open_popup
+
+
+def info_badge(parent, text: str, side="left", padx=6):
+    """Create a styled info badge with yellow/brown theme.
+    
+    Args:
+        parent: The parent container
+        text: Badge text content
+        side: Pack side (default: "left")
+        padx: Horizontal padding (default: 6)
+        
+    Returns:
+        The badge label widget (can be updated with .configure(text="..."))
+    """
+    from config.theme import ROUND_INPUT
+    
+    badge = ctk.CTkLabel(
+        parent,
+        text=text,
+        font=("Arial", 12, "bold"),
+        text_color=("#6E4B00", "#F5D27A"),
+        fg_color=("#F4D28A", "#4B360D"),
+        corner_radius=ROUND_INPUT,
+        padx=10,
+        pady=6,
+    )
+    badge.pack(side=side, padx=padx)
+    return badge
+
+
+def location_dropdown_with_label(parent, initial_value="All Locations", side="left", padx=(12, 0)):
+    """Create a location dropdown with a label.
+    
+    This creates a "Location" label followed by a dropdown containing all cities
+    from the location repository, plus "All Locations" option.
+    
+    Args:
+        parent: The parent container
+        initial_value: Initial dropdown value (default: "All Locations")
+        side: Pack side for the wrapper (default: "left")
+        padx: Horizontal padding for the wrapper (default: (12, 0))
+        
+    Returns:
+        The dropdown widget (CTkComboBox)
+    """
+    import database_operations.repos.location_repository as location_repo
+    
+    location_wrap = ctk.CTkFrame(parent, fg_color="transparent")
+    location_wrap.pack(side=side, padx=padx)
+
+    ctk.CTkLabel(
+        location_wrap,
+        text="Location",
+        font=("Arial", 13, "bold"),
+        text_color=("gray35", "gray75"),
+    ).pack(side="left", padx=(0, 10))
+
+    try:
+        cities = ["All Locations"] + location_repo.get_all_cities()
+    except Exception as e:
+        print(f"Error loading cities: {e}")
+        cities = ["All Locations"]
+
+    location_dropdown = ctk.CTkComboBox(location_wrap, values=cities, width=240, font=("Arial", 13))
+    location_dropdown.set(initial_value)
+    location_dropdown.pack(side="left")
+    
+    return location_dropdown
+
+
+def stat_card(parent, title: str, default_value: str = "0"):
+    """Create a stat card displaying a metric with title and value.
+    
+    This creates a rounded card with a title at the top and a large value below it.
+    Common for displaying dashboard metrics like revenue, counts, etc.
+    
+    Args:
+        parent: The parent container (should be a stats grid frame)
+        title: The metric title (will be converted to uppercase)
+        default_value: Initial value to display (default: "0")
+        
+    Returns:
+        The value label widget (update with .configure(text="..."))
+    """
+    from config.theme import ROUND_BOX
+    
+    card = ctk.CTkFrame(
+        parent,
+        corner_radius=ROUND_BOX,
+        fg_color=("gray92", "gray17"),
+        border_width=1,
+        border_color=("gray80", "gray28"),
+    )
+    card.pack(side="left", expand=True, fill="both", padx=6, ipadx=8, ipady=10)
+
+    ctk.CTkLabel(
+        card,
+        text=title.upper(),
+        font=("Arial", 11, "bold"),
+        text_color=("gray45", "gray70"),
+        anchor="w",
+    ).pack(fill="x", padx=12, pady=(8, 0))
+
+    value = ctk.CTkLabel(
+        card,
+        text=default_value,
+        font=("Arial", 20, "bold"),
+        text_color=("#3B8ED0", "#3B8ED0"),
+        anchor="w",
+    )
+    value.pack(fill="x", padx=12, pady=(2, 8))
+    return value
+
+
+def stats_grid(parent, pady=(0, 4)):
+    """Create a container for holding stat cards in a horizontal grid.
+    
+    Args:
+        parent: The parent container
+        pady: Vertical padding (default: (0, 4))
+        
+    Returns:
+        The stats container frame (add stat_card widgets to this)
+    """
+    stats = ctk.CTkFrame(parent, fg_color="transparent")
+    stats.pack(fill="x", pady=pady)
+    return stats
 
 
 def data_table(parent, columns, data=None, editable=False, deletable=False,

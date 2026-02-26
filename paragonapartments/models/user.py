@@ -1,6 +1,7 @@
 import customtkinter as ctk
 import pages.components.page_elements as pe
 import database_operations.repos.user_repository as user_repo
+from config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER
 
 
 def create_user(username: str, user_type: str, location: str = ""):
@@ -98,19 +99,19 @@ class User:
             height=36,
             font=("Arial", 14, "bold"),
             command=lambda: self.logout(home_page),
-            fg_color=("#2F7FD8", "#2F7FD8"),
-            hover_color=("#2569B3", "#2569B3"),
+            fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
+            hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
         ).pack(anchor="e")
 
         ctk.CTkButton(
-            actions,
+            home_page,
             text="Change Password",
             bg_color="transparent",
             fg_color="transparent",
             hover_color=("gray90", "gray20"),
             text_color=("black", "white"),
-            height=18,
-            width=96,
+            height=12,
+            width=10,
             command=setup_popup,
-            font=("Arial", 12),
-        ).pack(anchor="e", pady=(3, 0))
+            font=("Arial", 10),
+        ).pack(anchor="ne", padx=15, pady=0)

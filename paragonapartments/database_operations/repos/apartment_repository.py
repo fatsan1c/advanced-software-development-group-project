@@ -81,11 +81,11 @@ def _normalize_location(location):
 
 
 def _parse_date(date_str):
-    """Parse DD/MM/YYYY or YYYY-MM-DD to date. Returns None if invalid."""
+    """Parse YYYY-MM-DD or DD/MM/YYYY to date. Returns None if invalid."""
     if not date_str or not str(date_str).strip():
         return None
     s = str(date_str).strip()
-    for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y"):
         try:
             return _datetime.strptime(s, fmt).date()
         except Exception:
@@ -153,7 +153,7 @@ def get_lease_date_range(location=None, grouping="month"):
         end = latest
     if start > end:
         start = end
-    return {"start_date": start.strftime("%d/%m/%Y"), "end_date": end.strftime("%d/%m/%Y")}
+    return {"start_date": start.strftime("%Y-%m-%d"), "end_date": end.strftime("%Y-%m-%d")}
 
 
 def get_occupancy_timeseries(location=None, start_date=None, end_date=None, grouping="month"):
@@ -224,7 +224,7 @@ def get_occupancy_timeseries(location=None, start_date=None, end_date=None, grou
             "vacant": vacant,
             "total": total_apartments,
         })
-    return {"start_date": start_d.strftime("%d/%m/%Y"), "end_date": end_d.strftime("%d/%m/%Y"),
+    return {"start_date": start_d.strftime("%Y-%m-%d"), "end_date": end_d.strftime("%Y-%m-%d"),
             "grouping": grouping_norm, "series": series}
 
 
@@ -294,7 +294,7 @@ def get_revenue_timeseries(location=None, start_date=None, end_date=None, groupi
             "lost_revenue": lost,
             "potential_revenue": potential,
         })
-    return {"start_date": start_d.strftime("%d/%m/%Y"), "end_date": end_d.strftime("%d/%m/%Y"),
+    return {"start_date": start_d.strftime("%Y-%m-%d"), "end_date": end_d.strftime("%Y-%m-%d"),
             "grouping": grouping_norm, "series": series}
 
 

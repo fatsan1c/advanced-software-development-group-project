@@ -5,17 +5,12 @@ import database_operations.repos.location_repository as location_repo
 import database_operations.repos.apartment_repository as apartment_repo
 from models.user import User
 from datetime import datetime
+from config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BOX, ROUND_BTN, ROUND_INPUT
 
 try:
     from tkcalendar import Calendar
 except Exception:
     Calendar = None
-
-PRIMARY_BLUE = "#2F7FD8"
-PRIMARY_BLUE_HOVER = "#2569B3"
-ROUND_BOX = 16
-ROUND_BTN = 14
-ROUND_INPUT = 12
 
 
 class Manager(User):
@@ -239,68 +234,16 @@ class Manager(User):
         info_row = ctk.CTkFrame(occupancy_card, fg_color="transparent")
         info_row.pack(fill="x", pady=(0, 6))
 
-        occupancy_badge = ctk.CTkLabel(
-            info_row,
-            text="Total units: 0",
-            font=("Arial", 12, "bold"),
-            text_color=("#6E4B00", "#F5D27A"),
-            fg_color=("#F4D28A", "#4B360D"),
-            corner_radius=ROUND_INPUT,
-            padx=10,
-            pady=6,
-        )
-        occupancy_badge.pack(side="left", padx=6)
+        occupancy_badge = pe.info_badge(info_row, "Total units: 0")
 
-        location_wrap = ctk.CTkFrame(info_row, fg_color="transparent")
-        location_wrap.pack(side="left", padx=(12, 0))
-
-        ctk.CTkLabel(
-            location_wrap,
-            text="Location",
-            font=("Arial", 13, "bold"),
-            text_color=("gray35", "gray75"),
-        ).pack(side="left", padx=(0, 10))
-
-        cities = ["All Locations"] + location_repo.get_all_cities()
-        location_dropdown = ctk.CTkComboBox(location_wrap, values=cities, width=240, font=("Arial", 13))
-        location_dropdown.set("All Locations")
-        location_dropdown.pack(side="left")
+        location_dropdown = pe.location_dropdown_with_label(info_row)
 
         # Stat grid - match Performance Reports layout
-        stats = ctk.CTkFrame(occupancy_card, fg_color="transparent")
-        stats.pack(fill="x", pady=(0, 4))
+        stats = pe.stats_grid(occupancy_card)
 
-        def stat_card(parent, title: str):
-            card = ctk.CTkFrame(
-                parent,
-                corner_radius=ROUND_BOX,
-                fg_color=("gray92", "gray17"),
-                border_width=1,
-                border_color=("gray80", "gray28"),
-            )
-            card.pack(side="left", expand=True, fill="both", padx=6, ipadx=8, ipady=10)
-
-            ctk.CTkLabel(
-                card,
-                text=title.upper(),
-                font=("Arial", 11, "bold"),
-                text_color=("gray45", "gray70"),
-                anchor="w",
-            ).pack(fill="x", padx=12, pady=(8, 0))
-
-            value = ctk.CTkLabel(
-                card,
-                text="0",
-                font=("Arial", 20, "bold"),
-                text_color=("#3B8ED0", "#3B8ED0"),
-                anchor="w",
-            )
-            value.pack(fill="x", padx=12, pady=(2, 8))
-            return value
-
-        occupied_value = stat_card(stats, "Occupied")
-        available_value = stat_card(stats, "Available")
-        total_value = stat_card(stats, "Total")
+        occupied_value = pe.stat_card(stats, "Occupied")
+        available_value = pe.stat_card(stats, "Available")
+        total_value = pe.stat_card(stats, "Total")
 
         def update_occupancy_display(choice=None):
             location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
@@ -314,15 +257,7 @@ class Manager(User):
             occupancy_badge.configure(text=f"Total units: {total_count}")
 
         update_occupancy_display()
-        refresh_timer = {"id": None}
-        def schedule_refresh(_choice=None):
-            if refresh_timer["id"] is not None:
-                try:
-                    occupancy_card.after_cancel(refresh_timer["id"])
-                except Exception:
-                    pass
-            refresh_timer["id"] = occupancy_card.after(150, update_occupancy_display)
-
+        refresh_timer, schedule_refresh = pe.create_debounced_refresh(occupancy_card, update_occupancy_display)
         location_dropdown.configure(command=schedule_refresh)
 
         # Graph popup button - styled like finance
@@ -333,17 +268,7 @@ class Manager(User):
             small=False,
             button_size="medium"
         )
-        try:
-            button.configure(
-                height=40,
-                font=("Arial", 14, "bold"),
-                corner_radius=ROUND_BTN,
-                fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
-                hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
-            )
-            button.pack_configure(fill="x", padx=6, pady=(2, 0))
-        except Exception:
-            pass
+        pe.style_primary_button(button)
 
         def _selected_location(val):
             return "all" if (val or "") == "All Locations" else (val or "all")
@@ -371,14 +296,14 @@ class Manager(User):
             default_range = apartment_repo.get_lease_date_range(loc_for_defaults, grouping="month")
             default_start, default_end = default_range.get("start_date", ""), default_range.get("end_date", "")
 
-            ctk.CTkLabel(row_dates, text="Start (DD/MM/YYYY):", font=("Arial", 13, "bold")).pack(side="left", padx=(0, 8))
+            ctk.CTkLabel(row_dates, text="Start (YYYY-MM-DD):", font=("Arial", 13, "bold")).pack(side="left", padx=(0, 8))
             start_wrap = ctk.CTkFrame(row_dates, fg_color="transparent")
             start_wrap.pack(side="left")
             start_entry = ctk.CTkEntry(start_wrap, width=140, font=("Arial", 13))
             if default_start:
                 start_entry.insert(0, default_start)
             start_entry.pack(side="left")
-            ctk.CTkLabel(row_dates, text="End (DD/MM/YYYY):", font=("Arial", 13, "bold")).pack(side="left", padx=(18, 8))
+            ctk.CTkLabel(row_dates, text="End (YYYY-MM-DD):", font=("Arial", 13, "bold")).pack(side="left", padx=(18, 8))
             end_wrap = ctk.CTkFrame(row_dates, fg_color="transparent")
             end_wrap.pack(side="left")
             end_entry = ctk.CTkEntry(end_wrap, width=140, font=("Arial", 13))
@@ -386,60 +311,11 @@ class Manager(User):
                 end_entry.insert(0, default_end)
             end_entry.pack(side="left")
 
-            def parse_ui_date(v):
-                s = (v or "").strip()
-                if not s:
-                    return None
-                try:
-                    return datetime.strptime(s, "%d/%m/%Y").date()
-                except Exception:
-                    return None
-
-            def open_calendar_for(entry_widget):
-                popup = ctk.CTkToplevel(content.winfo_toplevel())
-                popup.title("Select Date")
-                popup.geometry("360x430")
-                popup.resizable(False, False)
-                popup.transient(content.winfo_toplevel())
-                popup.grab_set()
-                selected = parse_ui_date(entry_widget.get()) or datetime.now().date()
-                mode = str(ctk.get_appearance_mode()).lower()
-                is_dark = mode == "dark"
-                shell = ctk.CTkFrame(popup, corner_radius=12, fg_color=("#F3F4F6", "#1F232A"),
-                                     border_width=1, border_color=("#D8DCE2", "#2C313A"))
-                shell.pack(fill="both", expand=True, padx=8, pady=8)
-                ctk.CTkLabel(shell, text="Pick a Date", font=("Arial", 24, "bold"),
-                             text_color=("#22252B", "#E9ECF2")).pack(anchor="w", padx=12, pady=(12, 4))
-                ctk.CTkLabel(shell, text="Format: DD/MM/YYYY", font=("Arial", 12),
-                             text_color=("#5E6672", "#AAB2BE")).pack(anchor="w", padx=12, pady=(0, 8))
-                if Calendar is None:
-                    ctk.CTkLabel(shell, text="Calendar unavailable.\nInstall tkcalendar package.",
-                                 justify="center", font=("Arial", 12)).pack(pady=18)
-                    ctk.CTkButton(shell, text="Close", command=popup.destroy, width=120).pack(pady=(10, 0))
-                    return
-                cal_kwargs = {"selectmode": "day", "date_pattern": "dd/mm/yyyy",
-                             "year": selected.year, "month": selected.month, "day": selected.day}
-                cal_kwargs.update({"font": ("Arial", 17), "headersfont": ("Arial", 15, "bold"),
-                    "background": "#2A2F36" if is_dark else "#FFFFFF", "foreground": "#E9ECF2" if is_dark else "#1B2430",
-                    "selectbackground": "#2F7FD8", "selectforeground": "#FFFFFF"})
-                cal = Calendar(shell, **cal_kwargs, showweeknumbers=False)
-                cal.pack(fill="both", expand=True, padx=12, pady=(4, 10))
-                def apply_date():
-                    entry_widget.delete(0, "end")
-                    entry_widget.insert(0, cal.get_date())
-                    popup.destroy()
-                btn_row = ctk.CTkFrame(shell, fg_color="transparent")
-                btn_row.pack(fill="x", padx=10, pady=(0, 10))
-                ctk.CTkButton(btn_row, text="Cancel", command=popup.destroy, width=104, height=34, font=("Arial", 14),
-                             fg_color=("gray80", "gray28"), hover_color=("gray70", "gray33")).pack(side="left")
-                ctk.CTkButton(btn_row, text="Use Date", command=apply_date, width=104, height=34, font=("Arial", 14),
-                             fg_color=(PRIMARY_BLUE, PRIMARY_BLUE), hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER)).pack(side="right")
-
             ctk.CTkButton(start_wrap, text="📅", width=34, height=28, font=("Arial", 13),
-                         command=lambda: open_calendar_for(start_entry),
+                         command=lambda: pe.open_date_picker(start_entry, content.winfo_toplevel()),
                          fg_color=("gray80", "gray25"), hover_color=("gray70", "gray30")).pack(side="left", padx=(6, 0))
             ctk.CTkButton(end_wrap, text="📅", width=34, height=28, font=("Arial", 13),
-                         command=lambda: open_calendar_for(end_entry),
+                         command=lambda: pe.open_date_picker(end_entry, content.winfo_toplevel()),
                          fg_color=("gray80", "gray25"), hover_color=("gray70", "gray30")).pack(side="left", padx=(6, 0))
 
             def apply_grouping_defaults(gv):
@@ -480,14 +356,7 @@ class Manager(User):
             refresh_btn = ctk.CTkButton(row_top, text="⟳ Refresh", command=render_graph, height=32, width=120,
                                         fg_color=("gray70", "gray30"), hover_color=("gray60", "gray25"))
             refresh_btn.pack(side="left", padx=(18, 0))
-            refresh_timer = {"id": None}
-            def schedule_refresh(_=None):
-                if refresh_timer["id"]:
-                    try:
-                        content.after_cancel(refresh_timer["id"])
-                    except Exception:
-                        pass
-                refresh_timer["id"] = content.after(150, render_graph)
+            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, render_graph)
             popup_location_dropdown.configure(command=schedule_refresh)
             def on_grouping_change(choice=None):
                 apply_grouping_defaults(grouping_dropdown.get())
@@ -539,18 +408,7 @@ class Manager(User):
             small=False,
             button_size="full"
         )
-        try:
-            button.configure(
-                height=40,
-                font=("Arial", 13, "bold"),
-                corner_radius=ROUND_BTN,
-                fg_color=("gray85", "gray25"),
-                hover_color=("gray80", "gray30"),
-                text_color=("gray15", "gray92"),
-            )
-            button.pack_configure(pady=(4, 0))
-        except Exception:
-            pass
+        pe.style_secondary_button(button)
 
         def setup_popup():
             content = open_popup_func()
@@ -585,15 +443,7 @@ class Manager(User):
                 page_size=10,
             )
 
-            ctk.CTkButton(
-                header,
-                text="⟳ Refresh",
-                command=refresh_table,
-                height=32,
-                width=120,
-                fg_color=("gray70", "gray30"),
-                hover_color=("gray60", "gray25")
-            ).pack(side="left")
+            pe.create_refresh_button(header, refresh_table, padx=0)
 
         button.configure(command=setup_popup)
 
@@ -604,68 +454,14 @@ class Manager(User):
         info_row = ctk.CTkFrame(reports_card, fg_color="transparent")
         info_row.pack(fill="x", pady=(0, 6))
 
-        vacant_badge = ctk.CTkLabel(
-            info_row,
-            text="Vacant units: 0",
-            font=("Arial", 12, "bold"),
-            text_color=("#6E4B00", "#F5D27A"),
-            fg_color=("#F4D28A", "#4B360D"),
-            corner_radius=ROUND_INPUT,
-            padx=10,
-            pady=6,
-        )
-        vacant_badge.pack(side="left", padx=6)
+        vacant_badge = pe.info_badge(info_row, "Vacant units: 0")
+        location_dropdown = pe.location_dropdown_with_label(info_row)
 
-        location_wrap = ctk.CTkFrame(info_row, fg_color="transparent")
-        location_wrap.pack(side="left", padx=(12, 0))
-
-        ctk.CTkLabel(
-            location_wrap,
-            text="Location",
-            font=("Arial", 13, "bold"),
-            text_color=("gray35", "gray75"),
-        ).pack(side="left", padx=(0, 10))
-
-        cities = ["All Locations"] + location_repo.get_all_cities()
-        location_dropdown = ctk.CTkComboBox(location_wrap, values=cities, width=240, font=("Arial", 13))
-        location_dropdown.set("All Locations")
-        location_dropdown.pack(side="left")
-
-        # Stat grid - match finance dashboard (Invoiced, Collected, Outstanding)
-        stats = ctk.CTkFrame(reports_card, fg_color="transparent")
-        stats.pack(fill="x", pady=(0, 4))
-
-        def stat_card(parent, title: str):
-            card = ctk.CTkFrame(
-                parent,
-                corner_radius=ROUND_BOX,
-                fg_color=("gray92", "gray17"),
-                border_width=1,
-                border_color=("gray80", "gray28"),
-            )
-            card.pack(side="left", expand=True, fill="both", padx=6, ipadx=8, ipady=10)
-
-            ctk.CTkLabel(
-                card,
-                text=title.upper(),
-                font=("Arial", 11, "bold"),
-                text_color=("gray45", "gray70"),
-                anchor="w",
-            ).pack(fill="x", padx=12, pady=(8, 0))
-
-            value = ctk.CTkLabel(
-                card,
-                text="£0.00",
-                font=("Arial", 20, "bold"),
-                text_color=("#3B8ED0", "#3B8ED0"),
-                anchor="w",
-            )
-            value.pack(fill="x", padx=12, pady=(2, 8))
-            return value
-
-        actual_value = stat_card(stats, "Actual Revenue")
-        lost_value = stat_card(stats, "Lost Revenue")
-        potential_value = stat_card(stats, "Potential Revenue")
+        # Stat grid
+        stats = pe.stats_grid(reports_card)
+        actual_value = pe.stat_card(stats, "Actual Revenue", "£0.00")
+        lost_value = pe.stat_card(stats, "Lost Revenue", "£0.00")
+        potential_value = pe.stat_card(stats, "Potential Revenue", "£0.00")
 
         def update_performance_display(choice=None):
             location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
@@ -682,15 +478,7 @@ class Manager(User):
             vacant_badge.configure(text=f"Vacant units: {vacant}")
 
         update_performance_display()
-        refresh_timer = {"id": None}
-        def schedule_refresh(_choice=None):
-            if refresh_timer["id"] is not None:
-                try:
-                    reports_card.after_cancel(refresh_timer["id"])
-                except Exception:
-                    pass
-            refresh_timer["id"] = reports_card.after(150, update_performance_display)
-
+        refresh_timer, schedule_refresh = pe.create_debounced_refresh(reports_card, update_performance_display)
         location_dropdown.configure(command=schedule_refresh)
 
         button, open_popup_func = pe.popup_card(
@@ -700,17 +488,7 @@ class Manager(User):
             small=False,
             button_size="medium"
         )
-        try:
-            button.configure(
-                height=40,
-                font=("Arial", 14, "bold"),
-                corner_radius=ROUND_BTN,
-                fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
-                hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
-            )
-            button.pack_configure(fill="x", padx=6, pady=(2, 0))
-        except Exception:
-            pass
+        pe.style_primary_button(button)
 
         def _sel(val):
             return "all" if (val or "") == "All Locations" else (val or "all")
@@ -737,14 +515,14 @@ class Manager(User):
             default_range = apartment_repo.get_lease_date_range(loc_def, grouping="month")
             default_start, default_end = default_range.get("start_date", ""), default_range.get("end_date", "")
 
-            ctk.CTkLabel(row_dates, text="Start (DD/MM/YYYY):", font=("Arial", 13, "bold")).pack(side="left", padx=(0, 8))
+            ctk.CTkLabel(row_dates, text="Start (YYYY-MM-DD):", font=("Arial", 13, "bold")).pack(side="left", padx=(0, 8))
             start_wrap = ctk.CTkFrame(row_dates, fg_color="transparent")
             start_wrap.pack(side="left")
             start_entry = ctk.CTkEntry(start_wrap, width=140, font=("Arial", 13))
             if default_start:
                 start_entry.insert(0, default_start)
             start_entry.pack(side="left")
-            ctk.CTkLabel(row_dates, text="End (DD/MM/YYYY):", font=("Arial", 13, "bold")).pack(side="left", padx=(18, 8))
+            ctk.CTkLabel(row_dates, text="End (YYYY-MM-DD):", font=("Arial", 13, "bold")).pack(side="left", padx=(18, 8))
             end_wrap = ctk.CTkFrame(row_dates, fg_color="transparent")
             end_wrap.pack(side="left")
             end_entry = ctk.CTkEntry(end_wrap, width=140, font=("Arial", 13))
@@ -752,60 +530,11 @@ class Manager(User):
                 end_entry.insert(0, default_end)
             end_entry.pack(side="left")
 
-            def parse_d(v):
-                s = (v or "").strip()
-                if not s:
-                    return None
-                try:
-                    return datetime.strptime(s, "%d/%m/%Y").date()
-                except Exception:
-                    return None
-
-            def open_cal(entry_widget):
-                popup = ctk.CTkToplevel(content.winfo_toplevel())
-                popup.title("Select Date")
-                popup.geometry("360x430")
-                popup.resizable(False, False)
-                popup.transient(content.winfo_toplevel())
-                popup.grab_set()
-                selected = parse_d(entry_widget.get()) or datetime.now().date()
-                is_dark = str(ctk.get_appearance_mode()).lower() == "dark"
-                shell = ctk.CTkFrame(popup, corner_radius=12, fg_color=("#F3F4F6", "#1F232A"),
-                                     border_width=1, border_color=("#D8DCE2", "#2C313A"))
-                shell.pack(fill="both", expand=True, padx=8, pady=8)
-                ctk.CTkLabel(shell, text="Pick a Date", font=("Arial", 24, "bold"),
-                             text_color=("#22252B", "#E9ECF2")).pack(anchor="w", padx=12, pady=(12, 4))
-                ctk.CTkLabel(shell, text="Format: DD/MM/YYYY", font=("Arial", 12),
-                             text_color=("#5E6672", "#AAB2BE")).pack(anchor="w", padx=12, pady=(0, 8))
-                if Calendar is None:
-                    ctk.CTkLabel(shell, text="Calendar unavailable.\nInstall tkcalendar package.",
-                                 justify="center", font=("Arial", 12)).pack(pady=18)
-                    ctk.CTkButton(shell, text="Close", command=popup.destroy, width=120).pack(pady=(10, 0))
-                    return
-                cal_kwargs = {"selectmode": "day", "date_pattern": "dd/mm/yyyy",
-                              "year": selected.year, "month": selected.month, "day": selected.day,
-                              "font": ("Arial", 17), "headersfont": ("Arial", 15, "bold"),
-                              "background": "#2A2F36" if is_dark else "#FFFFFF",
-                              "foreground": "#E9ECF2" if is_dark else "#1B2430",
-                              "selectbackground": "#2F7FD8", "selectforeground": "#FFFFFF"}
-                cal = Calendar(shell, **cal_kwargs, showweeknumbers=False)
-                cal.pack(fill="both", expand=True, padx=12, pady=(4, 10))
-                def apply_date():
-                    entry_widget.delete(0, "end")
-                    entry_widget.insert(0, cal.get_date())
-                    popup.destroy()
-                btn_row = ctk.CTkFrame(shell, fg_color="transparent")
-                btn_row.pack(fill="x", padx=10, pady=(0, 10))
-                ctk.CTkButton(btn_row, text="Cancel", command=popup.destroy, width=104, height=34, font=("Arial", 14),
-                             fg_color=("gray80", "gray28"), hover_color=("gray70", "gray33")).pack(side="left")
-                ctk.CTkButton(btn_row, text="Use Date", command=apply_date, width=104, height=34, font=("Arial", 14),
-                             fg_color=(PRIMARY_BLUE, PRIMARY_BLUE), hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER)).pack(side="right")
-
             ctk.CTkButton(start_wrap, text="📅", width=34, height=28, font=("Arial", 13),
-                         command=lambda: open_cal(start_entry), fg_color=("gray80", "gray25"),
+                         command=lambda: pe.open_date_picker(start_entry, content.winfo_toplevel()), fg_color=("gray80", "gray25"),
                          hover_color=("gray70", "gray30")).pack(side="left", padx=(6, 0))
             ctk.CTkButton(end_wrap, text="📅", width=34, height=28, font=("Arial", 13),
-                         command=lambda: open_cal(end_entry), fg_color=("gray80", "gray25"),
+                         command=lambda: pe.open_date_picker(end_entry, content.winfo_toplevel()), fg_color=("gray80", "gray25"),
                          hover_color=("gray70", "gray30")).pack(side="left", padx=(6, 0))
 
             def apply_grouping_defaults(gv):
@@ -845,14 +574,7 @@ class Manager(User):
             refresh_btn = ctk.CTkButton(row_top, text="⟳ Refresh", command=render_graph, height=32, width=120,
                                         fg_color=("gray70", "gray30"), hover_color=("gray60", "gray25"))
             refresh_btn.pack(side="left", padx=(18, 0))
-            refresh_timer = {"id": None}
-            def schedule_refresh(_=None):
-                if refresh_timer["id"]:
-                    try:
-                        content.after_cancel(refresh_timer["id"])
-                    except Exception:
-                        pass
-                refresh_timer["id"] = content.after(150, render_graph)
+            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, render_graph)
             popup_location_dropdown.configure(command=schedule_refresh)
             def on_grouping_change(choice=None):
                 apply_grouping_defaults(grouping_dropdown.get())
@@ -906,18 +628,7 @@ class Manager(User):
             small=False,
             button_size="full"
         )
-        try:
-            loc_btn.configure(
-                height=40,
-                font=("Arial", 13, "bold"),
-                corner_radius=ROUND_BTN,
-                fg_color=("gray85", "gray25"),
-                hover_color=("gray80", "gray30"),
-                text_color=("gray15", "gray92"),
-            )
-            loc_btn.pack_configure(pady=(4, 0))
-        except Exception:
-            pass
+        pe.style_secondary_button(loc_btn)
 
         def setup_loc_popup():
             content = open_loc_popup()
@@ -951,15 +662,7 @@ class Manager(User):
                 page_size=10,
             )
 
-            ctk.CTkButton(
-                header,
-                text="⟳ Refresh",
-                command=refresh_table,
-                height=32,
-                width=120,
-                fg_color=("gray70", "gray30"),
-                hover_color=("gray60", "gray25")
-            ).pack(side="left")
+            pe.create_refresh_button(header, refresh_table, padx=0)
 
         loc_btn.configure(command=setup_loc_popup)
 
@@ -1003,36 +706,12 @@ class Manager(User):
             small=False,
             button_size="full"
         )
-        try:
-            apt_btn.configure(
-                height=40,
-                font=("Arial", 13, "bold"),
-                corner_radius=ROUND_BTN,
-                fg_color=("gray85", "gray25"),
-                hover_color=("gray80", "gray30"),
-                text_color=("gray15", "gray92"),
-            )
-            apt_btn.pack_configure(pady=(4, 0))
-        except Exception:
-            pass
+        pe.style_secondary_button(apt_btn)
 
         def setup_apt_popup():
             content = open_apt_popup()
 
-            header = ctk.CTkFrame(content, fg_color="transparent")
-            header.pack(fill="x", padx=10, pady=(5, 10))
-
-            ctk.CTkLabel(header, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
-
-            try:
-                cities = ["All Locations"] + location_repo.get_all_cities()
-            except Exception as e:
-                print(f"Error loading cities: {e}")
-                cities = ["All Locations"]
-                
-            location_dropdown = ctk.CTkComboBox(header, values=cities, width=220, font=("Arial", 13))
-            location_dropdown.set("All Locations")
-            location_dropdown.pack(side="left")
+            header, location_dropdown = pe.create_popup_header_with_location(content)
 
             columns = [
                 {'name': 'ID', 'key': 'apartment_ID', 'width': 80, 'editable': False},
@@ -1064,27 +743,14 @@ class Manager(User):
                 page_size=10,
             )
 
-            ctk.CTkButton(
-                header,
-                text="⟳ Refresh",
-                command=refresh_table,
-                height=32,
-                width=120,
-                fg_color=("gray70", "gray30"),
-                hover_color=("gray60", "gray25")
-            ).pack(side="left", padx=(12, 0))
+            pe.create_refresh_button(header, refresh_table)
 
-            refresh_timer = {"id": None}
-            def schedule_refresh(_choice=None):
-                if refresh_timer["id"] is not None:
-                    try:
-                        content.after_cancel(refresh_timer["id"])
-                    except Exception:
-                        pass
+            def refresh_with_reset():
                 if hasattr(refresh_table, "reset_page"):
                     refresh_table.reset_page()
-                refresh_timer["id"] = content.after(150, refresh_table)
-
+                refresh_table()
+            
+            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, refresh_with_reset)
             location_dropdown.configure(command=schedule_refresh)
 
         apt_btn.configure(command=setup_apt_popup)

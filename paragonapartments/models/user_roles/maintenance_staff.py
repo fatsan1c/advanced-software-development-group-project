@@ -313,7 +313,7 @@ class MaintenanceStaff(User):
                 refresh_data=get_data,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=9,
+                page_size=10,
                 scrollable=False
             )
 
@@ -823,7 +823,7 @@ class MaintenanceStaff(User):
                 refresh_data=get_data,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=9,
+                page_size=10,
                 scrollable=False
             )
 
@@ -933,7 +933,7 @@ class MaintenanceStaff(User):
                 on_update=self.update_maintenance_request_row,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=9,
+                page_size=10,
                 scrollable=False
             )
 

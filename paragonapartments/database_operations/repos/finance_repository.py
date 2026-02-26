@@ -431,7 +431,7 @@ def _parse_date(date_str: str | None) -> _date | None:
     Parse a date string into a date, or return None for blank.
 
     Supported formats:
-    - DD/MM/YYYY (preferred for UI)
+    - YYYY-MM-DD (ISO format)
     """
     if date_str is None:
         return None
@@ -439,12 +439,12 @@ def _parse_date(date_str: str | None) -> _date | None:
     if not s:
         return None
     try:
-        parts = s.split("/")
-        if len(parts) == 3 and len(parts[0]) == 2:
-            return _datetime.strptime(s, "%d/%m/%Y").date()
+        parts = s.split("-")
+        if len(parts) == 3 and len(parts[0]) == 4:
+            return _datetime.strptime(s, "%Y-%m-%d").date()
         raise ValueError("Invalid date pattern")
     except Exception as e:
-        raise ValueError(f"Invalid date '{date_str}'. Expected DD/MM/YYYY.") from e
+        raise ValueError(f"Invalid date '{date_str}'. Expected YYYY-MM-DD.") from e
 
 
 def _month_key(d: _date) -> str:
@@ -622,8 +622,8 @@ def get_finance_date_range(location: str | None = None, grouping: str = "month")
         start = end
 
     return {
-        "start_date": start.strftime("%d/%m/%Y"),
-        "end_date": end.strftime("%d/%m/%Y"),
+        "start_date": start.strftime("%Y-%m-%d"),
+        "end_date": end.strftime("%Y-%m-%d"),
     }
 
 
@@ -667,11 +667,11 @@ def get_collected_amount_timeseries(
 
     Returns:
         dict: {
-          'start_date': 'DD/MM/YYYY',
-          'end_date': 'DD/MM/YYYY',
+          'start_date': 'YYYY-MM-DD',
+          'end_date': 'YYYY-MM-DD',
           'grouping': 'week'|'month'|'year',
           'series': [{
-              'period': 'DD/MM/YYYY',
+              'period': 'YYYY-MM-DD',
               'total_invoiced': float,
               'total_collected': float,
               'late_count': int
@@ -866,8 +866,8 @@ def get_collected_amount_timeseries(
             series = series[:1]
 
     return {
-        "start_date": start_d.strftime("%d/%m/%Y"),
-        "end_date": end_d.strftime("%d/%m/%Y"),
+        "start_date": start_d.strftime("%Y-%m-%d"),
+        "end_date": end_d.strftime("%Y-%m-%d"),
         "grouping": grouping_norm,
         "series": series,
     }
