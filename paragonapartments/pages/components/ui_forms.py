@@ -10,7 +10,7 @@ This module provides comprehensive form building functionality including:
 
 import customtkinter as ctk
 from datetime import datetime
-from config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER
+from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER
 import pages.components.input_validation as input_validation
 import pages.components.ui_utilities as ui_utils
 

@@ -13,8 +13,3 @@ PRIMARY_BLUE_HOVER = "#2569B3"
 ROUND_BOX = 16      # For card containers
 ROUND_BTN = 14      # For buttons
 ROUND_INPUT = 12    # For input fields
-
-# Additional colors can be added here as needed
-# ACCENT_GREEN = "#..."
-# ACCENT_RED = "#..."
-# etc.

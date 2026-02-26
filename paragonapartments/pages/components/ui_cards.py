@@ -11,7 +11,7 @@ This module provides card-style UI elements including:
 """
 
 import customtkinter as ctk
-from config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BOX, ROUND_INPUT
+from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BOX, ROUND_INPUT
 import database_operations.repos.location_repository as location_repo
 
 

@@ -1,7 +1,7 @@
 import customtkinter as ctk
 import pages.components.page_elements as pe
 import database_operations.repos.user_repository as user_repo
-from config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER
+from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER
 
 
 def create_user(username: str, user_type: str, location: str = ""):

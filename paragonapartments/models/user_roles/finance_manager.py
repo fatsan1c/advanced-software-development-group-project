@@ -5,7 +5,7 @@ import database_operations.repos.finance_repository as finance_repo
 import database_operations.repos.location_repository as location_repo
 from models.user import User
 from datetime import datetime
-from config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BOX, ROUND_BTN, ROUND_INPUT
+from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BOX, ROUND_BTN, ROUND_INPUT
 
 try:
     from tkcalendar import Calendar

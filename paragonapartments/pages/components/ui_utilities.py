@@ -5,7 +5,7 @@ UI Utilities - Helper functions for dates, buttons, and common patterns.
 import customtkinter as ctk
 from PIL import Image, ImageDraw
 from datetime import datetime
-from config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER
+from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER
 
 try:
     from tkcalendar import Calendar  # type: ignore[reportMissingImports]
@@ -189,7 +189,7 @@ def style_primary_button(button, font_size=14):
         font_size: Font size for button text (default: 14)
     """
     try:
-        from config.theme import ROUND_BTN
+        from pages.components.config.theme import ROUND_BTN
         button.configure(
             height=40,
             font=("Arial", font_size, "bold"),
@@ -211,7 +211,7 @@ def style_secondary_button(button, font_size=13):
         font_size: Font size for button text (default: 13)
     """
     try:
-        from config.theme import ROUND_BTN
+        from pages.components.config.theme import ROUND_BTN
         button.configure(
             height=40,
             font=("Arial", font_size, "bold"),
