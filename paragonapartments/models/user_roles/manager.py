@@ -1,10 +1,16 @@
-from email import header
 import customtkinter as ctk
 import pages.components.page_elements as pe
 import database_operations.repos.user_repository as user_repo
 import database_operations.repos.location_repository as location_repo
 import database_operations.repos.apartment_repository as apartment_repo
 from models.user import User
+from datetime import datetime
+from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BOX, ROUND_BTN, ROUND_INPUT
+
+try:
+    from tkcalendar import Calendar
+except Exception:
+    Calendar = None
 
 
 class Manager(User):
@@ -208,109 +214,167 @@ class Manager(User):
 
         container = pe.scrollable_container(parent=home_page)
 
-        # First row - 2 cards
+        # First row - Performance Reports at top (full width, finance-style)
         row1 = pe.row_container(parent=container)
-        
-        # Display how many appartments are occupied vs available for each location, with option to view graph of occupancy trends over time
-        self.load_occupancy_content(row1)
+        self.load_report_content(row1, side="top")
 
-        # Manage staff user accounts - create, edit, delete accounts with role and location assignment
-        self.load_account_content(row1)
-
-        # Second row - full width card
+        # Second row - Occupancy + Accounts
         row2 = pe.row_container(parent=container)
+        self.load_occupancy_content(row2)
+        self.load_account_content(row2)
 
-        # Display financial performance reports for each location and overall business
-        self.load_report_content(row2)
-
-        # Third row - full width card
+        # Third row - Expand Business
         row3 = pe.row_container(parent=container)
-        
-        # Allow manager to add new locations and apartments to expand the business
         self.load_business_expansion_content(row3)
 
     def load_occupancy_content(self, row):
-        occupancy_card = pe.function_card(row, "Apartment Occupancy", side="left")
-        
-        # Get all cities for dropdown
-        try:
-            cities = ['All Locations'] + location_repo.get_all_cities()
-        except Exception as e:
-            print(f"Error loading cities: {e}")
-            cities = ['All Locations']
-        
-        # Create dropdown
-        location_dropdown = ctk.CTkComboBox(
-            occupancy_card,
-            values=cities,
-            width=200,
-            font=("Arial", 14)
-        )
-        # Set default value to "All Locations"
-        location_dropdown.set("All Locations")
-        location_dropdown.pack(pady=10, padx=20)
-        
-        # Create result label (initially hidden)
-        result_label = ctk.CTkLabel(
-            occupancy_card,
-            text="",
-            font=("Arial", 16, "bold"),
-            text_color="#3B8ED0"
-        )
-        result_label.pack(pady=10, padx=20)
-        
-        # Function to update display
-        def update_occupancy_display(choice=None):
-            try:
-                location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
-                occupied_count = self.view_apartment_occupancy(location)
-                total_count = apartment_repo.get_total_apartments(location)
-                available_count = total_count - occupied_count
-                
-                if location == "all":
-                    result_label.configure(
-                        text=f"Occupied: {occupied_count} | Available: {available_count} | Total: {total_count}"
-                    )
-                else:
-                    result_label.configure(
-                        text=f"{location} - Occupied: {occupied_count} | Available: {available_count} | Total: {total_count}"
-                    )
-            except Exception as e:
-                result_label.configure(text=f"Error loading data: {str(e)}", text_color="red")
-        
-        update_occupancy_display()  # Auto-update when loading the page
-        location_dropdown.configure(command=update_occupancy_display)
+        occupancy_card = pe.function_card(row, "Apartment Occupancy", side="left", pady=6, padx=8)
 
-        # Create graph popup button
+        # Top info row: occupancy badge (left) + location selector (right) - match Performance Reports
+        info_row = ctk.CTkFrame(occupancy_card, fg_color="transparent")
+        info_row.pack(fill="x", pady=(0, 6))
+
+        occupancy_badge = pe.info_badge(info_row, "Total units: 0")
+
+        location_dropdown = pe.location_dropdown_with_label(info_row)
+
+        # Stat grid - match Performance Reports layout
+        stats = pe.stats_grid(occupancy_card)
+
+        occupied_value = pe.stat_card(stats, "Occupied")
+        available_value = pe.stat_card(stats, "Available")
+        total_value = pe.stat_card(stats, "Total")
+
+        def update_occupancy_display(choice=None):
+            location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
+            occupied_count = self.view_apartment_occupancy(location)
+            total_count = apartment_repo.get_total_apartments(location)
+            available_count = total_count - occupied_count
+
+            occupied_value.configure(text=str(occupied_count))
+            available_value.configure(text=str(available_count))
+            total_value.configure(text=str(total_count))
+            occupancy_badge.configure(text=f"Total units: {total_count}")
+
+        update_occupancy_display()
+        refresh_timer, schedule_refresh = pe.create_debounced_refresh(occupancy_card, update_occupancy_display)
+        location_dropdown.configure(command=schedule_refresh)
+
+        # Graph popup button - styled like finance
         button, open_popup_func = pe.popup_card(
             occupancy_card,
             title="Apartment Occupancy Graph",
-            button_text="Show Occupancy Graph",
+            button_text="View Graphs",
             small=False,
-            button_size="small"
+            button_size="medium"
         )
+        pe.style_primary_button(button)
+
+        def _selected_location(val):
+            return "all" if (val or "") == "All Locations" else (val or "all")
 
         def setup_graph_popup():
-            try:
-                content = open_popup_func()
-                location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
-                apartment_repo.create_occupancy_graph(content, location)
-            except Exception as e:
-                print(f"Error creating occupancy graph: {e}")
+            content = open_popup_func()
+            controls = ctk.CTkFrame(content, fg_color="transparent")
+            controls.pack(fill="x", padx=10, pady=(5, 10))
+
+            row_top = ctk.CTkFrame(controls, fg_color="transparent")
+            row_top.pack(fill="x")
+            ctk.CTkLabel(row_top, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
+            popup_cities = ["All Locations"] + location_repo.get_all_cities()
+            popup_location_dropdown = ctk.CTkComboBox(row_top, values=popup_cities, width=220, font=("Arial", 13))
+            popup_location_dropdown.set(location_dropdown.get() or "All Locations")
+            popup_location_dropdown.pack(side="left")
+            ctk.CTkLabel(row_top, text="Grouping:", font=("Arial", 14, "bold")).pack(side="left", padx=(18, 8))
+            grouping_dropdown = ctk.CTkComboBox(row_top, values=["Monthly", "Yearly"], width=140, font=("Arial", 13))
+            grouping_dropdown.set("Monthly")
+            grouping_dropdown.pack(side="left")
+
+            row_dates = ctk.CTkFrame(controls, fg_color="transparent")
+            row_dates.pack(fill="x", pady=(10, 0))
+            loc_for_defaults = _selected_location(popup_location_dropdown.get())
+            default_range = apartment_repo.get_lease_date_range(loc_for_defaults, grouping="month")
+            default_start, default_end = default_range.get("start_date", ""), default_range.get("end_date", "")
+
+            ctk.CTkLabel(row_dates, text="Start (YYYY-MM-DD):", font=("Arial", 13, "bold")).pack(side="left", padx=(0, 8))
+            start_wrap = ctk.CTkFrame(row_dates, fg_color="transparent")
+            start_wrap.pack(side="left")
+            start_entry = ctk.CTkEntry(start_wrap, width=140, font=("Arial", 13))
+            if default_start:
+                start_entry.insert(0, default_start)
+            start_entry.pack(side="left")
+            ctk.CTkLabel(row_dates, text="End (YYYY-MM-DD):", font=("Arial", 13, "bold")).pack(side="left", padx=(18, 8))
+            end_wrap = ctk.CTkFrame(row_dates, fg_color="transparent")
+            end_wrap.pack(side="left")
+            end_entry = ctk.CTkEntry(end_wrap, width=140, font=("Arial", 13))
+            if default_end:
+                end_entry.insert(0, default_end)
+            end_entry.pack(side="left")
+
+            ctk.CTkButton(start_wrap, text="📅", width=34, height=28, font=("Arial", 13),
+                         command=lambda: pe.open_date_picker(start_entry, content.winfo_toplevel()),
+                         fg_color=("gray80", "gray25"), hover_color=("gray70", "gray30")).pack(side="left", padx=(6, 0))
+            ctk.CTkButton(end_wrap, text="📅", width=34, height=28, font=("Arial", 13),
+                         command=lambda: pe.open_date_picker(end_entry, content.winfo_toplevel()),
+                         fg_color=("gray80", "gray25"), hover_color=("gray70", "gray30")).pack(side="left", padx=(6, 0))
+
+            def apply_grouping_defaults(gv):
+                gv = (gv or "").strip().lower()
+                g = "year" if gv.startswith("year") else "month"
+                rng = apartment_repo.get_lease_date_range(_selected_location(popup_location_dropdown.get()), grouping=g)
+                start_entry.delete(0, "end")
+                end_entry.delete(0, "end")
+                if rng.get("start_date"):
+                    start_entry.insert(0, rng["start_date"])
+                if rng.get("end_date"):
+                    end_entry.insert(0, rng["end_date"])
+
+            error_label = ctk.CTkLabel(content, text="", font=("Arial", 12), text_color="red", wraplength=900)
+            error_label.pack(fill="x", padx=10, pady=(0, 5))
+            graph_container = ctk.CTkFrame(content, fg_color="transparent")
+            graph_container.pack(fill="both", expand=True)
+
+            def render_graph():
+                for w in graph_container.winfo_children():
+                    try:
+                        w.destroy()
+                    except Exception:
+                        pass
+                try:
+                    loc = _selected_location(popup_location_dropdown.get())
+                    gv = (grouping_dropdown.get() or "Monthly").strip().lower()
+                    g = "year" if gv.startswith("year") else "month"
+                    apartment_repo.create_occupancy_trend_graph(
+                        graph_container, location=loc,
+                        start_date=start_entry.get().strip() or None,
+                        end_date=end_entry.get().strip() or None,
+                        grouping=g)
+                    error_label.configure(text="")
+                except Exception as e:
+                    error_label.configure(text=str(e))
+
+            refresh_btn = ctk.CTkButton(row_top, text="⟳ Refresh", command=render_graph, height=32, width=120,
+                                        fg_color=("gray70", "gray30"), hover_color=("gray60", "gray25"))
+            refresh_btn.pack(side="left", padx=(18, 0))
+            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, render_graph)
+            popup_location_dropdown.configure(command=schedule_refresh)
+            def on_grouping_change(choice=None):
+                apply_grouping_defaults(grouping_dropdown.get())
+                schedule_refresh(choice)
+            grouping_dropdown.configure(command=on_grouping_change)
+            render_graph()
 
         button.configure(command=setup_graph_popup)
 
     def load_account_content(self, row):
-        accounts_card = pe.function_card(row, "Manage Accounts", side="left")
+        accounts_card = pe.function_card(row, "Manage Accounts", side="left", pady=6, padx=8)
 
-        # Choose field for creating new account form 
-        # - username, role (dropdown), password, location (dropdown)
         try:
             location_options = ['None'] + location_repo.get_all_cities()
         except Exception as e:
             print(f"Error loading locations: {e}")
             location_options = ['None']
-            
+
         fields = [
             {'name': 'Username', 'type': 'text', 'required': True},
             {'name': 'Role', 'type': 'dropdown', 'options': ['Admin', 'Manager', 'Finance Manager', 'Frontdesk', 'Maintenance'], 'required': True},
@@ -318,21 +382,40 @@ class Manager(User):
             {'name': 'Location', 'type': 'dropdown', 'options': location_options, 'required': False}
         ]
 
-        # create form for creating new accounts with above fields
-        pe.form_element(accounts_card, fields, name="Create", submit_text="Create Account", on_submit=self.create_account, small=True)
-
-        # Create a popup with a button to edit existing accounts
-        button, open_popup_func = pe.popup_card(
-            accounts_card, 
-            button_text="Edit Accounts", 
-            title="Edit Accounts",
-            button_size="small"
+        pe.form_element(
+            accounts_card,
+            fields,
+            name="Create",
+            submit_text="Create Account",
+            on_submit=self.create_account,
+            small=True,
+            expand=False,
+            fill="x",
+            pady=(2, 2),
+            submit_button_height=40,
+            submit_button_font_size=13,
+            input_corner_radius=ROUND_INPUT,
+            submit_corner_radius=ROUND_BTN,
+            submit_fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
+            submit_hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
+            submit_text_color=("white", "white"),
         )
+
+        button, open_popup_func = pe.popup_card(
+            accounts_card,
+            button_text="Edit Accounts",
+            title="Edit Accounts",
+            small=False,
+            button_size="full"
+        )
+        pe.style_secondary_button(button)
 
         def setup_popup():
             content = open_popup_func()
 
-            # Define columns for user data table
+            header = ctk.CTkFrame(content, fg_color="transparent")
+            header.pack(fill="x", padx=10, pady=(5, 10))
+
             columns = [
                 {'name': 'ID', 'key': 'user_ID', 'width': 80, 'editable': False},
                 {'name': 'Username', 'key': 'username', 'width': 200},
@@ -340,7 +423,6 @@ class Manager(User):
                 {'name': 'Role', 'key': 'role', 'width': 150, 'format': 'dropdown', 'options': ['Admin', 'Manager', 'Finance Manager', 'Frontdesk', 'Maintenance']}
             ]
 
-            # Function to fetch user data for the table
             def get_data():
                 try:
                     return user_repo.get_all_users()
@@ -348,122 +430,218 @@ class Manager(User):
                     print(f"Error loading users: {e}")
                     return []
 
-            # Create editable and deletable data table for user accounts
-            pe.data_table(
-                content, 
-                columns, 
-                editable=True, 
+            _, refresh_table = pe.data_table(
+                content,
+                columns,
+                editable=True,
                 deletable=True,
                 refresh_data=get_data,
                 on_delete=self.delete_account,
                 on_update=self.edit_account,
+                show_refresh_button=False,
                 render_batch_size=20,
                 page_size=10,
-                scrollable=False
             )
 
-        # Set the button command to open the popup with the user accounts table
+            pe.create_refresh_button(header, refresh_table, padx=0)
+
         button.configure(command=setup_popup)
 
-    def load_report_content(self, row):
-        reports_card = pe.function_card(row, "Performance Reports", side="left")
+    def load_report_content(self, row, side="left"):
+        reports_card = pe.function_card(row, "Performance Reports", side=side, pady=6, padx=8)
 
-        # Get all cities for dropdown
-        try:
-            cities = ['All Locations'] + location_repo.get_all_cities()
-        except Exception as e:
-            print(f"Error loading cities: {e}")
-            cities = ['All Locations']        
-        # Create dropdown
-        location_dropdown = ctk.CTkComboBox(
-            reports_card,
-            values=cities,
-            width=200,
-            font=("Arial", 14)
-        )
-        # Set default value to "All Locations"
-        location_dropdown.set("All Locations")
-        location_dropdown.pack(pady=10, padx=20)
-        
-        # Create result label
-        result_label = ctk.CTkLabel(
-            reports_card,
-            text="",
-            font=("Arial", 16, "bold"),
-            text_color="#3B8ED0"
-        )
-        result_label.pack(pady=10, padx=20)
-        
-        # Function to update display
+        # Top info row: vacant badge (left) + location selector (right) - match finance layout
+        info_row = ctk.CTkFrame(reports_card, fg_color="transparent")
+        info_row.pack(fill="x", pady=(0, 6))
+
+        vacant_badge = pe.info_badge(info_row, "Vacant units: 0")
+        location_dropdown = pe.location_dropdown_with_label(info_row)
+
+        # Stat grid
+        stats = pe.stats_grid(reports_card)
+        actual_value = pe.stat_card(stats, "Actual Revenue", "£0.00")
+        lost_value = pe.stat_card(stats, "Lost Revenue", "£0.00")
+        potential_value = pe.stat_card(stats, "Potential Revenue", "£0.00")
+
         def update_performance_display(choice=None):
-            try:
-                location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
-                actual_revenue = apartment_repo.get_monthly_revenue(location)
-                potential_revenue = apartment_repo.get_potential_revenue(location)
-                lost_revenue = potential_revenue - actual_revenue
-                
-                # Format the revenue numbers
-                if location == "all":
-                    result_label.configure(
-                        text=f"Actual: £{actual_revenue:,.2f} | Lost: £{lost_revenue:,.2f} | Potential: £{potential_revenue:,.2f}"
-                    )
-                else:
-                    result_label.configure(
-                        text=f"{location} - Actual: £{actual_revenue:,.2f} | Lost: £{lost_revenue:,.2f} | Potential: £{potential_revenue:,.2f}"
-                    )
-            except Exception as e:
-                result_label.configure(text=f"Error loading revenue data: {str(e)}", text_color="red")
-        
-        update_performance_display()  # Auto-update when loading the page
-        location_dropdown.configure(command=update_performance_display)
+            location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
+            actual_revenue = apartment_repo.get_monthly_revenue(location)
+            potential_revenue = apartment_repo.get_potential_revenue(location)
+            lost_revenue = potential_revenue - actual_revenue
+            total = apartment_repo.get_total_apartments(location)
+            occupied = apartment_repo.get_all_occupancy(location)
+            vacant = total - occupied
 
-        # Create graph popup button
+            actual_value.configure(text=f"£{actual_revenue:,.2f}")
+            lost_value.configure(text=f"£{lost_revenue:,.2f}")
+            potential_value.configure(text=f"£{potential_revenue:,.2f}")
+            vacant_badge.configure(text=f"Vacant units: {vacant}")
+
+        update_performance_display()
+        refresh_timer, schedule_refresh = pe.create_debounced_refresh(reports_card, update_performance_display)
+        location_dropdown.configure(command=schedule_refresh)
+
         button, open_popup_func = pe.popup_card(
             reports_card,
             title="Performance Report Graph",
-            button_text="Show Performance Graph",
+            button_text="View Graphs",
             small=False,
-            button_size="small"
+            button_size="medium"
         )
+        pe.style_primary_button(button)
+
+        def _sel(val):
+            return "all" if (val or "") == "All Locations" else (val or "all")
 
         def setup_performance_graph_popup():
             content = open_popup_func()
-            location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
-            apartment_repo.create_performance_graph(content, location)
+            controls = ctk.CTkFrame(content, fg_color="transparent")
+            controls.pack(fill="x", padx=10, pady=(5, 10))
+            row_top = ctk.CTkFrame(controls, fg_color="transparent")
+            row_top.pack(fill="x")
+            ctk.CTkLabel(row_top, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
+            popup_cities = ["All Locations"] + location_repo.get_all_cities()
+            popup_location_dropdown = ctk.CTkComboBox(row_top, values=popup_cities, width=220, font=("Arial", 13))
+            popup_location_dropdown.set(location_dropdown.get() or "All Locations")
+            popup_location_dropdown.pack(side="left")
+            ctk.CTkLabel(row_top, text="Grouping:", font=("Arial", 14, "bold")).pack(side="left", padx=(18, 8))
+            grouping_dropdown = ctk.CTkComboBox(row_top, values=["Monthly", "Yearly"], width=140, font=("Arial", 13))
+            grouping_dropdown.set("Monthly")
+            grouping_dropdown.pack(side="left")
+
+            row_dates = ctk.CTkFrame(controls, fg_color="transparent")
+            row_dates.pack(fill="x", pady=(10, 0))
+            loc_def = _sel(popup_location_dropdown.get())
+            default_range = apartment_repo.get_lease_date_range(loc_def, grouping="month")
+            default_start, default_end = default_range.get("start_date", ""), default_range.get("end_date", "")
+
+            ctk.CTkLabel(row_dates, text="Start (YYYY-MM-DD):", font=("Arial", 13, "bold")).pack(side="left", padx=(0, 8))
+            start_wrap = ctk.CTkFrame(row_dates, fg_color="transparent")
+            start_wrap.pack(side="left")
+            start_entry = ctk.CTkEntry(start_wrap, width=140, font=("Arial", 13))
+            if default_start:
+                start_entry.insert(0, default_start)
+            start_entry.pack(side="left")
+            ctk.CTkLabel(row_dates, text="End (YYYY-MM-DD):", font=("Arial", 13, "bold")).pack(side="left", padx=(18, 8))
+            end_wrap = ctk.CTkFrame(row_dates, fg_color="transparent")
+            end_wrap.pack(side="left")
+            end_entry = ctk.CTkEntry(end_wrap, width=140, font=("Arial", 13))
+            if default_end:
+                end_entry.insert(0, default_end)
+            end_entry.pack(side="left")
+
+            ctk.CTkButton(start_wrap, text="📅", width=34, height=28, font=("Arial", 13),
+                         command=lambda: pe.open_date_picker(start_entry, content.winfo_toplevel()), fg_color=("gray80", "gray25"),
+                         hover_color=("gray70", "gray30")).pack(side="left", padx=(6, 0))
+            ctk.CTkButton(end_wrap, text="📅", width=34, height=28, font=("Arial", 13),
+                         command=lambda: pe.open_date_picker(end_entry, content.winfo_toplevel()), fg_color=("gray80", "gray25"),
+                         hover_color=("gray70", "gray30")).pack(side="left", padx=(6, 0))
+
+            def apply_grouping_defaults(gv):
+                g = "year" if (gv or "").strip().lower().startswith("year") else "month"
+                rng = apartment_repo.get_lease_date_range(_sel(popup_location_dropdown.get()), grouping=g)
+                start_entry.delete(0, "end")
+                end_entry.delete(0, "end")
+                if rng.get("start_date"):
+                    start_entry.insert(0, rng["start_date"])
+                if rng.get("end_date"):
+                    end_entry.insert(0, rng["end_date"])
+
+            error_label = ctk.CTkLabel(content, text="", font=("Arial", 12), text_color="red", wraplength=900)
+            error_label.pack(fill="x", padx=10, pady=(0, 5))
+            graph_container = ctk.CTkFrame(content, fg_color="transparent")
+            graph_container.pack(fill="both", expand=True)
+
+            def render_graph():
+                for w in graph_container.winfo_children():
+                    try:
+                        w.destroy()
+                    except Exception:
+                        pass
+                try:
+                    loc = _sel(popup_location_dropdown.get())
+                    gv = (grouping_dropdown.get() or "Monthly").strip().lower()
+                    g = "year" if gv.startswith("year") else "month"
+                    apartment_repo.create_revenue_trend_graph(
+                        graph_container, location=loc,
+                        start_date=start_entry.get().strip() or None,
+                        end_date=end_entry.get().strip() or None,
+                        grouping=g)
+                    error_label.configure(text="")
+                except Exception as e:
+                    error_label.configure(text=str(e))
+
+            refresh_btn = ctk.CTkButton(row_top, text="⟳ Refresh", command=render_graph, height=32, width=120,
+                                        fg_color=("gray70", "gray30"), hover_color=("gray60", "gray25"))
+            refresh_btn.pack(side="left", padx=(18, 0))
+            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, render_graph)
+            popup_location_dropdown.configure(command=schedule_refresh)
+            def on_grouping_change(choice=None):
+                apply_grouping_defaults(grouping_dropdown.get())
+                schedule_refresh(choice)
+            grouping_dropdown.configure(command=on_grouping_change)
+            render_graph()
 
         button.configure(command=setup_performance_graph_popup)
 
     def load_business_expansion_content(self, row):
-        expand_card = pe.function_card(row, "Expand Business", side="top")
+        expand_card = pe.function_card(row, "Expand Business", side="top", pady=6, padx=8)
 
-        # Define fields for adding a new location
-        fields = [
+        # Two-column layout: Locations (left) | Apartments (right)
+        main_row = ctk.CTkFrame(expand_card, fg_color="transparent")
+        main_row.pack(fill="both", expand=True)
+
+        left_col = ctk.CTkFrame(main_row, fg_color="transparent")
+        left_col.pack(side="left", fill="both", expand=True, padx=(0, 12))
+
+        right_col = ctk.CTkFrame(main_row, fg_color="transparent")
+        right_col.pack(side="left", fill="both", expand=True, padx=(12, 0))
+
+        # Left column: Add Location + Edit Locations
+        location_fields = [
             {'name': 'City', 'type': 'text', 'required': True},
             {'name': 'Address', 'type': 'text', 'required': True},
         ]
-
-        # Create form for adding new location with above fields
-        pe.form_element(expand_card, fields, name="Add Location", submit_text="Add", on_submit=self.expand_business, small=True)
-
-        # Create a popup to edit existing locations with a data table
-        button, open_popup_func = pe.popup_card(
-            expand_card, 
-            button_text="Edit Locations", 
-            title="Edit Locations",
-            button_size="small"
+        pe.form_element(
+            left_col,
+            location_fields,
+            name="Add Location",
+            submit_text="Add",
+            on_submit=self.expand_business,
+            small=True,
+            expand=False,
+            fill="x",
+            pady=(2, 2),
+            submit_button_height=40,
+            submit_button_font_size=13,
+            input_corner_radius=ROUND_INPUT,
+            submit_corner_radius=ROUND_BTN,
+            submit_fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
+            submit_hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
+            submit_text_color=("white", "white"),
         )
 
-        def setup_popup():
-            content = open_popup_func()
+        loc_btn, open_loc_popup = pe.popup_card(
+            left_col,
+            button_text="Edit Locations",
+            title="Edit Locations",
+            small=False,
+            button_size="full"
+        )
+        pe.style_secondary_button(loc_btn)
 
-            # Define columns for location data table
+        def setup_loc_popup():
+            content = open_loc_popup()
+
+            header = ctk.CTkFrame(content, fg_color="transparent")
+            header.pack(fill="x", padx=10, pady=(5, 10))
+
             columns = [
                 {'name': 'ID', 'key': 'location_ID', 'width': 80, 'editable': False},
                 {'name': 'City', 'key': 'city', 'width': 200},
                 {'name': 'Address', 'key': 'address', 'width': 200}
             ]
 
-            # Function to fetch location data for the table
             def get_data():
                 try:
                     return location_repo.get_all_locations()
@@ -471,65 +649,70 @@ class Manager(User):
                     print(f"Error loading locations: {e}")
                     return []
 
-            # Create editable and deletable data table for locations
-            pe.data_table(
-                content, 
-                columns, 
-                editable=True, 
+            _, refresh_table = pe.data_table(
+                content,
+                columns,
+                editable=True,
                 deletable=True,
                 refresh_data=get_data,
                 on_delete=self.delete_location,
                 on_update=self.edit_location,
-                page_size=9,
-                scrollable=False
+                show_refresh_button=False,
+                render_batch_size=20,
+                page_size=10,
             )
 
-        # Set the button command to open the popup with the locations table
-        button.configure(command=setup_popup)
+            pe.create_refresh_button(header, refresh_table, padx=0)
 
-        # Define fields for adding a new apartment
+        loc_btn.configure(command=setup_loc_popup)
+
         try:
             location_options = location_repo.get_all_cities()
         except Exception as e:
             print(f"Error loading locations: {e}")
             location_options = []
-            
-        fields = [
+
+        apartment_fields = [
             {'name': 'Location', 'type': 'dropdown', 'options': location_options, 'required': True},
             {'name': 'Apartment Address', 'type': 'text', 'required': True},
             {'name': 'Number of Beds', 'type': 'text', 'subtype': 'number', 'required': True},
             {'name': 'Monthly Rent', 'type': 'text', 'subtype': 'currency', 'required': True},
             {'name': 'Status', 'type': 'dropdown', 'options': ["Vacant", "Occupied"], 'required': True},
         ]
-
-        pe.form_element(expand_card, fields, name="Add Apartment", submit_text="Add", on_submit=self.add_apartment, small=True, field_per_row=5)
-
-        # Create a popup to edit existing apartments with a data table
-        button, open_popup_func = pe.popup_card(
-            expand_card, 
-            button_text="Edit Apartments", 
-            title="Edit Apartments",
-            button_size="small"
+        pe.form_element(
+            right_col,
+            apartment_fields,
+            name="Add Apartment",
+            submit_text="Add",
+            on_submit=self.add_apartment,
+            small=True,
+            field_per_row=2,
+            expand=False,
+            fill="x",
+            pady=(2, 2),
+            submit_button_height=40,
+            submit_button_font_size=13,
+            input_corner_radius=ROUND_INPUT,
+            submit_corner_radius=ROUND_BTN,
+            submit_fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
+            submit_hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
+            submit_text_color=("white", "white"),
         )
 
-        def setup_popup():
-            content = open_popup_func()
+        apt_btn, open_apt_popup = pe.popup_card(
+            right_col,
+            button_text="Edit Apartments",
+            title="Edit Apartments",
+            small=False,
+            button_size="full"
+        )
+        pe.style_secondary_button(apt_btn)
 
-            # Filter dropdown
-            header = ctk.CTkFrame(content, fg_color="transparent")
-            header.pack(fill="x", padx=10, pady=(5, 0))
+        def setup_apt_popup():
+            content = open_apt_popup()
 
-            try:
-                cities = ["All Locations"] + location_repo.get_all_cities()
-            except Exception as e:
-                print(f"Error loading cities: {e}")
-                cities = ["All Locations"]
-                
-            location_dropdown = ctk.CTkComboBox(header, values=cities, width=220, font=("Arial", 13))
-            location_dropdown.set("All Locations")
-            location_dropdown.pack(side="left")
+            header, location_dropdown = pe.create_popup_header_with_location(content)
 
-            # Define columns for apartment data table
             columns = [
                 {'name': 'ID', 'key': 'apartment_ID', 'width': 80, 'editable': False},
                 {'name': 'Location', 'key': 'city', 'width': 150, 'format': 'dropdown', 'options': location_options},
@@ -539,55 +722,36 @@ class Manager(User):
                 {'name': 'Status', 'key': 'status', 'width': 100, "format": "dropdown", 'options': ["Vacant", "Occupied"]}
             ]
 
-            # Function to fetch apartment data for the table
             def get_data():
                 try:
-                    location = location_dropdown.get()
-                    return apartment_repo.get_all_apartments(location=location)
+                    loc = location_dropdown.get()
+                    return apartment_repo.get_all_apartments(location=loc)
                 except Exception as e:
                     print(f"Error loading apartments: {e}")
                     return []
 
-            # Create editable and deletable data table for apartments
             _, refresh_table = pe.data_table(
-                content, 
-                columns, 
-                editable=True, 
+                content,
+                columns,
+                editable=True,
                 deletable=True,
                 refresh_data=get_data,
                 on_delete=self.delete_apartment,
                 on_update=self.edit_apartment,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=9,
-                scrollable=False
+                page_size=10,
             )
 
-            # Top refresh button next to the dropdown
-            ctk.CTkButton(
-                header,
-                text="⟳ Refresh",
-                command=refresh_table,
-                height=32,
-                width=120,
-                fg_color=("gray70", "gray30"),
-                hover_color=("gray60", "gray25")
-            ).pack(side="left", padx=(12, 0))
+            pe.create_refresh_button(header, refresh_table)
 
-            # Optional: auto-refresh when changing city
-            refresh_timer = {"id": None}
-            def schedule_refresh(_choice=None):
-                if refresh_timer["id"] is not None:
-                    try:
-                        content.after_cancel(refresh_timer["id"])
-                    except Exception:
-                        pass
+            def refresh_with_reset():
                 if hasattr(refresh_table, "reset_page"):
                     refresh_table.reset_page()
-                refresh_timer["id"] = content.after(150, refresh_table)
-
+                refresh_table()
+            
+            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, refresh_with_reset)
             location_dropdown.configure(command=schedule_refresh)
 
-        # Set the button command to open the popup with the apartments table
-        button.configure(command=setup_popup)
+        apt_btn.configure(command=setup_apt_popup)
 # ============================= ^ Homepage UI Content ^ =====================================
