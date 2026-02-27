@@ -490,3 +490,62 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
     refresh_table()
     
     return table_container, refresh_table
+
+
+def create_edit_popup_with_table(popup_content, columns, get_data_func, on_delete_func, 
+                                 on_update_func, include_location_filter=False):
+    """Create a standardized edit popup with header, optional location filter, and data table.
+    
+    This creates the common popup structure used across Manager, Administrator, 
+    and Finance Manager for editing records with a data table.
+    
+    Args:
+        popup_content: Parent container for the popup content
+        columns: List of column dictionaries for the data table
+        get_data_func: Function to fetch data (should handle location filtering if needed)
+        on_delete_func: Callback for delete operations
+        on_update_func: Callback for update operations
+        include_location_filter: Whether to include location dropdown filter (default: False)
+        
+    Returns:
+        dict with keys:
+            - 'header': Header frame
+            - 'location_dropdown': Location dropdown (if include_location_filter=True)
+            - 'table': Table container
+            - 'refresh_table': Function to refresh the table
+    """
+    # Header
+    header = ctk.CTkFrame(popup_content, fg_color="transparent")
+    header.pack(fill="x", padx=10, pady=(5, 10))
+    
+    # Optional location filter
+    location_dropdown = None
+    if include_location_filter:
+        from .ui_utilities import create_popup_header_with_location
+        header, location_dropdown = create_popup_header_with_location(popup_content)
+    
+    # Create data table
+    table, refresh_table = data_table(
+        popup_content,
+        columns,
+        editable=True,
+        deletable=True,
+        refresh_data=get_data_func,
+        on_delete=on_delete_func,
+        on_update=on_update_func,
+        show_refresh_button=False,
+        render_batch_size=20,
+        page_size=10,
+    )
+    
+    # Add refresh button to header
+    from .ui_utilities import create_refresh_button
+    create_refresh_button(header, refresh_table, padx=0)
+    
+    return {
+        'header': header,
+        'location_dropdown': location_dropdown,
+        'table': table,
+        'refresh_table': refresh_table
+    }
+

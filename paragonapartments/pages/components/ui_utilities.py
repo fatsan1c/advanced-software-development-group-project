@@ -351,3 +351,143 @@ def vertical_divider(parent, pady=5, padx=(0, 5)):
     separator = ctk.CTkFrame(parent, width=2, height=1, fg_color="gray35")
     separator.pack(fill="y", side="left", padx=padx, pady=pady)
     return separator
+
+
+# ============================= Graph Popup Components =============================
+def create_graph_popup_controls(content, include_location=True, default_location=None, 
+                                get_date_range_func=None, date_range_params=None):
+    """Create standardized graph popup controls (location, grouping, date range).
+    
+    This creates the common control panel structure used across Manager, Administrator, 
+    and Finance Manager graph popups with location selector, grouping dropdown, 
+    and date range inputs with date pickers.
+    
+    Args:
+        content: Parent container for the controls
+        include_location: Whether to include location dropdown (default: True)
+        default_location: Default location value (default: "All Locations")
+        get_date_range_func: Function to get default date range. Should accept 
+                            (location, grouping) and return dict with start_date/end_date
+        date_range_params: Additional params to pass to get_date_range_func (e.g., location)
+        
+    Returns:
+        dict with keys:
+            - 'controls': Main controls frame
+            - 'location_dropdown': Location dropdown widget (if include_location=True)
+            - 'grouping_dropdown': Grouping dropdown widget
+            - 'start_entry': Start date entry widget
+            - 'end_entry': End date entry widget
+            - 'error_label': Error message label
+            - 'graph_container': Container for the graph
+            - 'refresh_btn': Refresh button widget
+            - 'apply_grouping_defaults': Function to update dates based on grouping
+    """
+    import database_operations.repos.location_repository as location_repo
+    
+    # Controls container
+    controls = ctk.CTkFrame(content, fg_color="transparent")
+    controls.pack(fill="x", padx=10, pady=(5, 10))
+    
+    # Top row: location and grouping
+    row_top = ctk.CTkFrame(controls, fg_color="transparent")
+    row_top.pack(fill="x")
+    
+    # Location dropdown (optional)
+    popup_location_dropdown = None
+    if include_location:
+        ctk.CTkLabel(row_top, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
+        popup_cities = ["All Locations"] + location_repo.get_all_cities()
+        popup_location_dropdown = ctk.CTkComboBox(row_top, values=popup_cities, width=220, font=("Arial", 13))
+        popup_location_dropdown.set(default_location or "All Locations")
+        popup_location_dropdown.pack(side="left")
+    
+    # Grouping dropdown
+    label_padx = (18, 8) if include_location else (0, 8)
+    ctk.CTkLabel(row_top, text="Grouping:", font=("Arial", 14, "bold")).pack(side="left", padx=label_padx)
+    grouping_dropdown = ctk.CTkComboBox(row_top, values=["Monthly", "Yearly"], width=140, font=("Arial", 13))
+    grouping_dropdown.set("Monthly")
+    grouping_dropdown.pack(side="left")
+    
+    # Date range row
+    row_dates = ctk.CTkFrame(controls, fg_color="transparent")
+    row_dates.pack(fill="x", pady=(10, 0))
+    
+    # Get default date range if function provided
+    default_start = ""
+    default_end = ""
+    if get_date_range_func and date_range_params is not None:
+        try:
+            default_range = get_date_range_func(date_range_params, grouping="month")
+            default_start = default_range.get("start_date", "")
+            default_end = default_range.get("end_date", "")
+        except Exception as e:
+            print(f"Error getting default date range: {e}")
+    
+    # Start date
+    ctk.CTkLabel(row_dates, text="Start (YYYY-MM-DD):", font=("Arial", 13, "bold")).pack(side="left", padx=(0, 8))
+    start_wrap = ctk.CTkFrame(row_dates, fg_color="transparent")
+    start_wrap.pack(side="left")
+    start_entry = ctk.CTkEntry(start_wrap, width=140, font=("Arial", 13))
+    if default_start:
+        start_entry.insert(0, default_start)
+    start_entry.pack(side="left")
+    
+    # End date
+    ctk.CTkLabel(row_dates, text="End (YYYY-MM-DD):", font=("Arial", 13, "bold")).pack(side="left", padx=(18, 8))
+    end_wrap = ctk.CTkFrame(row_dates, fg_color="transparent")
+    end_wrap.pack(side="left")
+    end_entry = ctk.CTkEntry(end_wrap, width=140, font=("Arial", 13))
+    if default_end:
+        end_entry.insert(0, default_end)
+    end_entry.pack(side="left")
+    
+    # Date picker buttons
+    ctk.CTkButton(start_wrap, text="📅", width=34, height=28, font=("Arial", 13),
+                 command=lambda: open_date_picker(start_entry, content.winfo_toplevel()),
+                 fg_color=("gray80", "gray25"), hover_color=("gray70", "gray30")).pack(side="left", padx=(6, 0))
+    ctk.CTkButton(end_wrap, text="📅", width=34, height=28, font=("Arial", 13),
+                 command=lambda: open_date_picker(end_entry, content.winfo_toplevel()),
+                 fg_color=("gray80", "gray25"), hover_color=("gray70", "gray30")).pack(side="left", padx=(6, 0))
+    
+    # Function to apply grouping defaults
+    def apply_grouping_defaults(grouping_value):
+        """Update date range based on grouping selection."""
+        if not get_date_range_func or date_range_params is None:
+            return
+        gv = (grouping_value or "").strip().lower()
+        g = "year" if gv.startswith("year") else "month"
+        try:
+            rng = get_date_range_func(date_range_params, grouping=g)
+            start_entry.delete(0, "end")
+            end_entry.delete(0, "end")
+            if rng.get("start_date"):
+                start_entry.insert(0, rng["start_date"])
+            if rng.get("end_date"):
+                end_entry.insert(0, rng["end_date"])
+        except Exception as e:
+            print(f"Error applying grouping defaults: {e}")
+    
+    # Error label
+    error_label = ctk.CTkLabel(content, text="", font=("Arial", 12), text_color="red", wraplength=900)
+    error_label.pack(fill="x", padx=10, pady=(0, 5))
+    
+    # Graph container
+    graph_container = ctk.CTkFrame(content, fg_color="transparent")
+    graph_container.pack(fill="both", expand=True)
+    
+    # Refresh button (to be added to row_top by caller)
+    refresh_btn = ctk.CTkButton(row_top, text="⟳ Refresh", height=32, width=120,
+                                fg_color=("gray70", "gray30"), hover_color=("gray60", "gray25"))
+    refresh_btn.pack(side="left", padx=(18, 0))
+    
+    return {
+        'controls': controls,
+        'location_dropdown': popup_location_dropdown,
+        'grouping_dropdown': grouping_dropdown,
+        'start_entry': start_entry,
+        'end_entry': end_entry,
+        'error_label': error_label,
+        'graph_container': graph_container,
+        'refresh_btn': refresh_btn,
+        'apply_grouping_defaults': apply_grouping_defaults
+    }

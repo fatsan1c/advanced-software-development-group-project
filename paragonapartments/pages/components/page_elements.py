@@ -34,6 +34,7 @@ from .ui_utilities import (
     round_image_corners,
     content_separator,
     vertical_divider,
+    create_graph_popup_controls,
 )
 
 # Containers: layout and scrolling
@@ -57,11 +58,13 @@ from .ui_cards import (
 # Forms: form builder with validation
 from .ui_forms import (
     form_element,
+    styled_form_element,
 )
 
 # Tables: data tables with CRUD
 from .ui_tables import (
     data_table,
+    create_edit_popup_with_table,
 )
 
 # Export all for 'from page_elements import *'
@@ -77,6 +80,7 @@ __all__ = [
     'round_image_corners',
     'content_separator',
     'vertical_divider',
+    'create_graph_popup_controls',
     # Containers
     'content_container',
     'scrollable_container',
@@ -91,6 +95,8 @@ __all__ = [
     'stats_grid',
     # Forms
     'form_element',
+    'styled_form_element',
     # Tables
     'data_table',
+    'create_edit_popup_with_table',
 ]

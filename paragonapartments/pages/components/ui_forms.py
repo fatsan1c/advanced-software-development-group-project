@@ -296,3 +296,73 @@ def form_element(
     submit_button.pack(pady=(10, 5), padx=10, fill="x")
     
     return form, error_label
+
+
+def styled_form_element(
+    parent,
+    fields,
+    name="",
+    submit_text="Submit",
+    on_submit=None,
+    small=True,
+    field_per_row=2,
+    expand=False,
+    fill="x",
+    pady=(2, 2),
+    submit_button_height=40,
+    submit_button_font_size=13,
+    **kwargs
+):
+    """Create a form with standard theme styling applied.
+    
+    This is a convenience wrapper around form_element that applies consistent
+    styling used across Manager, Administrator, and Finance Manager dashboards.
+    
+    Args:
+        parent: The parent container
+        fields: List of field dictionaries (see form_element for details)
+        name: Form name/identifier
+        submit_text: Text for submit button
+        on_submit: Callback function
+        small: Use small sizing
+        field_per_row: Number of fields per row
+        expand: Whether to expand
+        fill: Fill direction
+        pady: Vertical padding
+        submit_button_height: Height of submit button
+        submit_button_font_size: Font size for submit button
+        **kwargs: Additional arguments passed to form_element
+        
+    Returns:
+        Tuple of (form_container, error_label)
+    """
+    from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BTN, ROUND_INPUT
+    
+    # Apply default styling if not overridden
+    default_kwargs = {
+        'input_corner_radius': ROUND_INPUT,
+        'submit_corner_radius': ROUND_BTN,
+        'submit_fg_color': (PRIMARY_BLUE, PRIMARY_BLUE),
+        'submit_hover_color': (PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
+        'submit_text_color': ("white", "white"),
+    }
+    
+    # Merge with any user-provided kwargs (user values take precedence)
+    final_kwargs = {**default_kwargs, **kwargs}
+    
+    return form_element(
+        parent=parent,
+        fields=fields,
+        name=name,
+        submit_text=submit_text,
+        on_submit=on_submit,
+        small=small,
+        field_per_row=field_per_row,
+        expand=expand,
+        fill=fill,
+        pady=pady,
+        submit_button_height=submit_button_height,
+        submit_button_font_size=submit_button_font_size,
+        **final_kwargs
+    )
+

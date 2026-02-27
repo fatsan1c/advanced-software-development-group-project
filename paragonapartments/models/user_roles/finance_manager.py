@@ -352,23 +352,13 @@ class FinanceManager(User):
             {"name": "Due Date", "type": "text", "subtype": "date", "placeholder": "Due Date (YYYY-MM-DD)", "required": True},
             {"name": "Issue Date", "type": "text", "subtype": "date", "placeholder": "Issue Date (YYYY-MM-DD)", "required": False},
         ]
-        pe.form_element(
+        pe.styled_form_element(
             invoices_card,
             fields,
             name="",
             submit_text="Create invoice",
             on_submit=self.create_invoice,
-            small=True,
-            expand=False,
-            fill="x",
-            pady=(2, 2),
-            submit_button_height=40,
             submit_button_font_size=15,
-            input_corner_radius=ROUND_INPUT,
-            submit_corner_radius=ROUND_BTN,
-            submit_fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
-            submit_hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
-            submit_text_color=("white", "white"),
         )
 
         # Edit invoices popup
@@ -443,23 +433,13 @@ class FinanceManager(User):
             {"name": "Amount", "type": "text", "subtype": "currency", "required": True},
             {"name": "Payment Date", "type": "text", "subtype": "date", "placeholder": "Payment Date (YYYY-MM-DD)", "required": False}
         ]
-        pe.form_element(
+        pe.styled_form_element(
             payments_card,
             fields,
             name="",
             submit_text="Record Payment",
             on_submit=self.record_payment,
-            small=True,
-            expand=False,
-            fill="x",
-            pady=(2, 2),
-            submit_button_height=40,
             submit_button_font_size=15,
-            input_corner_radius=ROUND_INPUT,
-            submit_corner_radius=ROUND_BTN,
-            submit_fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
-            submit_hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
-            submit_text_color=("white", "white"),
         )
 
         actions = ctk.CTkFrame(payments_card, fg_color="transparent")
@@ -639,7 +619,7 @@ class FinanceManager(User):
             {"name": "Amount", "type": "text", "subtype": "currency", "required": True},
             {"name": "Payment Date", "type": "text", "subtype": "date", "required": False}
         ]
-        pe.form_element(payment_card, fields, name="Payment", submit_text="Record Payment", on_submit=self.record_payment, small=True)
+        pe.styled_form_element(payment_card, fields, name="Payment", submit_text="Record Payment", on_submit=self.record_payment)
 
     def load_payments_table_content(self, row):
         payments_card = pe.function_card(row, "Payments", side="top")
