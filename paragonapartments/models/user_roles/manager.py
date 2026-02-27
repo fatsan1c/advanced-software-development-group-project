@@ -41,11 +41,6 @@ class Manager(User):
             print(f"Error retrieving occupancy data: {e}")
             return 0
 
-    # unused for now. May be used in future for more reports or graphs.
-    def generate_reports(self, location: str):
-        """Generate performance reports for a location."""
-        print("Generating performance report...")
-
     def create_account(self, values):
         """Create a new user account with specified role and location."""
         username = values.get('Username', '')
@@ -448,7 +443,7 @@ class Manager(User):
         button.configure(command=setup_popup)
 
     def load_report_content(self, row, side="left"):
-        reports_card = pe.function_card(row, "Performance Reports", side=side, pady=6, padx=8)
+        reports_card = pe.function_card(row, "Performance Report", side=side, pady=6, padx=8)
 
         # Top info row: vacant badge (left) + location selector (right) - match finance layout
         info_row = ctk.CTkFrame(reports_card, fg_color="transparent")
@@ -460,20 +455,20 @@ class Manager(User):
         # Stat grid
         stats = pe.stats_grid(reports_card)
         actual_value = pe.stat_card(stats, "Actual Revenue", "£0.00")
-        lost_value = pe.stat_card(stats, "Lost Revenue", "£0.00")
+        # lost_value = pe.stat_card(stats, "Lost Revenue", "£0.00")
         potential_value = pe.stat_card(stats, "Potential Revenue", "£0.00")
 
         def update_performance_display(choice=None):
             location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
             actual_revenue = apartment_repo.get_monthly_revenue(location)
             potential_revenue = apartment_repo.get_potential_revenue(location)
-            lost_revenue = potential_revenue - actual_revenue
+            # lost_revenue = potential_revenue - actual_revenue
             total = apartment_repo.get_total_apartments(location)
             occupied = apartment_repo.get_all_occupancy(location)
             vacant = total - occupied
 
             actual_value.configure(text=f"£{actual_revenue:,.2f}")
-            lost_value.configure(text=f"£{lost_revenue:,.2f}")
+            # lost_value.configure(text=f"£{lost_revenue:,.2f}")
             potential_value.configure(text=f"£{potential_revenue:,.2f}")
             vacant_badge.configure(text=f"Vacant units: {vacant}")
 

@@ -423,7 +423,7 @@ def create_revenue_trend_graph(parent, location=None, start_date=None, end_date=
     series_data = data.get("series") or []
     periods = [r.get("period", "") for r in series_data]
     actual = np.array([float(r.get("actual_revenue") or 0) for r in series_data], dtype=float)
-    lost = np.array([float(r.get("lost_revenue") or 0) for r in series_data], dtype=float)
+    potential = np.array([float(r.get("potential_revenue") or 0) for r in series_data], dtype=float)
     title_loc = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
     if not series_data:
         return create_trend_chart(parent, periods=[], series=[], title=f"Revenue Trends - {title_loc}",
@@ -433,7 +433,7 @@ def create_revenue_trend_graph(parent, location=None, start_date=None, end_date=
         periods=periods,
         series=[
             ("Actual Revenue", actual, ACCENT_GREEN),
-            ("Lost Revenue", lost, ACCENT_ORANGE),
+            ("Potential Revenue", potential, ACCENT_ORANGE),
         ],
         title=f"Revenue Trends - {title_loc}",
         y_label="Revenue (£)",
