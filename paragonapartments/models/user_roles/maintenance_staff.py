@@ -489,13 +489,13 @@ class MaintenanceStaff(User):
         dropdown_row = ctk.CTkFrame(dropdown_container, fg_color="transparent")
         dropdown_row.pack(fill="x", pady=(0, 8))
 
-        apartment_dropdown = ctk.CTkComboBox(
+        apartment_dropdown = ctk.CTkOptionMenu(
             dropdown_row,
             values=["Loading..."],
-            font=("Arial", 12),
-            state="readonly"
+            font=("Arial", 12)
         )
         apartment_dropdown.pack(side="left", fill="x", expand=True)
+        pe.style_secondary_dropdown(apartment_dropdown)
 
         apartment_map = {}
 

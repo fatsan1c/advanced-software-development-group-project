@@ -3,9 +3,10 @@ UI Utilities - Helper functions for dates, buttons, and common patterns.
 """
 
 import customtkinter as ctk
+from customtkinter import ThemeManager
 from PIL import Image, ImageDraw
 from datetime import datetime
-from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER
+from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BTN
 
 try:
     from tkcalendar import Calendar  # type: ignore[reportMissingImports]
@@ -189,7 +190,6 @@ def style_primary_button(button, font_size=14):
         font_size: Font size for button text (default: 14)
     """
     try:
-        from pages.components.config.theme import ROUND_BTN
         button.configure(
             height=40,
             font=("Arial", font_size, "bold"),
@@ -210,7 +210,6 @@ def style_accent_secondary_button(button, font_size=14):
         font_size: Font size for button text (default: 14)
     """
     try:
-        from pages.components.config.theme import ROUND_BTN
         button.configure(
             height=40,
             font=("Arial", font_size, "bold"),
@@ -231,7 +230,6 @@ def style_secondary_button(button, font_size=13):
         font_size: Font size for button text (default: 13)
     """
     try:
-        from pages.components.config.theme import ROUND_BTN
         button.configure(
             height=40,
             font=("Arial", font_size, "bold"),
@@ -244,6 +242,40 @@ def style_secondary_button(button, font_size=13):
     except Exception:
         pass
 
+def style_primary_dropdown(dropdown):
+    """
+    Apply primary dropdown styling.
+    
+    Args:
+        dropdown: CTkComboBox or CTkOptionMenu widget to style
+    """
+    try:
+        dropdown.configure(
+            corner_radius=ROUND_BTN,
+            fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
+            button_color=ThemeManager.theme["CTkOptionMenu"]["button_color"],
+            button_hover_color=ThemeManager.theme["CTkOptionMenu"]["button_hover_color"]
+        )
+    except Exception:
+        pass
+
+def style_secondary_dropdown(dropdown):
+    """
+    Apply secondary dropdown styling.
+    
+    Args:
+        dropdown: CtkComboBox or CtkOptionMenu widget to style
+    """
+    try:
+        dropdown.configure(
+            corner_radius=ROUND_BTN,
+            fg_color=("gray85", "gray25"),
+            button_color=ThemeManager.theme["CTkComboBox"]["button_color"],
+            button_hover_color=ThemeManager.theme["CTkComboBox"]["button_hover_color"],
+            text_color=("gray15", "gray92"),
+        )
+    except Exception:
+        pass
 
 # ============================= Common UI Patterns =============================
 def create_refresh_button(parent, command, side="left", padx=(12, 0)):
@@ -641,13 +673,13 @@ def create_dynamic_dropdown_with_refresh(parent, label, data_fetcher, display_fo
     ctk.CTkLabel(container, text=label, font=("Arial", 13, "bold")).pack(pady=(0, 5))
     
     # Dropdown
-    dropdown = ctk.CTkComboBox(
+    dropdown = ctk.CTkOptionMenu(
         container,
         values=["Loading..."],
-        font=("Arial", 12),
-        state="readonly"
+        font=("Arial", 12)
     )
     dropdown.pack(side="left", expand=True, fill="x", pady=0)
+    style_secondary_dropdown(dropdown)
     
     # Data map storage
     data_map = {}

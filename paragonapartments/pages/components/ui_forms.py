@@ -168,6 +168,7 @@ def form_element(
                 height=input_height,
                 font=("Arial", input_font_size)
             )
+            ui_utils.style_primary_dropdown(widget)
             
             if field_default and field_default in options:
                 widget.set(field_default)

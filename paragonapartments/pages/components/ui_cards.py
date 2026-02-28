@@ -13,6 +13,7 @@ This module provides card-style UI elements including:
 import customtkinter as ctk
 from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BOX, ROUND_INPUT
 import database_operations.repos.location_repository as location_repo
+import pages.components.ui_utilities as ui_utils
 
 
 def function_card(parent, title, side="left", anchor="nw", pady=10, padx=10):
@@ -266,7 +267,8 @@ def location_dropdown_with_label(parent, initial_value="All Locations", side="le
     location_dropdown = ctk.CTkComboBox(location_wrap, values=cities, width=240, font=("Arial", 13))
     location_dropdown.set(initial_value)
     location_dropdown.pack(side="left")
-    
+    ui_utils.style_secondary_dropdown(location_dropdown)
+
     return location_dropdown
 
 

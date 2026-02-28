@@ -38,6 +38,8 @@ from .ui_utilities import (
     create_graph_popup_controls,
     setup_complete_graph_popup,
     create_dynamic_dropdown_with_refresh,
+    style_primary_dropdown,
+    style_secondary_dropdown,
 )
 
 # Containers: layout and scrolling
@@ -77,6 +79,8 @@ __all__ = [
     'style_primary_button',
     'style_accent_secondary_button',
     'style_secondary_button',
+    'style_primary_dropdown',
+    'style_secondary_dropdown',
     'create_refresh_button',
     'create_debounced_refresh',
     'create_popup_header_with_location',
@@ -85,6 +89,8 @@ __all__ = [
     'vertical_divider',
     'create_graph_popup_controls',
     'style_accent_secondary_button',
+    'setup_complete_graph_popup',
+    'create_dynamic_dropdown_with_refresh',
     # Containers
     'content_container',
     'scrollable_container',
