@@ -88,12 +88,24 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
     table_container = ctk.CTkFrame(parent)
     table_container.pack(fill="both", expand=True, padx=10, pady=10)
     
+    # Error label (initially hidden)
+    error_label = ctk.CTkLabel(
+        table_container,
+        text="",
+        font=("Arial", 12),
+        text_color="red",
+        wraplength=600
+    )
+    
     # Store reference to content area for refreshing
     content_ref = {'content': None}
     pagination_ref = {"page": 1, "total_pages": 1}
     
     def refresh_table():
         """Refresh the table data"""
+        # Hide error label on refresh
+        error_label.pack_forget()
+        
         # Get fresh data if refresh callback provided
         current_data = refresh_data() if refresh_data else data or []
         total_rows = len(current_data)
@@ -279,6 +291,7 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                     on_update,
                     on_delete,
                     refresh_table,
+                    error_label,
                 )
 
             if end_idx < len(page_data):
@@ -292,7 +305,7 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
         else:
             for row_data in page_data:
                 create_row_widget(content, row_data, columns, editable, deletable,
-                                 on_update, on_delete, refresh_table)
+                                 on_update, on_delete, refresh_table, error_label)
             finalize_controls()
     
     # Expose pagination controls to callers (backwards-compatible)
@@ -307,7 +320,7 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
     refresh_table.reset_page = _reset_page  # type: ignore[attr-defined]
 
     def create_row_widget(parent_widget, row_data, cols, is_editable, is_deletable, 
-                         update_callback, delete_callback, refresh_callback):
+                         update_callback, delete_callback, refresh_callback, error_label):
         """Create a single row in the table"""
         row = ctk.CTkFrame(parent_widget, fg_color="transparent")
         row.pack(fill="x", padx=5, pady=2)
@@ -367,7 +380,7 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                     width=50,
                     height=28,
                     command=lambda: edit_row(row_data, cell_widgets, cols, 
-                                            update_callback, refresh_callback),
+                                            update_callback, refresh_callback, error_label),
                     fg_color=("gray70", "gray30"),
                     hover_color=("gray60", "gray25")
                 )
@@ -379,14 +392,16 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                     text="Delete",
                     width=60,
                     height=28,
-                    command=lambda: delete_row(row_data, delete_callback, refresh_callback),
+                    command=lambda: delete_row(row_data, delete_callback, refresh_callback, error_label),
                     fg_color=("red", "darkred"),
                     hover_color=("darkred", "red")
                 )
                 delete_btn.pack(side="left", padx=2)
     
-    def edit_row(row_data, cell_widgets, cols, update_callback, refresh_callback):
+    def edit_row(row_data, cell_widgets, cols, update_callback, refresh_callback, error_label):
         """Enable editing for a row"""
+        # Hide error label when starting edit
+        error_label.pack_forget()
         edit_data = {}
         
         # Convert labels to entries
@@ -474,7 +489,7 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                     entry.pack()
                     edit_data[col_key] = entry
         
-        # Change edit button to save
+        # Change edit button to save and delete button to cancel
         if cell_widgets:
             first_cell = list(cell_widgets.values())[0]
             button_frame = first_cell['label'].master.master
@@ -483,15 +498,25 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
             for widget in button_frame.winfo_children():
                 if isinstance(widget, ctk.CTkFrame):
                     for btn in widget.winfo_children():
-                        if isinstance(btn, ctk.CTkButton) and btn.cget("text") == "Edit":
-                            btn.configure(
-                                text="Save",
-                                command=lambda: save_row(row_data, edit_data, 
-                                                        update_callback, refresh_callback)
-                            )
+                        if isinstance(btn, ctk.CTkButton):
+                            if btn.cget("text") == "Edit":
+                                btn.configure(
+                                    text="Save",
+                                    command=lambda: save_row(row_data, edit_data, 
+                                                            update_callback, refresh_callback, error_label)
+                                )
+                            elif btn.cget("text") == "Delete":
+                                btn.configure(
+                                    text="Cancel",
+                                    command=lambda: refresh_callback(),
+                                    fg_color=("gray70", "gray30"),
+                                    hover_color=("gray60", "gray25")
+                                )
     
-    def save_row(row_data, edit_data, update_callback, refresh_callback):
+    def save_row(row_data, edit_data, update_callback, refresh_callback, error_label):
         """Save edited row data"""
+        # Hide error label before attempting save
+        error_label.pack_forget()
         # Handle both Entry and OptionMenu widgets, including value_map and boolean conversion
         updated_data = {}
         for key, item in edit_data.items():
@@ -521,17 +546,25 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
             if result is True:
                 refresh_callback()
             else:
-                # Show error (could be enhanced with error display)
-                print(f"Update failed: {result}")
+                # Show error in label
+                error_message = str(result) if result else "Update failed"
+                error_label.configure(text=f"Update failed: {error_message}")
+                error_label.pack(fill="x", padx=10, pady=(5, 0))
     
-    def delete_row(row_data, delete_callback, refresh_callback):
+    def delete_row(row_data, delete_callback, refresh_callback, error_label):
         """Delete a row"""
+        # Hide error label before attempting delete
+        error_label.pack_forget()
+        
         if delete_callback:
             result = delete_callback(row_data)
             if result is True:
                 refresh_callback()
             else:
-                print(f"Delete failed: {result}")
+                # Show error in label
+                error_message = str(result) if result else "Delete failed"
+                error_label.configure(text=f"Delete failed: {error_message}")
+                error_label.pack(fill="x", padx=10, pady=(5, 0))
     
     # Initial table load
     refresh_table()

@@ -265,8 +265,8 @@ class MaintenanceStaff(User):
                 {"name": "Apartment", "key": "apartment_address", "width": 100, "editable": False},
                 {"name": "City", "key": "city", "width": 70, "editable": False},
                 {"name": "Issue", "key": "issue_description", "width": 250},
-                {"name": "Priority", "key": "priority_level", "width": 65, "format": "number"},
-                {"name": "Reported", "key": "reported_date", "width": 80, "editable": False},
+                {"name": "Priority", "key": "priority_level", "width": 65, "format": "dropdown", "options": [1, 2, 3, 4, 5]},
+                {"name": "Reported", "key": "reported_date", "width": 80, "editable": False, "format": "date"},
                 {"name": "Scheduled", "key": "scheduled_date", "width": 80, "format": "date"},
             ]
 
@@ -624,7 +624,7 @@ class MaintenanceStaff(User):
 
             columns = [
                 {"name": "ID", "key": "request_ID", "width": 40, "editable": False},
-                {"name": "Scheduled", "key": "scheduled_date", "width": 80, "editable": False},
+                {"name": "Scheduled", "key": "scheduled_date", "width": 80, "editable": False, "format": "date"},
                 {"name": "Priority", "key": "priority_level", "width": 65, "editable": False},
                 {"name": "Tenant", "key": "tenant_name", "width": 140, "editable": False},
                 {"name": "Apartment", "key": "apartment_address", "width": 100, "editable": False},
@@ -719,8 +719,8 @@ class MaintenanceStaff(User):
                 {"name": "Apartment", "key": "apartment_address", "width": 90, "editable": False},
                 {"name": "City", "key": "city", "width": 60, "editable": False},
                 {"name": "Issue", "key": "issue_description", "width": 190},
-                {"name": "Priority", "key": "priority_level", "width": 60, "format": "number"},
-                {"name": "Reported", "key": "reported_date", "width": 70, "editable": False},
+                {"name": "Priority", "key": "priority_level", "width": 60, "format": "dropdown", "options": [1, 2, 3, 4, 5]},
+                {"name": "Reported", "key": "reported_date", "width": 70, "editable": False, "format": "date"},
                 {"name": "Scheduled", "key": "scheduled_date", "width": 80, "format": "date"},
                 {"name": "Done", "key": "completed", "width": 45, "format": "boolean"},
                 {"name": "Cost", "key": "cost", "width": 40, "format": "currency"},

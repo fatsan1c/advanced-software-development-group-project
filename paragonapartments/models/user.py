@@ -71,7 +71,7 @@ class User:
         # Display role and "Dashboard" in the center
         ctk.CTkLabel(
             top_content, 
-            text=self.role + " Dashboard",
+            text=self.role + " Dashboard" + (f" - {self.location}" if self.location else ""),
             font=("Arial", 24)
         ).place(relx=0.5, rely=0.5, anchor="center")
 

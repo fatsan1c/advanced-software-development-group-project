@@ -253,7 +253,7 @@ class FinanceManager(User):
 
             columns = [
                 {"name": "ID", "key": "invoice_ID", "width": 40, "editable": False},
-                {"name": "Tenant ID", "key": "tenant_ID", "width": 80},
+                {"name": "Tenant ID", "key": "tenant_ID", "width": 80, "format": "number"},
                 {"name": "Tenant", "key": "tenant_name", "width": 120, "editable": False},
                 {"name": "City", "key": "city", "width": 90, "editable": False},
                 {"name": "Amount", "key": "amount_due", "width": 80, "format": "currency"},
@@ -355,7 +355,7 @@ class FinanceManager(User):
                 {"name": "Invoice ID", "key": "invoice_ID", "width": 100, "editable": False},
                 {"name": "Tenant", "key": "tenant_name", "width": 220, "editable": False},
                 {"name": "City", "key": "city", "width": 160, "editable": False},
-                {"name": "Payment Date", "key": "payment_date", "width": 130, "editable": False},
+                {"name": "Payment Date", "key": "payment_date", "width": 130, "editable": False, "format": "date"},
                 {"name": "Amount", "key": "amount", "width": 120, "editable": False, "format": "currency"},
             ]
 
@@ -394,8 +394,8 @@ class FinanceManager(User):
                 {"name": "Tenant", "key": "tenant_name", "width": 220, "editable": False},
                 {"name": "City", "key": "city", "width": 160, "editable": False},
                 {"name": "Amount", "key": "amount_due", "width": 120, "editable": False, "format": "currency"},
-                {"name": "Due Date", "key": "due_date", "width": 120, "editable": False},
-                {"name": "Issue Date", "key": "issue_date", "width": 120, "editable": False}
+                {"name": "Due Date", "key": "due_date", "width": 120, "editable": False, "format": "date"},
+                {"name": "Issue Date", "key": "issue_date", "width": 120, "editable": False, "format": "date"},
             ]
 
             def get_data():
