@@ -348,8 +348,7 @@ class MaintenanceStaff(User):
             "Select Request:",
             fetch_requests,
             format_request,
-            "No pending requests",
-            400
+            "No pending requests"
         )
 
         # Form submission handler
@@ -383,18 +382,13 @@ class MaintenanceStaff(User):
             }
         ]
 
-        pe.styled_form_element(
+        pe.form_element(
             complete_card,
             fields,
             name="",
             submit_text="Mark Complete",
             on_submit=handle_submit,
-            small=True,
-            field_per_row=1,
-            expand=False,
-            fill="x",
-            pady=(0, 10),
-            submit_button_height=35
+            field_per_row=1
         )
 
     def load_schedule_request_content(self, row):
@@ -420,8 +414,7 @@ class MaintenanceStaff(User):
             "Select Request:",
             fetch_requests,
             format_request,
-            "No pending requests",
-            450
+            "No pending requests"
         )
 
         # Form submission handler
@@ -455,18 +448,13 @@ class MaintenanceStaff(User):
             }
         ]
 
-        pe.styled_form_element(
+        pe.form_element(
             schedule_card,
             fields,
             name="",
             submit_text="Schedule Request",
             on_submit=handle_submit,
-            small=True,
-            field_per_row=1,
-            expand=False,
-            fill="x",
-            pady=(0, 10),
-            submit_button_height=35
+            field_per_row=1
         )
 
     def load_create_request_content(self, row):
@@ -475,7 +463,7 @@ class MaintenanceStaff(User):
 
         # Container for dynamic dropdown and refresh button
         dropdown_container = ctk.CTkFrame(create_card, fg_color="transparent")
-        dropdown_container.pack(fill="x", padx=15, pady=(10, 0))
+        dropdown_container.pack(fill="x", padx=10, pady=(10, 0))
 
         # Define data fetcher and formatter for apartment dropdown
         def fetch_apartments():
@@ -595,18 +583,13 @@ class MaintenanceStaff(User):
             }
         ]
 
-        pe.styled_form_element(
+        pe.form_element(
             create_card,
             fields,
             name="",
             submit_text="Create Request",
             on_submit=handle_submit,
-            small=True,
-            field_per_row=2,
-            expand=False,
-            fill="x",
-            pady=(0, 10),
-            submit_button_height=35
+            field_per_row=2
         )
 
     def load_scheduled_maintenance_button(self, parent):
@@ -615,7 +598,6 @@ class MaintenanceStaff(User):
             parent,
             title="Upcoming Scheduled Maintenance",
             button_text="View Upcoming Schedule",
-            small=False,
             button_size="medium"
         )
         pe.style_accent_secondary_button(button)

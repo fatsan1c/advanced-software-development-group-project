@@ -227,13 +227,12 @@ class FinanceManager(User):
             {"name": "Due Date", "type": "text", "subtype": "date", "placeholder": "Due Date (YYYY-MM-DD)", "required": True},
             {"name": "Issue Date", "type": "text", "subtype": "date", "placeholder": "Issue Date (YYYY-MM-DD)", "required": False},
         ]
-        pe.styled_form_element(
+        pe.form_element(
             invoices_card,
             fields,
             name="",
             submit_text="Create invoice",
-            on_submit=self.create_invoice,
-            submit_button_font_size=15,
+            on_submit=self.create_invoice
         )
 
         # Edit invoices popup
@@ -308,13 +307,12 @@ class FinanceManager(User):
             {"name": "Amount", "type": "text", "subtype": "currency", "required": True},
             {"name": "Payment Date", "type": "text", "subtype": "date", "placeholder": "Payment Date (YYYY-MM-DD)", "required": False}
         ]
-        pe.styled_form_element(
+        pe.form_element(
             payments_card,
             fields,
             name="",
             submit_text="Record Payment",
-            on_submit=self.record_payment,
-            submit_button_font_size=15,
+            on_submit=self.record_payment
         )
 
         actions = ctk.CTkFrame(payments_card, fg_color="transparent")
@@ -428,129 +426,4 @@ class FinanceManager(User):
         pay_btn.configure(command=setup_payments_popup)
         late_btn.configure(command=setup_late_popup)
 
-    def load_late_payments_content(self, row):
-        late_card = pe.function_card(row, "Late Payments", side="left")
-
-        button, open_popup = pe.popup_card(
-            late_card,
-            title="Late / Unpaid Invoices",
-            button_text="View Late Invoices",
-            small=False,
-            button_size="medium"
-        )
-
-        def setup_popup():
-            content = open_popup()
-
-            header, location_dropdown = pe.create_popup_header_with_location(content)
-
-            columns = [
-                {"name": "ID", "key": "invoice_ID", "width": 80, "editable": False},
-                {"name": "Tenant", "key": "tenant_name", "width": 220, "editable": False},
-                {"name": "City", "key": "city", "width": 160, "editable": False},
-                {"name": "Amount", "key": "amount_due", "width": 120, "editable": False, "format": "currency"},
-                {"name": "Due Date", "key": "due_date", "width": 120, "editable": False},
-                {"name": "Issue Date", "key": "issue_date", "width": 120, "editable": False}
-            ]
-
-            def get_data():
-                try:
-                    location = self._selected_location(location_dropdown.get())
-                    return finance_repo.get_late_invoices(location)
-                except Exception as e:
-                    print(f"Error loading late invoices: {e}")
-                    return []
-
-            _, refresh_table = pe.data_table(
-                content,
-                columns,
-                editable=False,
-                deletable=False,
-                refresh_data=get_data,
-                show_refresh_button=False,
-                render_batch_size=20,
-                page_size=10,
-                scrollable=False
-            )
-
-            pe.create_refresh_button(header, refresh_table)
-
-            def refresh_with_reset():
-                if hasattr(refresh_table, "reset_page"):
-                    refresh_table.reset_page()
-                refresh_table()
-            
-            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, refresh_with_reset)
-            location_dropdown.configure(command=schedule_refresh)
-
-        button.configure(command=setup_popup)
-
-    def load_payment_content(self, row):
-        payment_card = pe.function_card(row, "Record Payment", side="left")
-
-        fields = [
-            {"name": "Invoice ID", "type": "text", "subtype": "number", "required": True},
-            {"name": "Tenant ID", "type": "text", "subtype": "number", "required": True},
-            {"name": "Amount", "type": "text", "subtype": "currency", "required": True},
-            {"name": "Payment Date", "type": "text", "subtype": "date", "required": False}
-        ]
-        pe.styled_form_element(payment_card, fields, name="Payment", submit_text="Record Payment", on_submit=self.record_payment)
-
-    def load_payments_table_content(self, row):
-        payments_card = pe.function_card(row, "Payments", side="top")
-
-        button, open_popup = pe.popup_card(
-            payments_card,
-            title="Payments",
-            button_text="View Payments",
-            small=False,
-            button_size="medium"
-        )
-
-        def setup_popup():
-            content = open_popup()
-
-            header, location_dropdown = pe.create_popup_header_with_location(content)
-
-            columns = [
-                {"name": "ID", "key": "payment_ID", "width": 80, "editable": False},
-                {"name": "Invoice ID", "key": "invoice_ID", "width": 100, "editable": False},
-                {"name": "Tenant", "key": "tenant_name", "width": 220, "editable": False},
-                {"name": "City", "key": "city", "width": 160, "editable": False},
-                {"name": "Payment Date", "key": "payment_date", "width": 130, "editable": False},
-                {"name": "Amount", "key": "amount", "width": 120, "editable": False, "format": "currency"},
-            ]
-
-            def get_data():
-                try:
-                    location = self._selected_location(location_dropdown.get())
-                    return finance_repo.get_payments(location)
-                except Exception as e:
-                    print(f"Error loading payments: {e}")
-                    return []
-
-            _, refresh_table = pe.data_table(
-                content,
-                columns,
-                editable=False,
-                deletable=False,
-                refresh_data=get_data,
-                show_refresh_button=False,
-                render_batch_size=20,
-                page_size=10,
-                scrollable=False
-            )
-
-            pe.create_refresh_button(header, refresh_table)
-
-            def refresh_with_reset():
-                # Reset to page 1 whenever filter changes
-                if hasattr(refresh_table, "reset_page"):
-                    refresh_table.reset_page()
-                refresh_table()
-            
-            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, refresh_with_reset)
-            location_dropdown.configure(command=schedule_refresh)
-
-        button.configure(command=setup_popup)
 # ============================= ^ Homepage UI Content ^ =====================================

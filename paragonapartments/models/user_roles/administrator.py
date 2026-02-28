@@ -230,10 +230,10 @@ class Administrator(User):
         ]
 
         # create form for creating new accounts with above fields
-        pe.styled_form_element(
+        pe.form_element(
             accounts_card,
             fields,
-            name="Create",
+            name="Create Account",
             submit_text="Create Account",
             on_submit=self.create_account,
         )
@@ -354,11 +354,11 @@ class Administrator(User):
             {'name': 'Status', 'type': 'dropdown', 'options': ["Vacant", "Occupied"], 'required': True},
         ]
 
-        pe.styled_form_element(
+        pe.form_element(
             apartment_card,
             fields,
             name="Add Apartment",
-            submit_text="Add",
+            submit_text="Add Apartment",
             on_submit=self.add_apartment,
             field_per_row=4,
         )

@@ -86,7 +86,7 @@ class User:
                 {'name': 'Old Password', 'type': 'text', 'subtype': 'password', 'required': True},
                 {'name': 'New Password', 'type': 'text', 'subtype': 'password', 'required': True},
             ]
-            pe.form_element(content, fields, name="Change Password", submit_text="Change Password", on_submit=self.change_password, small=True)
+            pe.form_element(content, fields, name="Change Password", submit_text="Change Password", on_submit=self.change_password)
 
         # Top-right account actions
         actions = ctk.CTkFrame(top_content, fg_color="transparent")

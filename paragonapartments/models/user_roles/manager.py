@@ -302,10 +302,10 @@ class Manager(User):
             {'name': 'Location', 'type': 'dropdown', 'options': location_options, 'required': False}
         ]
 
-        pe.styled_form_element(
+        pe.form_element(
             accounts_card,
             fields,
-            name="Create",
+            name="Create Account",
             submit_text="Create Account",
             on_submit=self.create_account,
         )
@@ -429,11 +429,11 @@ class Manager(User):
             {'name': 'City', 'type': 'text', 'required': True},
             {'name': 'Address', 'type': 'text', 'required': True},
         ]
-        pe.styled_form_element(
+        pe.form_element(
             left_col,
             location_fields,
             name="Add Location",
-            submit_text="Add",
+            submit_text="Add Location",
             on_submit=self.expand_business,
         )
 
@@ -485,11 +485,11 @@ class Manager(User):
             {'name': 'Monthly Rent', 'type': 'text', 'subtype': 'currency', 'required': True},
             {'name': 'Status', 'type': 'dropdown', 'options': ["Vacant", "Occupied"], 'required': True},
         ]
-        pe.styled_form_element(
+        pe.form_element(
             right_col,
             apartment_fields,
             name="Add Apartment",
-            submit_text="Add",
+            submit_text="Add Apartment",
             on_submit=self.add_apartment,
             field_per_row=2,
         )

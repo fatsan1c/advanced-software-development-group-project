@@ -61,7 +61,6 @@ from .ui_cards import (
 # Forms: form builder with validation
 from .ui_forms import (
     form_element,
-    styled_form_element,
 )
 
 # Tables: data tables with CRUD
@@ -100,7 +99,6 @@ __all__ = [
     'stats_grid',
     # Forms
     'form_element',
-    'styled_form_element',
     # Tables
     'data_table',
     'create_edit_popup_with_table',

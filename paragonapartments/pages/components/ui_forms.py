@@ -10,7 +10,7 @@ This module provides comprehensive form building functionality including:
 
 import customtkinter as ctk
 from datetime import datetime
-from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER
+from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BTN, ROUND_INPUT
 import pages.components.input_validation as input_validation
 import pages.components.ui_utilities as ui_utils
 
@@ -18,23 +18,12 @@ import pages.components.ui_utilities as ui_utils
 def form_element(
     parent,
     fields,
-    name,
+    name="",
     submit_text="Submit",
     on_submit=None,
-    pady=5,
-    field_per_row=2,
-    small=False,
-    expand: bool = True,
-    fill: str = "both",
-    submit_button_height: int | None = None,
-    submit_button_font_size: int | None = None,
-    submit_fg_color=None,
-    submit_hover_color=None,
-    submit_text_color=None,
-    input_corner_radius: int | None = None,
-    submit_corner_radius: int | None = None,
+    field_per_row=2
 ):
-    """Create a form with customizable fields and a submit button.
+    """Create a form with customizable fields and a submit button with theme styling.
     
     Args:
         parent: The parent container
@@ -46,17 +35,18 @@ def form_element(
             - 'default': Default value
             - 'required': Whether field is required (default: False)
             - 'small': Use smaller sizing for compact forms (default: False)
+        name: Form name/identifier (optional)
         submit_text: Text for the submit button
-        on_submit: Callback function that receives dict of {field_name: value} and error_label.
+        on_submit: Callback function that receives dict of {field_name: value}.
                    Callback should return True for success, or error message string for failure.
-        pady: Vertical padding between fields
         field_per_row: Number of fields per row (default: 2)
-        small: Use smaller sizing for compact forms (default: False)
+        submit_button_font_size: Font size for submit button (default: 13)
+        
     Returns:
         Tuple of (form_container, error_label) - use error_label to show custom errors
         
     Example:
-        def handle_submit(values, error_label):
+        def handle_submit(values):
             # Validation or processing
             if not values['Username']:
                 return "Username cannot be empty"
@@ -71,15 +61,16 @@ def form_element(
         ]
         form, error_label = form_element(parent, fields, submit_text="Create Account", on_submit=handle_submit)
     """
+    
     # Size settings based on small parameter
-    input_height = 28 if small else 35
-    input_font_size = 11 if small else 13
-    button_height = 32 if small else 40
-    button_font_size = 13 if small else 16
-    row_pady = 3 if small else 5
+    input_height = 28
+    input_font_size = 11
+    button_height = 40
+    button_font_size = 15
+    row_pady = 3
     
     form = ctk.CTkFrame(parent, fg_color="transparent")
-    form.pack(fill=fill, expand=expand, pady=pady)
+    form.pack(fill="x", expand=False, pady=5)
 
     if name:
         ctk.CTkLabel(
@@ -113,14 +104,12 @@ def form_element(
         
         # Create appropriate input widget
         if field_type == 'text':
-            final_input_corner_radius = int(input_corner_radius) if input_corner_radius else None
             entry_kwargs = {
                 "placeholder_text": field.get("placeholder", field_name),
                 "height": input_height,
                 "font": ("Arial", input_font_size),
+                "corner_radius": ROUND_INPUT,
             }
-            if final_input_corner_radius:
-                entry_kwargs["corner_radius"] = final_input_corner_radius
             widget = ctk.CTkEntry(field_frame, **entry_kwargs)
 
             if field_subtype == 'password':
@@ -143,7 +132,7 @@ def form_element(
                 # Recreate inside date_row instead of re-packing into a different parent.
                 # This avoids layout collapse where only the calendar icon appears.
                 widget.destroy()
-                entry_kwargs["width"] = 140 if small else 180
+                entry_kwargs["width"] = 140
                 widget = ctk.CTkEntry(date_row, **entry_kwargs)
                 vcmd = (widget.register(input_validation.validate_date_input), '%P')
                 widget.configure(validate="key", validatecommand=vcmd)
@@ -279,91 +268,17 @@ def form_element(
                             if options:
                                 widget.set(options[0])
     
-    final_button_height = int(submit_button_height) if submit_button_height else button_height
-    final_button_font_size = int(submit_button_font_size) if submit_button_font_size else button_font_size
-    final_submit_corner_radius = int(submit_corner_radius) if submit_corner_radius else 8
-
     submit_button = ctk.CTkButton(
         form,
         text=submit_text,
         command=handle_submit,
-        height=final_button_height,
-        font=("Arial", final_button_font_size, "bold"),
-        corner_radius=final_submit_corner_radius,
-        fg_color=submit_fg_color,
-        hover_color=submit_hover_color,
-        text_color=submit_text_color,
+        height=button_height,
+        font=("Arial", button_font_size, "bold"),
+        corner_radius=ROUND_BTN,
+        fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
+        hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
+        text_color=("white", "white"),
     )
     submit_button.pack(pady=(10, 5), padx=10, fill="x")
     
     return form, error_label
-
-
-def styled_form_element(
-    parent,
-    fields,
-    name="",
-    submit_text="Submit",
-    on_submit=None,
-    small=True,
-    field_per_row=2,
-    expand=False,
-    fill="x",
-    pady=(2, 2),
-    submit_button_height=40,
-    submit_button_font_size=13,
-    **kwargs
-):
-    """Create a form with standard theme styling applied.
-    
-    This is a convenience wrapper around form_element that applies consistent
-    styling used across Manager, Administrator, and Finance Manager dashboards.
-    
-    Args:
-        parent: The parent container
-        fields: List of field dictionaries (see form_element for details)
-        name: Form name/identifier
-        submit_text: Text for submit button
-        on_submit: Callback function
-        small: Use small sizing
-        field_per_row: Number of fields per row
-        expand: Whether to expand
-        fill: Fill direction
-        pady: Vertical padding
-        submit_button_height: Height of submit button
-        submit_button_font_size: Font size for submit button
-        **kwargs: Additional arguments passed to form_element
-        
-    Returns:
-        Tuple of (form_container, error_label)
-    """
-    from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BTN, ROUND_INPUT
-    
-    # Apply default styling if not overridden
-    default_kwargs = {
-        'input_corner_radius': ROUND_INPUT,
-        'submit_corner_radius': ROUND_BTN,
-        'submit_fg_color': (PRIMARY_BLUE, PRIMARY_BLUE),
-        'submit_hover_color': (PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
-        'submit_text_color': ("white", "white"),
-    }
-    
-    # Merge with any user-provided kwargs (user values take precedence)
-    final_kwargs = {**default_kwargs, **kwargs}
-    
-    return form_element(
-        parent=parent,
-        fields=fields,
-        name=name,
-        submit_text=submit_text,
-        on_submit=on_submit,
-        small=small,
-        field_per_row=field_per_row,
-        expand=expand,
-        fill=fill,
-        pady=pady,
-        submit_button_height=submit_button_height,
-        submit_button_font_size=submit_button_font_size,
-        **final_kwargs
-    )
-
