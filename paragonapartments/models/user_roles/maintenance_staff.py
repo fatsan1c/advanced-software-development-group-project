@@ -378,7 +378,8 @@ class MaintenanceStaff(User):
                 'name': 'Final Cost',
                 'type': 'text',
                 'subtype': 'currency',
-                'required': False
+                'required': False,
+                'placeholder': '£0.00'
             }
         ]
 
@@ -444,7 +445,8 @@ class MaintenanceStaff(User):
                 'name': 'Scheduled Date',
                 'type': 'text',
                 'subtype': 'date',
-                'required': True
+                'required': True,
+                'placeholder': 'YYYY-MM-DD'
             }
         ]
 
@@ -558,7 +560,7 @@ class MaintenanceStaff(User):
                 'name': 'Issue Description',
                 'type': 'text',
                 'required': True,
-                # 'placeholder': 'Describe the maintenance issue'
+                'placeholder': 'Describe the maintenance issue'
             },
             {
                 'name': 'Priority Level',
@@ -572,14 +574,14 @@ class MaintenanceStaff(User):
                 'type': 'text',
                 'subtype': 'currency',
                 'required': False,
-                # 'placeholder': '£0.00'
+                'placeholder': '£0.00'
             },
             {
                 'name': 'Scheduled Date',
                 'type': 'text',
                 'subtype': 'date',
                 'required': False,
-                # 'placeholder': 'YYYY-MM-DD'
+                'placeholder': 'YYYY-MM-DD'
             }
         ]
 
@@ -717,9 +719,9 @@ class MaintenanceStaff(User):
                 {"name": "ID", "key": "request_ID", "width": 20, "editable": False},
                 {"name": "Tenant", "key": "tenant_name", "width": 90, "editable": False},
                 {"name": "Apartment", "key": "apartment_address", "width": 90, "editable": False},
-                {"name": "City", "key": "city", "width": 60, "editable": False},
+                {"name": "City", "key": "city", "width": 50, "editable": False},
                 {"name": "Issue", "key": "issue_description", "width": 190},
-                {"name": "Priority", "key": "priority_level", "width": 60, "format": "dropdown", "options": [1, 2, 3, 4, 5]},
+                {"name": "Priority", "key": "priority_level", "width": 60, "format": "dropdown", "options": ["1", "2", "3", "4", "5"]},
                 {"name": "Reported", "key": "reported_date", "width": 70, "editable": False, "format": "date"},
                 {"name": "Scheduled", "key": "scheduled_date", "width": 80, "format": "date"},
                 {"name": "Done", "key": "completed", "width": 45, "format": "boolean"},

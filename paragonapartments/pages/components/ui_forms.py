@@ -35,6 +35,8 @@ def form_element(
             - 'default': Default value
             - 'required': Whether field is required (default: False)
             - 'small': Use smaller sizing for compact forms (default: False)
+            - 'placeholder': Placeholder text for text inputs
+            - 'show_label': Whether to show the field label (default: True)
         name: Form name/identifier (optional)
         submit_text: Text for the submit button
         on_submit: Callback function that receives dict of {field_name: value}.
@@ -76,7 +78,7 @@ def form_element(
         ctk.CTkLabel(
             form,
             text=name,
-            font=("Arial", 13),
+            font=("Arial", 13, "bold"),
             anchor="w"
         ).pack(padx=5, pady=0)
     
@@ -102,10 +104,18 @@ def form_element(
         field_frame = ctk.CTkFrame(current_row, fg_color="transparent")
         field_frame.pack(fill="x" if not small_field else None, padx=5, side="left", expand=not small_field)
         
+        if field.get('show_label', True):
+            ctk.CTkLabel(
+                field_frame,
+                text=field_name + ("*" if field_required else ""),
+                font=("Arial", input_font_size),
+                height=1
+                ).pack(anchor="w", pady=(0, 2), padx=(3,0))
+
         # Create appropriate input widget
         if field_type == 'text':
             entry_kwargs = {
-                "placeholder_text": field.get("placeholder", field_name),
+                "placeholder_text": field.get("placeholder", None),
                 "height": input_height,
                 "font": ("Arial", input_font_size),
                 "corner_radius": ROUND_INPUT,

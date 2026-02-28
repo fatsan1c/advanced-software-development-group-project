@@ -224,9 +224,9 @@ class Administrator(User):
         # Choose fields for creating new account form 
         # Only username, role, and password (location is fixed to administrator's location)
         fields = [
-            {'name': 'Username', 'type': 'text', 'required': True},
+            {'name': 'Username', 'type': 'text', 'required': True, 'placeholder': 'Unique username'},
             {'name': 'Role', 'type': 'dropdown', 'options': ['Admin', 'Frontdesk', 'Maintenance'], 'required': True},
-            {'name': 'Password', 'type': 'text', 'required': True}
+            {'name': 'Password', 'type': 'text', 'required': True, 'placeholder' : 'Secure password'}
         ]
 
         # create form for creating new accounts with above fields
@@ -348,9 +348,9 @@ class Administrator(User):
 
         # Define fields for adding a new apartment (location is fixed)
         fields = [
-            {'name': 'Apartment Address', 'type': 'text', 'required': True},
-            {'name': 'Number of Beds', 'type': 'text', 'subtype': 'number', 'required': True},
-            {'name': 'Monthly Rent', 'type': 'text', 'subtype': 'currency', 'required': True},
+            {'name': 'Apartment Address', 'type': 'text', 'required': True, 'placeholder' : 'Apartment 123'},
+            {'name': 'Number of Beds', 'type': 'text', 'subtype': 'number', 'required': True, 'placeholder': '0'},
+            {'name': 'Monthly Rent', 'type': 'text', 'subtype': 'currency', 'required': True, 'placeholder': '£0.00'},
             {'name': 'Status', 'type': 'dropdown', 'options': ["Vacant", "Occupied"], 'required': True},
         ]
 

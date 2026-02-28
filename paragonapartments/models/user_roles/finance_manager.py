@@ -223,9 +223,9 @@ class FinanceManager(User):
 
         fields = [
             {"name": "Tenant ID", "type": "text", "subtype": "number", "required": True},
-            {"name": "Amount Due", "type": "text", "subtype": "currency", "required": True},
-            {"name": "Due Date", "type": "text", "subtype": "date", "placeholder": "Due Date (YYYY-MM-DD)", "required": True},
-            {"name": "Issue Date", "type": "text", "subtype": "date", "placeholder": "Issue Date (YYYY-MM-DD)", "required": False},
+            {"name": "Amount Due", "type": "text", "subtype": "currency", "required": True, "placeholder": "£0.00"},
+            {"name": "Due Date", "type": "text", "subtype": "date", "placeholder": "YYYY-MM-DD", "required": True},
+            {"name": "Issue Date", "type": "text", "subtype": "date", "placeholder": "YYYY-MM-DD", "required": False},
         ]
         pe.form_element(
             invoices_card,
@@ -304,8 +304,8 @@ class FinanceManager(User):
         fields = [
             {"name": "Invoice ID", "type": "text", "subtype": "number", "required": True},
             {"name": "Tenant ID", "type": "text", "subtype": "number", "required": True},
-            {"name": "Amount", "type": "text", "subtype": "currency", "required": True},
-            {"name": "Payment Date", "type": "text", "subtype": "date", "placeholder": "Payment Date (YYYY-MM-DD)", "required": False}
+            {"name": "Amount", "type": "text", "subtype": "currency", "required": True, "placeholder": "£0.00"},
+            {"name": "Payment Date", "type": "text", "subtype": "date", "placeholder": "YYYY-MM-DD", "required": False}
         ]
         pe.form_element(
             payments_card,

@@ -49,7 +49,7 @@ class User:
 
     def change_password(self, values):
         """Change the user's password."""
-        old_password = values.get('Old Password', '')
+        old_password = values.get('Current Password', '')
         new_password = values.get('New Password', '')
 
         try:
@@ -83,8 +83,8 @@ class User:
 
             # Define the fields for changing password
             fields = [
-                {'name': 'Old Password', 'type': 'text', 'subtype': 'password', 'required': True},
-                {'name': 'New Password', 'type': 'text', 'subtype': 'password', 'required': True},
+                {'name': 'Current Password', 'type': 'text', 'subtype': 'password', 'required': True, 'placeholder': '• • • • • • • •'},
+                {'name': 'New Password', 'type': 'text', 'subtype': 'password', 'required': True, 'placeholder': '• • • • • • • •'},
             ]
             pe.form_element(content, fields, name="Change Password", submit_text="Change Password", on_submit=self.change_password)
 

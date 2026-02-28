@@ -296,9 +296,9 @@ class Manager(User):
             location_options = ['None']
 
         fields = [
-            {'name': 'Username', 'type': 'text', 'required': True},
+            {'name': 'Username', 'type': 'text', 'required': True, 'placeholder': 'Unique username'},
             {'name': 'Role', 'type': 'dropdown', 'options': ['Admin', 'Manager', 'Finance Manager', 'Frontdesk', 'Maintenance'], 'required': True},
-            {'name': 'Password', 'type': 'text', 'required': True},
+            {'name': 'Password', 'type': 'text', 'required': True, 'placeholder': 'Secure password'},
             {'name': 'Location', 'type': 'dropdown', 'options': location_options, 'required': False}
         ]
 
@@ -426,8 +426,8 @@ class Manager(User):
 
         # Left column: Add Location + Edit Locations
         location_fields = [
-            {'name': 'City', 'type': 'text', 'required': True},
-            {'name': 'Address', 'type': 'text', 'required': True},
+            {'name': 'City', 'type': 'text', 'required': True, 'placeholder': 'New city name'},
+            {'name': 'Address', 'type': 'text', 'required': True, 'placeholder': 'Full address'},
         ]
         pe.form_element(
             left_col,
@@ -480,9 +480,9 @@ class Manager(User):
 
         apartment_fields = [
             {'name': 'Location', 'type': 'dropdown', 'options': location_options, 'required': True},
-            {'name': 'Apartment Address', 'type': 'text', 'required': True},
-            {'name': 'Number of Beds', 'type': 'text', 'subtype': 'number', 'required': True},
-            {'name': 'Monthly Rent', 'type': 'text', 'subtype': 'currency', 'required': True},
+            {'name': 'Apartment Address', 'type': 'text', 'required': True, 'placeholder': 'Apartment 123'},
+            {'name': 'Number of Beds', 'type': 'text', 'subtype': 'number', 'required': True, 'placeholder': '0'},
+            {'name': 'Monthly Rent', 'type': 'text', 'subtype': 'currency', 'required': True, 'placeholder': '£0.00'},
             {'name': 'Status', 'type': 'dropdown', 'options': ["Vacant", "Occupied"], 'required': True},
         ]
         pe.form_element(
