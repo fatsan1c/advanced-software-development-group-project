@@ -18,7 +18,7 @@ class App(ctk.CTk):
         
         # Set window title and size
         self.title("Paragon Apartment Management Portal")
-        width = 1000
+        width = 1080
         height = 700
         self.geometry(self.calculate_centered_geometry(width, height))
 

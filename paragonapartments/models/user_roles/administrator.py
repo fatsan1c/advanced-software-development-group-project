@@ -106,10 +106,7 @@ class Administrator(User):
         apartment_address = values.get('apartment_address', '')
         number_of_beds = values.get('number_of_beds', 0)
         monthly_rent = values.get('monthly_rent', 0)
-        status = values.get('status', 'Vacant')
-
-        # Convert status to occupied flag
-        occupied = 1 if status.lower() == "occupied" else 0
+        occupied = values.get('occupied', 0)
 
         try:
             # Get location ID from administrator's location
@@ -415,7 +412,7 @@ class Administrator(User):
                 {'name': 'Address', 'key': 'apartment_address', 'width': 200},
                 {'name': 'Beds', 'key': 'number_of_beds', 'format': 'number', 'width': 80},
                 {'name': 'Monthly Rent', 'key': 'monthly_rent', 'format': 'currency', 'width': 120},
-                {'name': 'Status', 'key': 'status', 'width': 100, 'format': 'dropdown', 'options': ["Vacant", "Occupied"]}
+                {'name': 'Status', 'key': 'occupied', 'width': 100, 'format': 'boolean', 'options': ["Occupied", "Vacant"]}
             ]
 
             # Function to fetch apartment data for the table (filtered by location)

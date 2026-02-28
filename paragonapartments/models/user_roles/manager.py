@@ -176,10 +176,7 @@ class Manager(User):
         apartment_address = values.get('apartment_address', '')
         number_of_beds = values.get('number_of_beds', 0)
         monthly_rent = values.get('monthly_rent', 0)
-        status = values.get('status', 'Vacant')
-
-        # Convert status to occupied flag
-        occupied = 1 if status.lower() == "occupied" else 0
+        occupied = values.get('occupied', 0)
 
         try:
             # Get location ID from city name
@@ -270,10 +267,6 @@ class Manager(User):
 
         def setup_graph_popup():
             content = open_popup_func()
-            
-            # Use reusable graph popup controls component
-            def get_location_for_range():
-                return _selected_location(controls['location_dropdown'].get())
             
             controls = pe.create_graph_popup_controls(
                 content,
@@ -577,7 +570,7 @@ class Manager(User):
                 {'name': 'Address', 'key': 'apartment_address', 'width': 150},
                 {'name': 'Beds', 'key': 'number_of_beds', 'width': 80, "format": "number"},
                 {'name': 'Monthly Rent', 'key': 'monthly_rent', 'width': 120, "format": "currency"},
-                {'name': 'Status', 'key': 'status', 'width': 100, "format": "dropdown", 'options': ["Vacant", "Occupied"]}
+                {'name': 'Status', 'key': 'occupied', 'width': 100, "format": "boolean", 'options': ["Occupied", "Vacant"]},
             ]
 
             def get_data():

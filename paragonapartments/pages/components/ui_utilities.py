@@ -201,6 +201,26 @@ def style_primary_button(button, font_size=14):
     except Exception:
         pass
 
+def style_accent_secondary_button(button, font_size=14):
+    """
+    Apply accent secondary button styling (for secondary actions like "viewtable").
+    
+    Args:
+        button: CTkButton widget to style
+        font_size: Font size for button text (default: 14)
+    """
+    try:
+        from pages.components.config.theme import ROUND_BTN
+        button.configure(
+            height=40,
+            font=("Arial", font_size, "bold"),
+            corner_radius=ROUND_BTN,
+            fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
+            hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
+        )
+        button.pack_configure(pady=(4, 0))
+    except Exception:
+        pass
 
 def style_secondary_button(button, font_size=13):
     """

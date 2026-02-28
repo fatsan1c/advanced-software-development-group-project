@@ -255,7 +255,7 @@ def get_maintenance_stats(location: str | None = None):
     return execute_query(query, params, fetch_one=True)
 
 
-def get_scheduled_maintenance(location: str | None = None, date_from: str | None = None, date_to: str | None = None):
+def get_scheduled_maintenance(location: str | None = None, date_from: str | None = None):
     """
     Get scheduled maintenance requests within a date range.
 
@@ -290,10 +290,9 @@ def get_scheduled_maintenance(location: str | None = None, date_from: str | None
         WHERE mr.scheduled_date IS NOT NULL
           AND mr.completed = 0
           AND date(mr.scheduled_date) >= COALESCE(date(?), date('now'))
-          AND date(mr.scheduled_date) <= COALESCE(date(?), date('now', '+30 days'))
     """
 
-    params = [date_from, date_to]
+    params = [date_from]
     if city:
         query += " AND l.city = ?"
         params.append(city)

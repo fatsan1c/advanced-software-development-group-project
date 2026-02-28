@@ -31,8 +31,9 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
             - 'key': Data key for this column (required)
             - 'width': Column width in pixels (default: 150)
             - 'editable': Whether this column is editable (default: True if table editable)
-            - 'format': Optional format with validation - "text", "number", "currency", "date", "dropdown"
-            - 'options': List of options for dropdown format (required if format='dropdown')
+            - 'format': Optional format with validation - "text", "number", "currency", "date", "dropdown", "boolean"
+            - 'options': List of options for dropdown format, OR [true_label, false_label] for boolean format
+                        Boolean example: ['Active', 'Inactive'] automatically maps 1→Active, 0→Inactive
         data: List of dictionaries representing rows (optional, can be loaded later)
         editable: Enable edit functionality for rows
         deletable: Enable delete functionality for rows
@@ -70,6 +71,8 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
             {'name': 'Username', 'key': 'username', 'width': 200, 'format': 'text'},
             {'name': 'Status', 'key': 'status', 'width': 150, 'format': 'dropdown', 
              'options': ['Active', 'Inactive', 'Pending']},
+            {'name': 'Active', 'key': 'is_active', 'width': 120, 'format': 'boolean',
+             'options': ['Yes', 'No']},  # Display Yes/No, store as 1/0
             {'name': 'Balance', 'key': 'balance', 'width': 150, 'format': 'currency'},
             {'name': 'Age', 'key': 'age', 'width': 100, 'format': 'number'}
         ]
@@ -323,6 +326,13 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
             col_format = col.get("format")
             if col_format == "currency":
                 value = input_validation.format_currency_display(raw_value)
+            elif col_format == "boolean":
+                # Map 1/0 to display labels using options [true_label, false_label]
+                options = col.get('options', ['True', 'False'])
+                try:
+                    value = options[0] if int(raw_value) == 1 else options[1]
+                except (ValueError, TypeError, IndexError):
+                    value = str(raw_value)
             else:
                 # Default: apply prefix/suffix if specified
                 value = str(raw_value)
@@ -415,6 +425,27 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                     
                     dropdown.pack()
                     edit_data[col_key] = dropdown
+
+                elif col_format == "boolean":
+                    # For boolean, use dropdown with customizable labels from options [true_label, false_label]
+                    # Maps: options[0] → 1 (true), options[1] → 0 (false)
+                    options = col.get('options', ['True', 'False'])
+                    
+                    dropdown = ctk.CTkOptionMenu(
+                        label.master,
+                        values=options,
+                        width=col.get('width', 150),
+                        height=28,
+                        font=("Arial", 12)
+                    )
+                    # Current_value is already the display label (e.g., 'Active' or 'Inactive')
+                    if current_value in options:
+                        dropdown.set(current_value)
+                    else:
+                        dropdown.set(options[0])
+                    dropdown.pack()
+                    edit_data[col_key] = {'widget': dropdown, 'boolean_options': options}
+
                 else:
                     # Create entry widget with validation
                     entry = ctk.CTkEntry(
@@ -461,13 +492,29 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
     
     def save_row(row_data, edit_data, update_callback, refresh_callback):
         """Save edited row data"""
-        # Handle both Entry and OptionMenu widgets
+        # Handle both Entry and OptionMenu widgets, including value_map and boolean conversion
         updated_data = {}
-        for key, widget in edit_data.items():
-            if isinstance(widget, ctk.CTkOptionMenu):
-                updated_data[key] = widget.get()
+        for key, item in edit_data.items():
+            # Check if item is a dict with special handling
+            if isinstance(item, dict) and 'widget' in item:
+                widget = item['widget']
+                selected_label = widget.get()
+                
+                # Boolean format: Convert label back to 1/0
+                if 'boolean_options' in item:
+                    boolean_options = item['boolean_options']
+                    # First option (e.g., 'Active') → 1, second option (e.g., 'Inactive') → 0
+                    updated_data[key] = 1 if selected_label == boolean_options[0] else 0
+                # Dropdown with value_map: Convert label to database value
+                elif 'value_map' in item:
+                    value_map = item['value_map']
+                    updated_data[key] = value_map.get(selected_label, selected_label)
+                else:
+                    updated_data[key] = selected_label
+            elif isinstance(item, ctk.CTkOptionMenu):
+                updated_data[key] = item.get()
             else:  # CTkEntry
-                updated_data[key] = widget.get()
+                updated_data[key] = item.get()
         
         if update_callback:
             result = update_callback(row_data, updated_data)

@@ -27,6 +27,7 @@ from .ui_utilities import (
     parse_date_string,
     open_date_picker,
     style_primary_button,
+    style_accent_secondary_button,
     style_secondary_button,
     create_refresh_button,
     create_debounced_refresh,
@@ -73,6 +74,7 @@ __all__ = [
     'parse_date_string',
     'open_date_picker',
     'style_primary_button',
+    'style_accent_secondary_button',
     'style_secondary_button',
     'create_refresh_button',
     'create_debounced_refresh',
@@ -81,6 +83,7 @@ __all__ = [
     'content_separator',
     'vertical_divider',
     'create_graph_popup_controls',
+    'style_accent_secondary_button',
     # Containers
     'content_container',
     'scrollable_container',

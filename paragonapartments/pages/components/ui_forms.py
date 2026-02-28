@@ -150,8 +150,9 @@ def form_element(
                 widget.pack(side="left", fill="x", expand=True)
 
                 # Use centralized date picker from ui_utilities
-                def open_calendar():
-                    ui_utils.open_date_picker(widget, parent.winfo_toplevel())
+                # Capture widget by value using default argument to avoid closure issue
+                def open_calendar(target_widget=widget):
+                    ui_utils.open_date_picker(target_widget, parent.winfo_toplevel())
 
                 ctk.CTkButton(
                     date_row,

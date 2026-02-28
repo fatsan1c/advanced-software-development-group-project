@@ -463,8 +463,7 @@ def get_all_apartments(location="all"):
     """
     if location and location.lower() not in ["all locations", "all"]:
         query = """
-            SELECT a.apartment_ID, l.city, a.apartment_address, a.number_of_beds, a.monthly_rent, 
-                   CASE WHEN a.occupied = 1 THEN 'Occupied' ELSE 'Vacant' END AS status
+            SELECT a.apartment_ID, l.city, a.apartment_address, a.number_of_beds, a.monthly_rent, a.occupied
             FROM apartments a
             JOIN locations l ON a.location_ID = l.location_ID
             WHERE l.city = ?
@@ -473,8 +472,7 @@ def get_all_apartments(location="all"):
         return execute_query(query, (location,), fetch_all=True)
     else:
         query = """
-            SELECT a.apartment_ID, l.city, a.apartment_address, a.number_of_beds, a.monthly_rent, 
-                   CASE WHEN a.occupied = 1 THEN 'Occupied' ELSE 'Vacant' END AS status
+            SELECT a.apartment_ID, l.city, a.apartment_address, a.number_of_beds, a.monthly_rent, a.occupied
             FROM apartments a
             JOIN locations l ON a.location_ID = l.location_ID
             ORDER BY l.city, a.apartment_address

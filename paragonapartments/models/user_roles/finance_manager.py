@@ -385,7 +385,7 @@ class FinanceManager(User):
                 {"name": "Amount", "key": "amount_due", "width": 80, "format": "currency"},
                 {"name": "Due Date", "key": "due_date", "width": 100, "format": "date"},
                 {"name": "Issue Date", "key": "issue_date", "width": 100, "format": "date"},
-                {"name": "Paid (0/1)", "key": "paid", "width": 70},
+                {"name": "Paid", "key": "paid", "width": 70, "format": "boolean", "options": ["Paid", "Unpaid"]},
             ]
 
             def get_data():
