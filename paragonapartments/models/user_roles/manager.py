@@ -276,43 +276,13 @@ class Manager(User):
                 date_range_params=_selected_location(location_dropdown.get())
             )
             
-            def render_graph():
-                for w in controls['graph_container'].winfo_children():
-                    try:
-                        w.destroy()
-                    except Exception:
-                        pass
-                try:
-                    loc = _selected_location(controls['location_dropdown'].get())
-                    gv = (controls['grouping_dropdown'].get() or "Monthly").strip().lower()
-                    g = "year" if gv.startswith("year") else "month"
-                    apartment_repo.create_occupancy_trend_graph(
-                        controls['graph_container'], location=loc,
-                        start_date=controls['start_entry'].get().strip() or None,
-                        end_date=controls['end_entry'].get().strip() or None,
-                        grouping=g)
-                    controls['error_label'].configure(text="")
-                except Exception as e:
-                    controls['error_label'].configure(text=str(e))
-            
-            controls['refresh_btn'].configure(command=render_graph)
-            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, render_graph)
-            
-            def on_location_change(choice=None):
-                # Update date range when location changes
-                loc = _selected_location(controls['location_dropdown'].get())
-                gv = (controls['grouping_dropdown'].get() or "Monthly").strip().lower()
-                g = "year" if gv.startswith("year") else "month"
-                controls['apply_grouping_defaults'](controls['grouping_dropdown'].get())
-                schedule_refresh(choice)
-            
-            def on_grouping_change(choice=None):
-                controls['apply_grouping_defaults'](controls['grouping_dropdown'].get())
-                schedule_refresh(choice)
-            
-            controls['location_dropdown'].configure(command=on_location_change)
-            controls['grouping_dropdown'].configure(command=on_grouping_change)
-            render_graph()
+            # Setup complete graph with automatic rendering and event bindings
+            pe.setup_complete_graph_popup(
+                controls,
+                content,
+                apartment_repo.create_occupancy_trend_graph,
+                location_mapper=_selected_location
+            )
 
         button.configure(command=setup_graph_popup)
 
@@ -431,39 +401,13 @@ class Manager(User):
                 date_range_params=_sel(location_dropdown.get())
             )
             
-            def render_graph():
-                for w in controls['graph_container'].winfo_children():
-                    try:
-                        w.destroy()
-                    except Exception:
-                        pass
-                try:
-                    loc = _sel(controls['location_dropdown'].get())
-                    gv = (controls['grouping_dropdown'].get() or "Monthly").strip().lower()
-                    g = "year" if gv.startswith("year") else "month"
-                    apartment_repo.create_revenue_trend_graph(
-                        controls['graph_container'], location=loc,
-                        start_date=controls['start_entry'].get().strip() or None,
-                        end_date=controls['end_entry'].get().strip() or None,
-                        grouping=g)
-                    controls['error_label'].configure(text="")
-                except Exception as e:
-                    controls['error_label'].configure(text=str(e))
-            
-            controls['refresh_btn'].configure(command=render_graph)
-            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, render_graph)
-            
-            def on_location_change(choice=None):
-                controls['apply_grouping_defaults'](controls['grouping_dropdown'].get())
-                schedule_refresh(choice)
-            
-            def on_grouping_change(choice=None):
-                controls['apply_grouping_defaults'](controls['grouping_dropdown'].get())
-                schedule_refresh(choice)
-            
-            controls['location_dropdown'].configure(command=on_location_change)
-            controls['grouping_dropdown'].configure(command=on_grouping_change)
-            render_graph()
+            # Setup complete graph with automatic rendering and event bindings
+            pe.setup_complete_graph_popup(
+                controls,
+                content,
+                apartment_repo.create_revenue_trend_graph,
+                location_mapper=_sel
+            )
 
         button.configure(command=setup_performance_graph_popup)
 

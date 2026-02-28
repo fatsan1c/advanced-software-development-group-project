@@ -36,6 +36,8 @@ from .ui_utilities import (
     content_separator,
     vertical_divider,
     create_graph_popup_controls,
+    setup_complete_graph_popup,
+    create_dynamic_dropdown_with_refresh,
 )
 
 # Containers: layout and scrolling

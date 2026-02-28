@@ -330,54 +330,27 @@ class MaintenanceStaff(User):
         """Load complete maintenance request card with dropdown."""
         complete_card = pe.function_card(row, "Complete Request", side="left")
 
-        # Container for dynamic dropdown and refresh button
-        dropdown_container = ctk.CTkFrame(complete_card, fg_color="transparent")
-        dropdown_container.pack(fill="x", padx=15, pady=(10, 0))
-
-        # Request selection label
-        ctk.CTkLabel(
-            dropdown_container,
-            text="Select Request:",
-            font=("Arial", 13, "bold")
-        ).pack(pady=(0, 5))
-
-        request_dropdown = ctk.CTkComboBox(
-            dropdown_container,
-            values=["Loading..."],
-            width=400,
-            font=("Arial", 12),
-            state="readonly"
-        )
-        request_dropdown.pack(pady=(0, 8))
-
-        # Refresh button
-        def refresh_requests():
-            pending_requests = maintenance_repo.get_maintenance_requests(
+        # Define data fetcher and formatter for request dropdown
+        def fetch_requests():
+            return maintenance_repo.get_maintenance_requests(
                 location=self.location if self.location else "all",
                 completed=0
             )
 
-            if not pending_requests:
-                request_dropdown.configure(values=["No pending requests"])
-                request_dropdown.set("No pending requests")
-                request_map.clear()
-                return
+        def format_request(req):
+            issue_short = req['issue_description'][:40] + "..." if len(req['issue_description']) > 40 else req['issue_description']
+            display = f"ID {req['request_ID']}: {issue_short} - {req['tenant_name']} (P{req['priority_level']})"
+            return (display, req['request_ID'])
 
-            request_options = []
-            request_map.clear()
-            for req in pending_requests:
-                issue_short = req['issue_description'][:40] + "..." if len(req['issue_description']) > 40 else req['issue_description']
-                display = f"ID {req['request_ID']}: {issue_short} - {req['tenant_name']} (P{req['priority_level']})"
-                request_options.append(display)
-                request_map[display] = req['request_ID']
-
-            request_dropdown.configure(values=request_options)
-            request_dropdown.set(request_options[0])
-
-        request_map = {}
-
-        refresh_btn = pe.create_refresh_button(dropdown_container, refresh_requests, side=None, padx=0)
-        refresh_btn.pack(pady=(0, 5))
+        # Create dynamic dropdown with refresh functionality
+        request_dropdown, request_map, refresh_requests = pe.create_dynamic_dropdown_with_refresh(
+            complete_card,
+            "Select Request:",
+            fetch_requests,
+            format_request,
+            "No pending requests",
+            400
+        )
 
         # Form submission handler
         def handle_submit(values):
@@ -424,62 +397,32 @@ class MaintenanceStaff(User):
             submit_button_height=35
         )
 
-        # Initial load
-        refresh_requests()
-
     def load_schedule_request_content(self, row):
         """Load schedule maintenance request card with dropdown."""
         schedule_card = pe.function_card(row, "Schedule Request", side="left")
 
-        # Container for dynamic dropdown and refresh button
-        dropdown_container = ctk.CTkFrame(schedule_card, fg_color="transparent")
-        dropdown_container.pack(fill="x", padx=15, pady=(10, 0))
-
-        # Request selection label
-        ctk.CTkLabel(
-            dropdown_container,
-            text="Select Request:",
-            font=("Arial", 13, "bold")
-        ).pack(pady=(0, 5))
-
-        request_dropdown = ctk.CTkComboBox(
-            dropdown_container,
-            values=["Loading..."],
-            width=450,
-            font=("Arial", 12),
-            state="readonly"
-        )
-        request_dropdown.pack(pady=(0, 8))
-
-        # Refresh button
-        def refresh_requests():
-            all_pending = maintenance_repo.get_maintenance_requests(
+        # Define data fetcher and formatter for request dropdown
+        def fetch_requests():
+            return maintenance_repo.get_maintenance_requests(
                 location=self.location if self.location else "all",
                 completed=0
             )
 
-            if not all_pending:
-                request_dropdown.configure(values=["No pending requests"])
-                request_dropdown.set("No pending requests")
-                request_map.clear()
-                return
+        def format_request(req):
+            issue_short = req['issue_description'][:30] + "..." if len(req['issue_description']) > 30 else req['issue_description']
+            scheduled_status = f"[Scheduled: {req['scheduled_date']}]" if req['scheduled_date'] else "[Not Scheduled]"
+            display = f"ID {req['request_ID']}: {issue_short} - {req['tenant_name']} (P{req['priority_level']}) {scheduled_status}"
+            return (display, req['request_ID'])
 
-            request_options = []
-            request_map.clear()
-            for req in all_pending:
-                issue_short = req['issue_description'][:30] + "..." if len(req['issue_description']) > 30 else req['issue_description']
-                scheduled_status = f"[Scheduled: {req['scheduled_date']}]" if req['scheduled_date'] else "[Not Scheduled]"
-                display = f"ID {req['request_ID']}: {issue_short} - {req['tenant_name']} (P{req['priority_level']}) {scheduled_status}"
-                request_options.append(display)
-                request_map[display] = req['request_ID']
-
-            request_dropdown.configure(values=request_options)
-            request_dropdown.set(request_options[0])
-
-        request_map = {}
-
-        refresh_btn = pe.create_refresh_button(dropdown_container, refresh_requests, side=None, padx=0)
-        refresh_btn.pack(pady=(0, 5))
+        # Create dynamic dropdown with refresh functionality
+        request_dropdown, request_map, refresh_requests = pe.create_dynamic_dropdown_with_refresh(
+            schedule_card,
+            "Select Request:",
+            fetch_requests,
+            format_request,
+            "No pending requests",
+            450
+        )
 
         # Form submission handler
         def handle_submit(values):
@@ -526,9 +469,6 @@ class MaintenanceStaff(User):
             submit_button_height=35
         )
 
-        # Initial load
-        refresh_requests()
-
     def load_create_request_content(self, row):
         """Load create new maintenance request card with apartment dropdown."""
         create_card = pe.function_card(row, "Create Request", side="left")
@@ -537,24 +477,42 @@ class MaintenanceStaff(User):
         dropdown_container = ctk.CTkFrame(create_card, fg_color="transparent")
         dropdown_container.pack(fill="x", padx=15, pady=(10, 0))
 
-        # Apartment selection label
+        # Define data fetcher and formatter for apartment dropdown
+        def fetch_apartments():
+            return maintenance_repo.get_apartments_with_tenants(self.location)
+
+        def format_apartment(apt):
+            display = f"{apt['apartment_address']} - {apt['tenant_name']} ({apt['city']})"
+            value = {
+                'apartment_id': apt['apartment_ID'],
+                'tenant_id': apt['tenant_ID']
+            }
+            return (display, value)
+
+        # Create dynamic dropdown with refresh functionality (with custom refresh button position)
+        # First create label
         ctk.CTkLabel(
             dropdown_container,
             text="Select Apartment:",
             font=("Arial", 13, "bold")
         ).pack(pady=(0, 5))
 
+        # Create a horizontal container for dropdown and refresh button
+        dropdown_row = ctk.CTkFrame(dropdown_container, fg_color="transparent")
+        dropdown_row.pack(fill="x", pady=(0, 8))
+
         apartment_dropdown = ctk.CTkComboBox(
-            dropdown_container,
+            dropdown_row,
             values=["Loading..."],
             font=("Arial", 12),
             state="readonly"
         )
-        apartment_dropdown.pack(side="left", fill="x", expand=True, pady=(0, 8))
+        apartment_dropdown.pack(side="left", fill="x", expand=True)
 
-        # Refresh button
+        apartment_map = {}
+
         def refresh_apartments():
-            apartments = maintenance_repo.get_apartments_with_tenants(self.location)
+            apartments = fetch_apartments()
             
             if not apartments:
                 apartment_dropdown.configure(values=["No apartments with active leases"])
@@ -565,20 +523,17 @@ class MaintenanceStaff(User):
             apartment_options = []
             apartment_map.clear()
             for apt in apartments:
-                display = f"{apt['apartment_address']} - {apt['tenant_name']} ({apt['city']})"
+                display, value = format_apartment(apt)
                 apartment_options.append(display)
-                apartment_map[display] = {
-                    'apartment_id': apt['apartment_ID'],
-                    'tenant_id': apt['tenant_ID']
-                }
+                apartment_map[display] = value
 
             apartment_dropdown.configure(values=apartment_options)
             apartment_dropdown.set(apartment_options[0])
 
-        apartment_map = {}
+        refresh_btn = pe.create_refresh_button(dropdown_row, refresh_apartments, side="left", padx=(10, 0))
 
-        refresh_btn = pe.create_refresh_button(dropdown_container, refresh_apartments, side="left", padx=(10, 0))
-        refresh_btn.pack(pady=(0, 8))
+        # Initial load
+        refresh_apartments()
 
         # Form submission handler
         def handle_submit(values):
@@ -653,9 +608,6 @@ class MaintenanceStaff(User):
             pady=(0, 10),
             submit_button_height=35
         )
-
-        # Initial load
-        refresh_apartments()
 
     def load_scheduled_maintenance_button(self, parent):
         """Load upcoming scheduled maintenance card."""

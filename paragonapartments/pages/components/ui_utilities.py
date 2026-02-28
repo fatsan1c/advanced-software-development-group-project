@@ -489,7 +489,6 @@ def create_graph_popup_controls(content, include_location=True, default_location
     
     # Error label
     error_label = ctk.CTkLabel(content, text="", font=("Arial", 12), text_color="red", wraplength=900)
-    error_label.pack(fill="x", padx=10, pady=(0, 5))
     
     # Graph container
     graph_container = ctk.CTkFrame(content, fg_color="transparent")
@@ -511,3 +510,177 @@ def create_graph_popup_controls(content, include_location=True, default_location
         'refresh_btn': refresh_btn,
         'apply_grouping_defaults': apply_grouping_defaults
     }
+
+
+def setup_complete_graph_popup(controls, content, graph_function, location_mapper=None):
+    """Set up complete graph popup with render function, bindings, and auto-refresh.
+    
+    This handles the common graph rendering logic used across all graph popups,
+    including error handling, debounced refresh, and event bindings.
+    
+    Args:
+        controls: Dict returned from create_graph_popup_controls
+        content: Parent content widget for debounced refresh
+        graph_function: Function to create the graph. Should accept (container, location, start_date, end_date, grouping)
+        location_mapper: Optional function to map location dropdown value to location parameter
+        
+    Example:
+        controls = pe.create_graph_popup_controls(content, ...)
+        pe.setup_complete_graph_popup(
+            controls, content,
+            graph_function=finance_repo.create_collected_trend_graph,
+            location_mapper=lambda val: "all" if val == "All Locations" else val
+        )
+    """
+    location_dropdown = controls['location_dropdown']
+    grouping_dropdown = controls['grouping_dropdown']
+    start_entry = controls['start_entry']
+    end_entry = controls['end_entry']
+    error_label = controls['error_label']
+    graph_container = controls['graph_container']
+    refresh_btn = controls['refresh_btn']
+    apply_grouping_defaults = controls['apply_grouping_defaults']
+    
+    def render_graph():
+        # Clear previous graph widgets/canvases
+        for w in graph_container.winfo_children():
+            try:
+                w.destroy()
+            except Exception:
+                pass
+        
+        try:
+            # Get parameters
+            if location_dropdown is not None:
+                location = location_dropdown.get()
+                if location_mapper:
+                    location = location_mapper(location)
+            else:
+                location = None
+            
+            start_date = start_entry.get().strip() or None
+            end_date = end_entry.get().strip() or None
+            
+            grouping_value = (grouping_dropdown.get() or "Monthly").strip().lower()
+            grouping = "year" if grouping_value.startswith("year") else "month"
+            
+            # Call graph function
+            if location is not None:
+                graph_function(graph_container, location=location, start_date=start_date, 
+                             end_date=end_date, grouping=grouping)
+            else:
+                graph_function(graph_container, start_date=start_date, 
+                             end_date=end_date, grouping=grouping)
+            
+            error_label.pack_forget()
+        except Exception as e:
+            error_label.configure(text=str(e))
+            error_label.pack(fill="x", padx=10, pady=(0, 5), before=graph_container)
+    
+    # Set up refresh button
+    refresh_btn.configure(command=render_graph)
+    
+    # Auto-refresh with debounce
+    refresh_timer, schedule_refresh = create_debounced_refresh(content, render_graph)
+    
+    # Bind location dropdown if present
+    if location_dropdown is not None:
+        location_dropdown.configure(command=schedule_refresh)
+    
+    # Bind grouping dropdown with defaults update
+    def on_grouping_change(choice=None):
+        apply_grouping_defaults(grouping_dropdown.get())
+        schedule_refresh(choice)
+    grouping_dropdown.configure(command=on_grouping_change)
+    
+    # Bind date entries to refresh on Enter or focus out
+    start_entry.bind("<Return>", lambda e: schedule_refresh())
+    start_entry.bind("<FocusOut>", lambda e: schedule_refresh())
+    end_entry.bind("<Return>", lambda e: schedule_refresh())
+    end_entry.bind("<FocusOut>", lambda e: schedule_refresh())
+    
+    # Initial render
+    render_graph()
+
+
+def create_dynamic_dropdown_with_refresh(parent, label, data_fetcher, display_formatter, 
+                                         empty_message="No items available"):
+    """Create a dropdown with dynamic data and refresh button.
+    
+    This creates the common pattern of a labeled dropdown that fetches data dynamically
+    and includes a refresh button to reload the data.
+    
+    Args:
+        parent: Parent container
+        label: Label text for the dropdown
+        data_fetcher: Function that returns list of data dicts when called
+        display_formatter: Function that takes a data dict and returns (display_string, value_dict)
+        empty_message: Message to show when no data available
+        width: Width of the dropdown (default: 400)
+        
+    Returns:
+        Tuple of (dropdown_widget, data_map_dict, refresh_function)
+        
+    Example:
+        def fetch_requests():
+            return maintenance_repo.get_maintenance_requests(location="all", completed=0)
+        
+        def format_request(req):
+            display = f"ID {req['request_ID']}: {req['issue_description'][:40]}"
+            return (display, req['request_ID'])
+        
+        dropdown, data_map, refresh = create_dynamic_dropdown_with_refresh(
+            parent, "Select Request:", fetch_requests, format_request
+        )
+    """
+    # Container
+    container = ctk.CTkFrame(parent, fg_color="transparent")
+    container.pack(fill="x", padx=10, pady=(10, 0))
+    
+    # Label
+    ctk.CTkLabel(container, text=label, font=("Arial", 13, "bold")).pack(pady=(0, 5))
+    
+    # Dropdown
+    dropdown = ctk.CTkComboBox(
+        container,
+        values=["Loading..."],
+        font=("Arial", 12),
+        state="readonly"
+    )
+    dropdown.pack(side="left", expand=True, fill="x", pady=0)
+    
+    # Data map storage
+    data_map = {}
+    
+    # Refresh function
+    def refresh():
+        try:
+            data = data_fetcher()
+            
+            if not data:
+                dropdown.configure(values=[empty_message])
+                dropdown.set(empty_message)
+                data_map.clear()
+                return
+            
+            options = []
+            data_map.clear()
+            for item in data:
+                display, value = display_formatter(item)
+                options.append(display)
+                data_map[display] = value
+            
+            dropdown.configure(values=options)
+            dropdown.set(options[0])
+        except Exception as e:
+            dropdown.configure(values=[f"Error: {str(e)}"])
+            dropdown.set(f"Error: {str(e)}")
+            data_map.clear()
+    
+    # Refresh button
+    create_refresh_button(container, refresh, side="left", padx=(10, 0))
+    
+    # Initial load
+    refresh()
+    
+    return dropdown, data_map, refresh

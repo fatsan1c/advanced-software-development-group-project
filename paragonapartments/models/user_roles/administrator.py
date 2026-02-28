@@ -207,29 +207,14 @@ class Administrator(User):
                 date_range_params=self.location
             )
             
-            def render_graph():
-                for w in controls['graph_container'].winfo_children():
-                    w.destroy()
-                controls['error_label'].configure(text="")
-                try:
-                    grouping = "year" if controls['grouping_dropdown'].get() == "Yearly" else "month"
-                    start_date = controls['start_entry'].get().strip() or None
-                    end_date = controls['end_entry'].get().strip() or None
-                    apartment_repo.create_occupancy_trend_graph(controls['graph_container'], location=self.location,
-                                                               start_date=start_date, end_date=end_date,
-                                                               grouping=grouping)
-                except Exception as e:
-                    controls['error_label'].configure(text=f"Error: {str(e)}")
-            
-            controls['refresh_btn'].configure(command=render_graph)
-            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, render_graph)
-            
-            def on_grouping_change(choice=None):
-                controls['apply_grouping_defaults'](controls['grouping_dropdown'].get())
-                schedule_refresh(choice)
-            
-            controls['grouping_dropdown'].configure(command=on_grouping_change)
-            render_graph()
+            # Setup complete graph with automatic rendering and event bindings
+            # Note: location is fixed to self.location since Admin is location-specific
+            pe.setup_complete_graph_popup(
+                controls,
+                content,
+                apartment_repo.create_occupancy_trend_graph,
+                location_mapper=None  # No location mapper needed - location is fixed
+            )
 
         button.configure(command=setup_graph_popup)
         
@@ -347,29 +332,14 @@ class Administrator(User):
                 date_range_params=self.location
             )
             
-            def render_graph():
-                for w in controls['graph_container'].winfo_children():
-                    w.destroy()
-                controls['error_label'].configure(text="")
-                try:
-                    grouping = "year" if controls['grouping_dropdown'].get() == "Yearly" else "month"
-                    start_date = controls['start_entry'].get().strip() or None
-                    end_date = controls['end_entry'].get().strip() or None
-                    apartment_repo.create_revenue_trend_graph(controls['graph_container'], location=self.location,
-                                                             start_date=start_date, end_date=end_date,
-                                                             grouping=grouping)
-                except Exception as e:
-                    controls['error_label'].configure(text=f"Error: {str(e)}")
-            
-            controls['refresh_btn'].configure(command=render_graph)
-            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, render_graph)
-            
-            def on_grouping_change(choice=None):
-                controls['apply_grouping_defaults'](controls['grouping_dropdown'].get())
-                schedule_refresh(choice)
-            
-            controls['grouping_dropdown'].configure(command=on_grouping_change)
-            render_graph()
+            # Setup complete graph with automatic rendering and event bindings
+            # Note: location is fixed to self.location since Admin is location-specific
+            pe.setup_complete_graph_popup(
+                controls,
+                content,
+                apartment_repo.create_revenue_trend_graph,
+                location_mapper=None  # No location mapper needed - location is fixed
+            )
 
         button.configure(command=setup_performance_graph_popup)
 

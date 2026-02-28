@@ -188,153 +188,28 @@ class FinanceManager(User):
 
         def setup_graph_popup():
             content = open_popup()
-            # Controls
-            controls = ctk.CTkFrame(content, fg_color="transparent")
-            controls.pack(fill="x", padx=10, pady=(5, 10))
-
-            row_top = ctk.CTkFrame(controls, fg_color="transparent")
-            row_top.pack(fill="x")
-
-            ctk.CTkLabel(row_top, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
-            popup_cities = ["All Locations"] + location_repo.get_all_cities()
-            popup_location_dropdown = ctk.CTkComboBox(row_top, values=popup_cities, width=220, font=("Arial", 13))
-            popup_location_dropdown.set(location_dropdown.get() or "All Locations")
-            popup_location_dropdown.pack(side="left")
-
-            ctk.CTkLabel(row_top, text="Grouping:", font=("Arial", 14, "bold")).pack(side="left", padx=(18, 8))
-            grouping_dropdown = ctk.CTkComboBox(row_top, values=["Monthly", "Yearly"], width=140, font=("Arial", 13))
-            grouping_dropdown.set("Monthly")
-            grouping_dropdown.pack(side="left")
-
-            # Date range row
-            row_dates = ctk.CTkFrame(controls, fg_color="transparent")
-            row_dates.pack(fill="x", pady=(10, 0))
-
-            # Default date range based on available data (monthly initial view)
-            location_for_defaults = self._selected_location(popup_location_dropdown.get())
-            default_range = finance_repo.get_finance_date_range(location_for_defaults, grouping="month")
-            default_start = default_range.get("start_date", "")
-            default_end = default_range.get("end_date", "")
-
-            ctk.CTkLabel(row_dates, text="Start (YYYY-MM-DD):", font=("Arial", 13, "bold")).pack(side="left", padx=(0, 8))
-            start_wrap = ctk.CTkFrame(row_dates, fg_color="transparent")
-            start_wrap.pack(side="left")
-            start_entry = ctk.CTkEntry(start_wrap, width=140, font=("Arial", 13))
-            if default_start:
-                start_entry.insert(0, default_start)
-            start_entry.pack(side="left")
-
-            ctk.CTkLabel(row_dates, text="End (YYYY-MM-DD):", font=("Arial", 13, "bold")).pack(side="left", padx=(18, 8))
-            end_wrap = ctk.CTkFrame(row_dates, fg_color="transparent")
-            end_wrap.pack(side="left")
-            end_entry = ctk.CTkEntry(end_wrap, width=140, font=("Arial", 13))
-            if default_end:
-                end_entry.insert(0, default_end)
-            end_entry.pack(side="left")
-
-            ctk.CTkButton(
-                start_wrap,
-                text="📅",
-                width=34,
-                height=28,
-                font=("Arial", 13),
-                command=lambda: pe.open_date_picker(start_entry, content.winfo_toplevel()),
-                fg_color=("gray80", "gray25"),
-                hover_color=("gray70", "gray30"),
-            ).pack(side="left", padx=(6, 0))
-
-            ctk.CTkButton(
-                end_wrap,
-                text="📅",
-                width=34,
-                height=28,
-                font=("Arial", 13),
-                command=lambda: pe.open_date_picker(end_entry, content.winfo_toplevel()),
-                fg_color=("gray80", "gray25"),
-                hover_color=("gray70", "gray30"),
-            ).pack(side="left", padx=(6, 0))
-
-            def apply_grouping_defaults(grouping_value: str):
-                gv = (grouping_value or "").strip().lower()
-                if gv.startswith("year"):
-                    grouping_norm = "year"
-                else:
-                    grouping_norm = "month"
-
-                location = self._selected_location(popup_location_dropdown.get())
-                rng = finance_repo.get_finance_date_range(location, grouping=grouping_norm)
-                start_entry.delete(0, "end")
-                end_entry.delete(0, "end")
-                if rng.get("start_date"):
-                    start_entry.insert(0, rng["start_date"])
-                if rng.get("end_date"):
-                    end_entry.insert(0, rng["end_date"])
-
-            # Error/status label
-            error_label = ctk.CTkLabel(
+            
+            # Helper to get date range with location parameter
+            def get_date_range_wrapper(location_str, grouping):
+                location = self._selected_location(location_str)
+                return finance_repo.get_finance_date_range(location, grouping=grouping)
+            
+            # Create standardized graph controls
+            controls = pe.create_graph_popup_controls(
                 content,
-                text="",
-                font=("Arial", 12),
-                text_color="red",
-                wraplength=900,
-                anchor="w",
-                justify="left",
+                include_location=True,
+                default_location=location_dropdown.get() or "All Locations",
+                get_date_range_func=get_date_range_wrapper,
+                date_range_params=location_dropdown.get() or "All Locations"
             )
-            error_label.pack(fill="x", padx=10, pady=(0, 5))
-
-            # Graph container
-            graph_container = ctk.CTkFrame(content, fg_color="transparent")
-            graph_container.pack(fill="both", expand=True)
-
-            def render_graph():
-                # Clear previous graph widgets/canvases
-                for w in graph_container.winfo_children():
-                    try:
-                        w.destroy()
-                    except Exception:
-                        pass
-
-                try:
-                    location = self._selected_location(popup_location_dropdown.get())
-                    start_date = start_entry.get().strip() or None
-                    end_date = end_entry.get().strip() or None
-
-                    grouping_value = (grouping_dropdown.get() or "Monthly").strip().lower()
-                    grouping = "year" if grouping_value.startswith("year") else "month"
-
-                    finance_repo.create_collected_trend_graph(
-                        graph_container,
-                        location=location,
-                        start_date=start_date,
-                        end_date=end_date,
-                        grouping=grouping,
-                    )
-                    error_label.configure(text="")
-                except Exception as e:
-                    error_label.configure(text=str(e))
-
-            refresh_btn = ctk.CTkButton(
-                row_top,
-                text="⟳ Refresh",
-                command=render_graph,
-                height=32,
-                width=120,
-                fg_color=("gray70", "gray30"),
-                hover_color=("gray60", "gray25"),
+            
+            # Setup complete graph with automatic rendering and event bindings
+            pe.setup_complete_graph_popup(
+                controls,
+                content,
+                finance_repo.create_collected_trend_graph,
+                location_mapper=self._selected_location
             )
-            refresh_btn.pack(side="left", padx=(18, 0))
-
-            # Auto-refresh when location changes (debounced)
-            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, render_graph)
-
-            popup_location_dropdown.configure(command=schedule_refresh)
-            def on_grouping_change(choice=None):
-                apply_grouping_defaults(grouping_dropdown.get())
-                schedule_refresh(choice)
-            grouping_dropdown.configure(command=on_grouping_change)
-
-            # Initial render
-            render_graph()
 
         button.configure(command=setup_graph_popup)
 
