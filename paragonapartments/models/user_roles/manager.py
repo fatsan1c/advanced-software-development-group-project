@@ -3,9 +3,8 @@ import pages.components.page_elements as pe
 import database_operations.repos.user_repository as user_repo
 import database_operations.repos.location_repository as location_repo
 import database_operations.repos.apartment_repository as apartment_repo
+import database_operations.repos.lease_repository as lease_repo
 from models.user import User
-from datetime import datetime
-from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BOX, ROUND_BTN, ROUND_INPUT
 
 try:
     from tkcalendar import Calendar
@@ -268,7 +267,7 @@ class Manager(User):
                 content,
                 include_location=True,
                 default_location=location_dropdown.get() or "All Locations",
-                get_date_range_func=lambda loc, grouping: apartment_repo.get_lease_date_range(loc, grouping=grouping),
+                get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
                 date_range_params=_selected_location(location_dropdown.get())
             )
             
@@ -393,7 +392,7 @@ class Manager(User):
                 content,
                 include_location=True,
                 default_location=location_dropdown.get() or "All Locations",
-                get_date_range_func=lambda loc, grouping: apartment_repo.get_lease_date_range(loc, grouping=grouping),
+                get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
                 date_range_params=_sel(location_dropdown.get())
             )
             

@@ -6,52 +6,7 @@ Handles maintenance requests, scheduling, completion tracking, and cost manageme
 from __future__ import annotations
 
 from database_operations.db_execute import execute_query
-
-
-_TENANT_NAME_SELECT_SQL: str | None = None
-
-
-def _tenant_name_select_sql() -> str:
-    """
-    Return a SQL snippet selecting a displayable tenant name, compatible with
-    both schemas used in this project:
-    - tenants(name, ...)
-    - tenants(first_name, last_name, ...)
-    """
-    global _TENANT_NAME_SELECT_SQL
-    if _TENANT_NAME_SELECT_SQL is not None:
-        return _TENANT_NAME_SELECT_SQL
-
-    cols = execute_query("PRAGMA table_info(tenants)", fetch_all=True) or []
-    col_names = {c.get("name") for c in cols}
-
-    if "name" in col_names:
-        _TENANT_NAME_SELECT_SQL = "t.name AS tenant_name"
-    elif "first_name" in col_names and "last_name" in col_names:
-        _TENANT_NAME_SELECT_SQL = "(t.first_name || ' ' || t.last_name) AS tenant_name"
-    else:
-        # Fallback: always returns something without referencing unknown columns
-        _TENANT_NAME_SELECT_SQL = "CAST(t.tenant_ID AS TEXT) AS tenant_name"
-
-    return _TENANT_NAME_SELECT_SQL
-
-
-def _normalize_location(location: str | None) -> str | None:
-    """
-    Normalize location input used across the app.
-
-    Accepts None, 'all', 'All Locations', etc. Returns:
-    - None when no filtering should be applied
-    - city string when filtering by a specific city
-    """
-    if not location:
-        return None
-    loc = str(location).strip()
-    if not loc:
-        return None
-    if loc.lower() in {"all", "all locations", "alllocation", "alllocations"}:
-        return None
-    return loc
+from database_operations.repos.repo_utils import normalize_location, get_tenant_name_select_sql
 
 
 def get_maintenance_requests(location: str | None = None, completed: int | None = None, priority: int | None = None):
@@ -66,14 +21,14 @@ def get_maintenance_requests(location: str | None = None, completed: int | None 
     Returns:
         list: List of maintenance request dictionaries.
     """
-    city = _normalize_location(location)
+    city = normalize_location(location)
 
     query = f"""
         SELECT
             mr.request_ID,
             mr.apartment_ID,
             mr.tenant_ID,
-            {_tenant_name_select_sql()},
+            {get_tenant_name_select_sql()},
             a.apartment_address,
             l.city,
             mr.issue_description,
@@ -120,7 +75,7 @@ def get_maintenance_request_by_id(request_id: int):
             mr.request_ID,
             mr.apartment_ID,
             mr.tenant_ID,
-            {_tenant_name_select_sql()},
+            {get_tenant_name_select_sql()},
             a.apartment_address,
             l.city,
             mr.issue_description,
@@ -234,7 +189,7 @@ def get_maintenance_stats(location: str | None = None):
     Returns:
         dict: Statistics including total, pending, completed, average cost, etc.
     """
-    city = _normalize_location(location)
+    city = normalize_location(location)
 
     base_where = "WHERE l.city = ?" if city else "WHERE 1=1"
     params = (city,) if city else ()
@@ -267,14 +222,14 @@ def get_scheduled_maintenance(location: str | None = None, date_from: str | None
     Returns:
         list: List of scheduled maintenance request dictionaries.
     """
-    city = _normalize_location(location)
+    city = normalize_location(location)
 
     query = f"""
         SELECT
             mr.request_ID,
             mr.apartment_ID,
             mr.tenant_ID,
-            {_tenant_name_select_sql()},
+            {get_tenant_name_select_sql()},
             a.apartment_address,
             l.city,
             mr.issue_description,
@@ -327,14 +282,14 @@ def get_apartments_with_tenants(location: str | None = None):
     Returns:
         list: List of apartment dictionaries with tenant info.
     """
-    city = _normalize_location(location)
+    city = normalize_location(location)
 
     query = f"""
         SELECT
             a.apartment_ID,
             a.apartment_address,
             la.tenant_ID,
-            {_tenant_name_select_sql()},
+            {get_tenant_name_select_sql()},
             l.city
         FROM apartments a
         JOIN lease_agreements la ON a.apartment_ID = la.apartment_ID

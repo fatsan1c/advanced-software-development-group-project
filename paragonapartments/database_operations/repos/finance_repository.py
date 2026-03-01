@@ -8,54 +8,9 @@ from __future__ import annotations
 from database_operations.db_execute import execute_query
 import numpy as np
 import pages.components.input_validation as input_validation
+from database_operations.repos.repo_utils import normalize_location, get_tenant_name_select_sql, parse_date as _parse_date
 from pages.components.chart_utils import create_bar_chart, create_trend_chart, ACCENT_GREEN, ACCENT_ORANGE, ACCENT_BLUE
 from datetime import date as _date, datetime as _datetime, timedelta as _timedelta
-
-
-_TENANT_NAME_SELECT_SQL: str | None = None
-
-
-def _tenant_name_select_sql() -> str:
-    """
-    Return a SQL snippet selecting a displayable tenant name, compatible with
-    both schemas used in this project:
-    - tenants(name, ...)
-    - tenants(first_name, last_name, ...)
-    """
-    global _TENANT_NAME_SELECT_SQL
-    if _TENANT_NAME_SELECT_SQL is not None:
-        return _TENANT_NAME_SELECT_SQL
-
-    cols = execute_query("PRAGMA table_info(tenants)", fetch_all=True) or []
-    col_names = {c.get("name") for c in cols}
-
-    if "name" in col_names:
-        _TENANT_NAME_SELECT_SQL = "t.name AS tenant_name"
-    elif "first_name" in col_names and "last_name" in col_names:
-        _TENANT_NAME_SELECT_SQL = "(t.first_name || ' ' || t.last_name) AS tenant_name"
-    else:
-        # Fallback: always returns something without referencing unknown columns
-        _TENANT_NAME_SELECT_SQL = "CAST(t.tenant_ID AS TEXT) AS tenant_name"
-
-    return _TENANT_NAME_SELECT_SQL
-
-
-def _normalize_location(location: str | None) -> str | None:
-    """
-    Normalize location input used across the app.
-
-    Accepts None, 'all', 'All Locations', etc. Returns:
-    - None when no filtering should be applied
-    - city string when filtering by a specific city
-    """
-    if not location:
-        return None
-    loc = str(location).strip()
-    if not loc:
-        return None
-    if loc.lower() in {"all", "all locations", "alllocation", "alllocations"}:
-        return None
-    return loc
 
 
 def _invoice_base_join_sql() -> str:
@@ -99,13 +54,13 @@ def get_invoices(location: str | None = None, paid: int | None = None):
     Returns:
         list: List of invoice dictionaries.
     """
-    city = _normalize_location(location)
+    city = normalize_location(location)
 
     query = f"""
         SELECT
             i.invoice_ID,
             i.tenant_ID,
-            {_tenant_name_select_sql()},
+            {get_tenant_name_select_sql()},
             l.city,
             i.amount_due,
             i.due_date,
@@ -137,14 +92,14 @@ def get_late_invoices(location: str | None = None, as_of: str | None = None):
     Returns:
         list: List of late invoice dictionaries.
     """
-    city = _normalize_location(location)
+    city = normalize_location(location)
     as_of_expr = "date(?)" if as_of else "date('now')"
 
     query = f"""
         SELECT
             i.invoice_ID,
             i.tenant_ID,
-            {_tenant_name_select_sql()},
+            {get_tenant_name_select_sql()},
             l.city,
             i.amount_due,
             i.due_date,
@@ -253,14 +208,14 @@ def get_payments(location: str | None = None):
     Returns:
         list: List of payment dictionaries.
     """
-    city = _normalize_location(location)
+    city = normalize_location(location)
 
     query = f"""
         SELECT
             p.payment_ID,
             p.invoice_ID,
             p.tenant_ID,
-            {_tenant_name_select_sql()},
+            {get_tenant_name_select_sql()},
             l.city,
             p.payment_date,
             p.amount
@@ -348,7 +303,7 @@ def get_financial_summary(location: str | None = None, as_of: str | None = None)
             'late_invoice_count': int
         }
     """
-    city = _normalize_location(location)
+    city = normalize_location(location)
     as_of_expr = "date(?)" if as_of else "date('now')"
 
     # Total invoiced
@@ -429,25 +384,7 @@ def create_financial_summary_graph(parent, location: str | None = None):
     )
 
 
-def _parse_date(date_str: str | None) -> _date | None:
-    """
-    Parse a date string into a date, or return None for blank.
-    Supports YYYY-MM-DD format. Uses centralized input_validation module.
-    
-    Raises:
-        ValueError: If date is provided but invalid
-    """
-    if date_str is None:
-        return None
-    s = str(date_str).strip()
-    if not s:
-        return None
-    
-    # Use centralized validation - only accept YYYY-MM-DD format
-    parsed = input_validation.parse_date(s, formats=["%Y-%m-%d"])
-    if parsed is None:
-        raise ValueError(f"Invalid date '{date_str}'. Expected YYYY-MM-DD.")
-    return parsed
+
 
 
 def _month_key(d: _date) -> str:
@@ -498,7 +435,7 @@ def _get_earliest_finance_date(location: str | None = None) -> _date | None:
     - invoices.issue_date
     - invoices.due_date
     """
-    city = _normalize_location(location)
+    city = normalize_location(location)
 
     def _fetch_min_date(query: str, params: tuple | None = None) -> _date | None:
         row = execute_query(query, params, fetch_one=True) or {}
@@ -548,7 +485,7 @@ def _get_latest_finance_date(location: str | None = None) -> _date | None:
     - invoices.issue_date
     - invoices.due_date
     """
-    city = _normalize_location(location)
+    city = normalize_location(location)
 
     def _fetch_max_date(query: str, params: tuple | None = None) -> _date | None:
         row = execute_query(query, params, fetch_one=True) or {}
@@ -713,7 +650,7 @@ def get_collected_amount_timeseries(
     if start_d > end_d:
         raise ValueError("Start date must be on/before end date.")
 
-    city = _normalize_location(location)
+    city = normalize_location(location)
 
     def _period_expr_for(column_sql: str) -> str:
         if grouping_norm == "week":

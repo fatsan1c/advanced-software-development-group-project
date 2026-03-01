@@ -3,9 +3,8 @@ import pages.components.page_elements as pe
 import database_operations.repos.user_repository as user_repo
 import database_operations.repos.location_repository as location_repo
 import database_operations.repos.apartment_repository as apartment_repo
+import database_operations.repos.lease_repository as lease_repo
 from models.user import User
-from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BOX, ROUND_BTN, ROUND_INPUT
-
 
 class Administrator(User):
     """Administrator with location-specific management capabilities."""
@@ -181,8 +180,11 @@ class Administrator(User):
         # Manage staff user accounts at this location
         self.load_account_content(row1)
 
-        # Second row - full width card
+        # Second row - 2 cards
         row2 = pe.row_container(parent=container)
+        
+        # Display lease agreements tracking
+        self.load_lease_content(row2)
 
         # Display financial performance reports for this location
         self.load_reports_content(row2)
@@ -242,7 +244,7 @@ class Administrator(User):
             controls = pe.create_graph_popup_controls(
                 content,
                 include_location=False,
-                get_date_range_func=lambda loc, grouping: apartment_repo.get_lease_date_range(loc, grouping=grouping),
+                get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
                 date_range_params=self.location
             )
             
@@ -252,7 +254,7 @@ class Administrator(User):
                 controls,
                 content,
                 apartment_repo.create_occupancy_trend_graph,
-                location_mapper=None  # No location mapper needed - location is fixed
+                fixed_location=self.location  # No location mapper needed - location is fixed
             )
 
         button.configure(command=setup_graph_popup)
@@ -320,8 +322,73 @@ class Administrator(User):
         # Set the button command to open the popup with the user accounts table
         button.configure(command=setup_popup)
 
+    def load_lease_content(self, row):
+        lease_card = pe.function_card(row, f"Lease Agreements - {self.location}", side="left", pady=6, padx=8)
+
+        # Top info row: expiring soon badge
+        info_row = ctk.CTkFrame(lease_card, fg_color="transparent")
+        info_row.pack(fill="x", pady=(0, 6))
+
+        expiring_badge = pe.info_badge(info_row, "Expiring soon: 0")
+
+        # Stat grid
+        stats = pe.stats_grid(lease_card)
+
+        active_value = pe.stat_card(stats, "Active")
+        expired_value = pe.stat_card(stats, "Expired")
+        total_value = pe.stat_card(stats, "Total")
+
+        def update_lease_display():
+            try:
+                lease_stats = lease_repo.get_lease_statistics(self.location)
+                active_count = lease_stats.get("active_leases", 0)
+                expired_count = lease_stats.get("expired_leases", 0)
+                total_count = lease_stats.get("total_leases", 0)
+                expiring_count = lease_stats.get("expiring_soon", 0)
+
+                active_value.configure(text=str(active_count))
+                expired_value.configure(text=str(expired_count))
+                total_value.configure(text=str(total_count))
+                expiring_badge.configure(text=f"Expiring soon: {expiring_count}")
+            except Exception as e:
+                print(f"Error loading lease data: {e}")
+
+        update_lease_display()
+        refresh_timer, schedule_refresh = pe.create_debounced_refresh(lease_card, update_lease_display)
+
+        # Graph popup button
+        button, open_popup_func = pe.popup_card(
+            lease_card,
+            title=f"Lease Trends Graph - {self.location}",
+            button_text="View Graphs",
+            small=False,
+            button_size="medium"
+        )
+        pe.style_primary_button(button)
+
+        def setup_graph_popup():
+            content = open_popup_func()
+            
+            # Use reusable graph popup controls component (without location dropdown since Admin is location-specific)
+            controls = pe.create_graph_popup_controls(
+                content,
+                include_location=False,
+                get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
+                date_range_params=self.location
+            )
+            
+            # Setup complete graph with automatic rendering and event bindings
+            pe.setup_complete_graph_popup(
+                controls,
+                content,
+                lease_repo.create_lease_trend_graph,
+                fixed_location=self.location  # Pass fixed location since Admin is location-specific
+            )
+
+        button.configure(command=setup_graph_popup)
+
     def load_reports_content(self, row):
-        reports_card = pe.function_card(row, f"Performance Report - {self.location}", side="top", pady=6, padx=8)
+        reports_card = pe.function_card(row, f"Performance Report - {self.location}", side="left", pady=6, padx=8)
 
         # Top info row: vacant badge
         info_row = ctk.CTkFrame(reports_card, fg_color="transparent")
@@ -367,7 +434,7 @@ class Administrator(User):
             controls = pe.create_graph_popup_controls(
                 content,
                 include_location=False,
-                get_date_range_func=lambda loc, grouping: apartment_repo.get_lease_date_range(loc, grouping=grouping),
+                get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
                 date_range_params=self.location
             )
             
@@ -377,7 +444,7 @@ class Administrator(User):
                 controls,
                 content,
                 apartment_repo.create_revenue_trend_graph,
-                location_mapper=None  # No location mapper needed - location is fixed
+                fixed_location=self.location  # No location mapper needed - location is fixed
             )
 
         button.configure(command=setup_performance_graph_popup)

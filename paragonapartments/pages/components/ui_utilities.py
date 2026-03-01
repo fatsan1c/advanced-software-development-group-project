@@ -544,7 +544,7 @@ def create_graph_popup_controls(content, include_location=True, default_location
     }
 
 
-def setup_complete_graph_popup(controls, content, graph_function, location_mapper=None):
+def setup_complete_graph_popup(controls, content, graph_function, location_mapper=None, fixed_location=None):
     """Set up complete graph popup with render function, bindings, and auto-refresh.
     
     This handles the common graph rendering logic used across all graph popups,
@@ -555,7 +555,7 @@ def setup_complete_graph_popup(controls, content, graph_function, location_mappe
         content: Parent content widget for debounced refresh
         graph_function: Function to create the graph. Should accept (container, location, start_date, end_date, grouping)
         location_mapper: Optional function to map location dropdown value to location parameter
-        
+        fixed_location: Optional fixed location value to use instead of dropdown value
     Example:
         controls = pe.create_graph_popup_controls(content, ...)
         pe.setup_complete_graph_popup(
@@ -582,8 +582,10 @@ def setup_complete_graph_popup(controls, content, graph_function, location_mappe
                 pass
         
         try:
+            if fixed_location:
+                location = fixed_location
             # Get parameters
-            if location_dropdown is not None:
+            elif location_dropdown is not None:
                 location = location_dropdown.get()
                 if location_mapper:
                     location = location_mapper(location)

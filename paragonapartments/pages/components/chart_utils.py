@@ -10,6 +10,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from datetime import date as _date
 
 try:
     from scipy.interpolate import PchipInterpolator
@@ -64,6 +65,43 @@ def _throttle_xticks(periods: list, max_labels: int = 12):
             indices.append(n - 1)
         return indices, [periods[i] for i in indices], 45, "right", 0.18
     return list(range(n)), periods, 45 if n > 6 else 0, "right" if n > 6 else "center", 0.18 if n > 6 else 0.117
+
+
+def _find_today_position(periods: list[str]) -> int | None:
+    """
+    Find the position in periods list that corresponds to today's date.
+    Handles formats like "Jan 2024" (monthly) or "2024" (yearly).
+    Returns None if today is not found in the periods.
+    """
+    today = _date.today()
+    month_map = {
+        "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+        "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12
+    }
+    
+    for i, period in enumerate(periods):
+        period_lower = period.lower().strip()
+        parts = period_lower.split()
+        
+        try:
+            # Yearly format: "2024"
+            if len(parts) == 1 and parts[0].isdigit():
+                year = int(parts[0])
+                if year == today.year:
+                    return i
+            
+            # Monthly format: "Jan 2024", "January 2024"
+            elif len(parts) == 2:
+                month_str = parts[0][:3]  # Take first 3 chars for month
+                year = int(parts[1])
+                if month_str in month_map:
+                    month = month_map[month_str]
+                    if year == today.year and month == today.month:
+                        return i
+        except (ValueError, IndexError):
+            continue
+    
+    return None
 
 
 def create_bar_chart(
@@ -192,6 +230,7 @@ def create_trend_chart(
     show_kpi: bool = True,
     show_toolbar: bool = True,
     y_lim_dynamic: bool = False,
+    show_today_marker: bool = True,
 ) -> FigureCanvasTkAgg:
     """
     Create and embed a multi-series trend line chart with grid, legend, KPI badges, toolbar.
@@ -211,6 +250,7 @@ def create_trend_chart(
         show_kpi: Show percentage change badges on the right
         show_toolbar: Add NavigationToolbar2Tk
         y_lim_dynamic: Use dynamic y-limits (non-zero aware) for primary axis
+        show_today_marker: Show vertical line marking today's date
 
     Returns:
         FigureCanvasTkAgg canvas
@@ -329,6 +369,23 @@ def create_trend_chart(
     # Minimal grid - subtle, professional
     ax.grid(True, axis="y", color=GRID_Y_COLOR, alpha=0.55, linewidth=0.9)
     ax.grid(True, axis="x", color=GRID_X_COLOR, alpha=0.4, linewidth=0.65)
+
+    # Today marker - vertical line at current date position
+    if show_today_marker:
+        today_pos = _find_today_position(periods)
+        if today_pos is not None:
+            y_min, y_max = ax.get_ylim()
+            # Draw line from bottom to 92% of height (leave room for label at top)
+            ax.plot([today_pos, today_pos], [y_min, y_max * 0.92], 
+                   color="#E74C3C", linestyle="--", linewidth=2, alpha=0.7, zorder=5)
+            # Add "Today" label at the top
+            ax.text(
+                today_pos, y_max * 0.96, "Today",
+                ha="center", va="center", fontsize=10, fontweight="bold",
+                color="#E74C3C",
+                bbox=dict(boxstyle="round,pad=0.4", facecolor="white", edgecolor="#E74C3C", alpha=0.95, linewidth=1.5),
+                zorder=6
+            )
 
     for s in ("top", "right"):
         ax.spines[s].set_visible(False)
