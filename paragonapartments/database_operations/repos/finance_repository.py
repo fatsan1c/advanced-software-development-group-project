@@ -149,7 +149,8 @@ def get_late_invoices(location: str | None = None, as_of: str | None = None):
             i.amount_due,
             i.due_date,
             i.issue_date,
-            i.paid
+            i.paid,
+            CAST((julianday({as_of_expr}) - julianday(i.due_date)) AS INTEGER) AS days_late
         {_invoice_base_join_sql()}
         WHERE i.paid = 0
           AND date(i.due_date) < {as_of_expr}
@@ -159,7 +160,8 @@ def get_late_invoices(location: str | None = None, as_of: str | None = None):
 
     params = []
     if as_of:
-        params.append(as_of)
+        params.append(as_of)  # First occurrence in SELECT (days_late calculation)
+        params.append(as_of)  # Second occurrence in WHERE clause
     if city:
         params.append(city)
     return execute_query(query, tuple(params), fetch_all=True)

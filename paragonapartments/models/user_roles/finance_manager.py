@@ -396,6 +396,7 @@ class FinanceManager(User):
                 {"name": "Amount", "key": "amount_due", "width": 120, "editable": False, "format": "currency"},
                 {"name": "Due Date", "key": "due_date", "width": 120, "editable": False, "format": "date"},
                 {"name": "Issue Date", "key": "issue_date", "width": 120, "editable": False, "format": "date"},
+                {"name": "Days Late", "key": "days_late", "width": 100, "editable": False, "format": "number"},
             ]
 
             def get_data():
