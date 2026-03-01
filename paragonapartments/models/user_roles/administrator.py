@@ -18,7 +18,6 @@ class Administrator(User):
         """View apartment occupancy for this administrator's location."""
         try:
             occupied_count = apartment_repo.get_all_occupancy(self.location)
-            print(f"Occupied apartments in {self.location}: {occupied_count}")
             return occupied_count
         except Exception as e:
             print(f"Error retrieving occupancy data: {e}")
@@ -131,8 +130,48 @@ class Administrator(User):
         # Load base content first
         super().load_homepage_content(home_page)
 
-        container = pe.scrollable_container(parent=home_page)
+        # Store reference to container for reloading
+        self._current_container = None
 
+        def reload_content(selected_location):
+            """Reload the container content when location changes."""
+            self.location = selected_location
+            
+            # Destroy old container if it exists
+            if self._current_container:
+                self._current_container.pack_forget()
+                self._current_container.destroy()
+            
+            # Create new container with updated location
+            self._current_container = pe.scrollable_container(parent=home_page)
+            self._load_all_cards(self._current_container)
+
+        if not self.location:
+            # Create location selector dropdown
+            location_frame = ctk.CTkFrame(home_page, fg_color="transparent")
+            location_frame.pack(fill="x", padx=(25, 0), pady=0)
+
+            try:
+                all_locations = [loc['city'] for loc in location_repo.get_all_locations()]
+            except Exception as e:
+                print(f"Error loading locations: {e}")
+                all_locations = []
+
+            location_dropdown = ctk.CTkOptionMenu(
+                location_frame,
+                values=all_locations,
+                command=reload_content
+            )
+            location_dropdown.pack(side="left")
+            pe.style_secondary_dropdown(location_dropdown)
+            self.location = location_dropdown.get()  # Set initial location from dropdown
+
+        container = pe.scrollable_container(parent=home_page)
+        self._current_container = container
+        self._load_all_cards(container)
+
+    def _load_all_cards(self, container):
+        """Load all content cards into the container."""
         # First row - 2 cards
         row1 = pe.row_container(parent=container)
         
@@ -382,7 +421,8 @@ class Administrator(User):
                 {'name': 'Address', 'key': 'apartment_address', 'width': 200},
                 {'name': 'Beds', 'key': 'number_of_beds', 'format': 'number', 'width': 80},
                 {'name': 'Monthly Rent', 'key': 'monthly_rent', 'format': 'currency', 'width': 120},
-                {'name': 'Status', 'key': 'occupied', 'width': 100, 'format': 'boolean', 'options': ["Occupied", "Vacant"]}
+                {'name': 'Status', 'key': 'occupied', 'width': 100, 'format': 'boolean', 'options': ["Occupied", "Vacant"]},
+                {'name': 'Location', 'key': 'city', 'width': 150, 'editable': False}
             ]
 
             # Function to fetch apartment data for the table (filtered by location)

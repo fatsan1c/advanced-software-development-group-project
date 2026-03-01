@@ -32,10 +32,6 @@ class Manager(User):
         """
         try:
             occupied_count = apartment_repo.get_all_occupancy(location)
-            if location and location.lower() != "all":
-                print(f"Occupied apartments in {location}: {occupied_count}")
-            else:
-                print(f"Total occupied apartments: {occupied_count}")
             return occupied_count
         except Exception as e:
             print(f"Error retrieving occupancy data: {e}")
