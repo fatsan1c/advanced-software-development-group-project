@@ -69,6 +69,10 @@ class App(ctk.CTk):
     def open_page(self, page_name, **kwargs):
         # Setup and open the requested page
         if page_name == "HomePage":
+            # Clear any existing widgets in the container before creating new HomePage
+            for widget in self.container.winfo_children():
+                widget.destroy()
+            
             home_page = HomePage(kwargs.get("parent"), kwargs.get("controller"), kwargs.get("user"))
             home_page.grid(row=0, column=0, sticky="nsew")
             home_page.tkraise()
@@ -81,6 +85,11 @@ class App(ctk.CTk):
         """Handle logout by clearing session and returning to login page."""
         # Clear current user reference
         self.current_user = None
+        
+        # Destroy all widgets in the container to prevent jitter on re-login
+        for widget in self.container.winfo_children():
+            widget.destroy()
+        
         self.withdraw()
         
         # Show login page again

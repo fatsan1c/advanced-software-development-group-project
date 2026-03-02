@@ -4,12 +4,6 @@ import pages.components.input_validation as input_validation
 import database_operations.repos.finance_repository as finance_repo
 from models.user import User
 
-try:
-    from tkcalendar import Calendar
-except Exception:
-    Calendar = None
-
-
 class FinanceManager(User):
     """Finance manager with financial reporting and payment processing capabilities."""
     
@@ -133,7 +127,7 @@ class FinanceManager(User):
         # Load base content first
         super().load_homepage_content(home_page)
 
-        container = pe.scrollable_container(parent=home_page)
+        container = pe.scrollable_container(parent=home_page, hide_scrollbar_when_loading=True)
 
         # Row 1: summary full-width
         row1 = pe.row_container(parent=container)
@@ -277,8 +271,7 @@ class FinanceManager(User):
                 on_update=self.update_invoice_row,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=10,
-                scrollable=False
+                page_size=10
             )
 
             # Top refresh button next to the dropdown

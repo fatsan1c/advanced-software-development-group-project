@@ -17,8 +17,7 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                on_update=None, on_delete=None, refresh_data=None,
                show_refresh_button: bool = True,
                render_batch_size: int = 0,
-               page_size: int = 0, scrollable: bool = False,
-               **_kwargs):
+               page_size: int = 0):
     """Create a data table with optional CRUD operations.
     
     This creates table that displays data with optional edit and delete
@@ -43,7 +42,6 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
         show_refresh_button: Whether to show a refresh button for manual data refresh
         render_batch_size: If > 0, renders rows in batches of this size to keep UI responsive
         page_size: If > 0, enables pagination with this many rows per page
-        scrollable: Whether to render the table inside a scrollable container (recommended for large tables)
 
     Returns:
         Tuple of (table_container, refresh_function):
@@ -112,11 +110,7 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
         
         # Create scrollable content area on first call, or clear existing children
         if content_ref['content'] is None:
-            if scrollable:
-                content = scrollable_container(table_container, pady=0, padx=0)
-            else:
-                content = ctk.CTkFrame(table_container, fg_color="transparent")
-                content.pack(fill="both", expand=True, padx=0, pady=0)
+            content = scrollable_container(table_container, pady=0, padx=0, hide_scrollbar_when_loading=True)
             content_ref['content'] = content
         else:
             # Clear all children from existing container

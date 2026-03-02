@@ -6,12 +6,6 @@ import database_operations.repos.apartment_repository as apartment_repo
 import database_operations.repos.lease_repository as lease_repo
 from models.user import User
 
-try:
-    from tkcalendar import Calendar
-except Exception:
-    Calendar = None
-
-
 class Manager(User):
     """Manager user with business-wide access and control."""
     
@@ -203,7 +197,7 @@ class Manager(User):
 
         # First row - Performance Reports at top (full width, finance-style)
         row1 = pe.row_container(parent=container)
-        self.load_report_content(row1, side="top")
+        self.load_report_content(row1)
 
         # Second row - Occupancy + Accounts
         row2 = pe.row_container(parent=container)
@@ -341,8 +335,8 @@ class Manager(User):
 
         button.configure(command=setup_popup)
 
-    def load_report_content(self, row, side="left"):
-        reports_card = pe.function_card(row, "Performance Report", side=side, pady=6, padx=8)
+    def load_report_content(self, row):
+        reports_card = pe.function_card(row, "Performance Report", side="top", pady=6, padx=8)
 
         # Top info row: vacant badge (left) + location selector (right) - match finance layout
         info_row = ctk.CTkFrame(reports_card, fg_color="transparent")
