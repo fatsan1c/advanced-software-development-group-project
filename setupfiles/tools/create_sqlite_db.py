@@ -89,7 +89,7 @@ def create_database():
     CREATE TABLE users (
         user_ID INTEGER PRIMARY KEY AUTOINCREMENT,
         location_ID INTEGER,
-        username TEXT NOT NULL,
+        username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         role TEXT,
         FOREIGN KEY (location_ID) REFERENCES locations(location_ID)
@@ -176,7 +176,7 @@ def create_database():
     conn.commit()
     conn.close()
     
-    print(f"\n✓ SQLite database created successfully at: {DB_PATH}")
+    print(f"\nSQLite database created successfully at: {DB_PATH}")
     print(f"Database size: {os.path.getsize(DB_PATH) / 1024:.2f} KB")
 
 if __name__ == "__main__":

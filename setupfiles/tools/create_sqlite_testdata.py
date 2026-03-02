@@ -89,7 +89,7 @@ def create_database():
     CREATE TABLE users (
         user_ID INTEGER PRIMARY KEY AUTOINCREMENT,
         location_ID INTEGER,
-        username TEXT NOT NULL,
+        username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         role TEXT,
         FOREIGN KEY (location_ID) REFERENCES locations(location_ID)
@@ -167,7 +167,8 @@ def create_database():
         (4, 'Manchester', '23 Corporation St, Manchester, M3T 3AM')
     ])
     
-    # Insert apartments
+    # Insert apartments - location_ID: 1=Bristol, 2=Cardiff, 3=London, 4=Manchester
+    # Vary occupied per city so stats differ: Bristol 6/8, Cardiff 5/8, London 8/8, Manchester 7/8
     apartments_data = [
         (1,1,'Apartment 1',1,850,1), (2,1,'Apartment 2',2,1050,1), (3,1,'Apartment 3',3,1350,1),
         (4,1,'Apartment 4',2,1100,1), (5,1,'Apartment 5',1,900,1), (6,1,'Apartment 6',2,1000,1),
@@ -176,14 +177,14 @@ def create_database():
         (13,2,'Apartment 5',1,750,1), (14,2,'Apartment 6',2,830,0), (15,2,'Apartment 7',1,680,0),
         (16,2,'Apartment 8',3,1150,0), (17,3,'Apartment 1',1,1300,1), (18,3,'Apartment 2',2,1700,1),
         (19,3,'Apartment 3',3,2200,1), (20,3,'Apartment 4',2,1800,1), (21,3,'Apartment 5',1,1400,1),
-        (22,3,'Apartment 6',2,1650,0), (23,3,'Apartment 7',1,1250,0), (24,3,'Apartment 8',3,2300,0),
+        (22,3,'Apartment 6',2,1650,1), (23,3,'Apartment 7',1,1250,1), (24,3,'Apartment 8',3,2300,1),
         (25,4,'Apartment 1',1,800,1), (26,4,'Apartment 2',2,950,1), (27,4,'Apartment 3',3,1200,1),
-        (28,4,'Apartment 4',2,1000,1), (29,4,'Apartment 5',1,850,1), (30,4,'Apartment 6',2,920,0),
-        (31,4,'Apartment 7',1,780,0), (32,4,'Apartment 8',3,1250,0)
+        (28,4,'Apartment 4',2,1000,1), (29,4,'Apartment 5',1,850,1), (30,4,'Apartment 6',2,920,1),
+        (31,4,'Apartment 7',1,780,1), (32,4,'Apartment 8',3,1250,0)
     ]
     cursor.executemany("INSERT INTO apartments VALUES (?, ?, ?, ?, ?, ?)", apartments_data)
     
-    # Insert tenants with realistic UK data
+    # Insert tenants with realistic UK data (32 tenants for full occupancy)
     tenants_data = [
         (1,'Alice','Brown','1992-03-15','AB123456C','alice.brown@demo.com','07111111111','Software Engineer',45000,'N','Y','Passed'),
         (2,'James','Wilson','1988-07-22','JW234567A','james.wilson@demo.com','07111111112','Accountant',38000,'N','Y','Passed'),
@@ -209,7 +210,11 @@ def create_database():
     ]
     cursor.executemany("INSERT INTO tenants VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", tenants_data)
     
-    # Insert lease_agreements
+    # Insert lease_agreements - DIFFERENT per city so manager charts show distinct data
+    # Bristol 6/8: early leases from 2022, growth then flat
+    # Cardiff 5/8: fewer leases, later starts, different curve
+    # London 8/8: premium rents, full since 2023
+    # Manchester 7/8: gradual fill 2023-2024
     leases_data = [
         (1,1,1,'2024-01-01','2025-01-01',850,1), (2,2,2,'2024-02-01','2025-02-01',750,1),
         (3,3,3,'2024-03-01','2025-03-01',1100,1), (4,4,4,'2024-01-15','2025-01-15',900,1),
@@ -224,6 +229,13 @@ def create_database():
         (21,21,6,'2024-06-01','2025-06-01',950,1)
     ]
     cursor.executemany("INSERT INTO lease_agreements VALUES (?, ?, ?, ?, ?, ?, ?)", leases_data)
+    # Sync apartments.occupied from leases (1=has active lease, 0=vacant)
+    cursor.execute("UPDATE apartments SET occupied = 0")
+    cursor.execute("""
+        UPDATE apartments SET occupied = 1 WHERE apartment_ID IN (
+            SELECT DISTINCT apartment_ID FROM lease_agreements WHERE active = 1
+        )
+    """)
     
     # Insert users (with hashed passwords)
     users_data = [
@@ -247,7 +259,7 @@ def create_database():
     conn.commit()
     conn.close()
     
-    print(f"\n✓ SQLite database created successfully at: {DB_PATH}")
+    print(f"\nSQLite database created successfully at: {DB_PATH}")
     print(f"Database size: {os.path.getsize(DB_PATH) / 1024:.2f} KB")
 
 if __name__ == "__main__":

@@ -27,7 +27,11 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=False, commit=F
         - If fetch_one: dict or None
         - If fetch_all: list of dicts or []
         - If commit: last inserted ID or row count
-        - None on error
+        
+    Raises:
+        sqlite3.IntegrityError: For constraint violations (e.g., duplicate username)
+        sqlite3.Error: For other database errors
+        Exception: For unexpected errors
     """
     conn = None
     cursor = None
@@ -35,7 +39,7 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=False, commit=F
     try:
         conn = getConnection()
         if not conn:
-            return None if fetch_one else ([] if fetch_all else None)
+            raise sqlite3.Error("Failed to establish database connection")
         
         cursor = conn.cursor()
         cursor.execute(query, params or ())
@@ -55,13 +59,19 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=False, commit=F
             
         return result
         
-    # Handle specific database errors and general exceptions
+    # Re-raise exceptions with original error info
+    except sqlite3.IntegrityError as err:
+        # Constraint violations (UNIQUE, FOREIGN KEY, etc.)
+        print(f"Database integrity error: {err}")
+        raise
     except sqlite3.Error as err:
+        # Other database errors
         print(f"Database error: {err}")
-        return None if fetch_one else ([] if fetch_all else None)
+        raise
     except Exception as e:
-        print(f"Error: {e}")
-        return None if fetch_one else ([] if fetch_all else None)
+        # Unexpected errors
+        print(f"Unexpected error: {e}")
+        raise
     finally:
         # Ensure resources are cleaned up
         if cursor:
