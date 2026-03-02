@@ -10,6 +10,7 @@ from pages.components.chart_utils import (
     ACCENT_GREEN,
     ACCENT_ORANGE,
     ACCENT_RED,
+    ACCENT_BLUE,
     create_bar_chart,
     create_trend_chart,
 )
@@ -162,14 +163,14 @@ def create_performance_graph(parent, location=None):
 
 
 def create_occupancy_trend_graph(parent, location=None, start_date=None, end_date=None, grouping="month"):
-    """Line chart of occupancy over time (Occupied, Vacant). Uses shared chart_utils."""
+    """Line chart of occupancy over time (Occupied, Total Apartments). Uses shared chart_utils."""
     # Lazy import to avoid circular dependency
     from database_operations.repos.lease_repository import get_occupancy_timeseries
     data = get_occupancy_timeseries(location=location, start_date=start_date, end_date=end_date, grouping=grouping)
     series_data = data.get("series") or []
     periods = [r.get("period", "") for r in series_data]
     occupied = np.array([float(r.get("occupied") or 0) for r in series_data], dtype=float)
-    vacant = np.array([float(r.get("vacant") or 0) for r in series_data], dtype=float)
+    total = np.array([float(r.get("total") or 0) for r in series_data], dtype=float)
     title_loc = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
     if not series_data:
         return create_trend_chart(parent, periods=[], series=[], title=f"Occupancy Trends - {title_loc}",
@@ -179,7 +180,7 @@ def create_occupancy_trend_graph(parent, location=None, start_date=None, end_dat
         periods=periods,
         series=[
             ("Occupied", occupied, ACCENT_GREEN),
-            ("Vacant", vacant, ACCENT_RED),
+            ("Total Apartments", total, ACCENT_BLUE),
         ],
         title=f"Occupancy Trends - {title_loc}",
         y_label="Number of Apartments",
