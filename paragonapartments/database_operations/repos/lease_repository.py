@@ -1,6 +1,6 @@
 import calendar as _calendar
 from database_operations.db_execute import execute_query
-from database_operations.repos.repo_utils import normalize_location, parse_date
+from database_operations.repos.repo_utils import normalize_location, parse_date, get_tenant_name_select_sql
 from datetime import date as _date, datetime as _datetime, timedelta as _timedelta
 import numpy as np
 from database_operations.repos.apartment_repository import get_total_apartments, get_potential_revenue
@@ -12,6 +12,44 @@ from pages.components.chart_utils import (
     create_bar_chart,
     create_trend_chart,
 )
+
+
+def get_all_leases(location=None):
+    """
+    Get all lease agreements with tenant and apartment information.
+    
+    Args:
+        location (str, optional): City name to filter by. None/'all' for all locations.
+    
+    Returns:
+        list: List of lease agreement dictionaries with tenant and apartment details
+    """
+    city = normalize_location(location)
+    loc_filter = " AND l.city = ?" if city else ""
+    
+    query = f"""
+        SELECT
+            la.lease_ID,
+            la.tenant_ID,
+            {get_tenant_name_select_sql()},
+            la.apartment_ID,
+            a.apartment_address,
+            l.city,
+            la.start_date,
+            la.end_date,
+            la.monthly_rent,
+            la.active,
+            CASE WHEN date(la.end_date) < date('now') THEN 1 ELSE 0 END AS expired
+        FROM lease_agreements la
+        JOIN apartments a ON la.apartment_ID = a.apartment_ID
+        JOIN locations l ON a.location_ID = l.location_ID
+        JOIN tenants t ON la.tenant_ID = t.tenant_ID
+        WHERE 1=1
+        {loc_filter}
+    """
+    
+    params = (city,) if city else None
+    return execute_query(query, params, fetch_all=True) or []
 
 
 def get_lease_statistics(location=None):

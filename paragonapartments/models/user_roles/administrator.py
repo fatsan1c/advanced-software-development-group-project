@@ -387,6 +387,54 @@ class Administrator(User):
 
         button.configure(command=setup_graph_popup)
 
+        # View Data button for lease agreements table
+        data_button, open_data_popup_func = pe.popup_card(
+            lease_card,
+            title=f"View Lease Agreements - {self.location}",
+            button_text="View Leases",
+            small=False,
+            button_size="full"
+        )
+        pe.style_secondary_button(data_button)
+        data_button.pack(pady=(10, 0))  # Add some padding to separate from graph button
+
+        def setup_data_popup():
+            content = open_data_popup_func()
+
+            # Define columns for lease agreements data table
+            columns = [
+                {'name': 'ID', 'key': 'lease_ID', 'width': 50, 'editable': False},
+                {'name': 'Tenant', 'key': 'tenant_name', 'width': 120, 'editable': False},
+                {'name': 'Apartment', 'key': 'apartment_address', 'width': 120, 'editable': False},
+                {'name': 'Location', 'key': 'city', 'width': 100, 'editable': False},
+                {'name': 'Start Date', 'key': 'start_date', 'width': 110, 'editable': False},
+                {'name': 'End Date', 'key': 'end_date', 'width': 110, 'editable': False},
+                {'name': 'Monthly Rent', 'key': 'monthly_rent', 'format': 'currency', 'width': 120, 'editable': False},
+                {'name': 'Status', 'key': 'active', 'width': 100, 'format': 'boolean', 'options': ["Active", "Inactive"], 'editable': False},
+                {'name': 'Expired', 'key': 'expired', 'width': 80, 'format': 'boolean', 'options': ["Yes", "No"], 'editable': False}
+            ]
+
+            # Function to fetch lease data for the table (filtered by location)
+            def get_data():
+                try:
+                    return lease_repo.get_all_leases(location=self.location)
+                except Exception as e:
+                    print(f"Error loading leases: {e}")
+                    return []
+                
+            table, refresh_table = pe.data_table(
+                content,
+                columns,
+                editable=False,
+                deletable=False,
+                refresh_data=get_data,
+                show_refresh_button=True,
+                render_batch_size=20,
+                page_size=10,
+            )
+
+        data_button.configure(command=setup_data_popup)
+
     def load_reports_content(self, row):
         reports_card = pe.function_card(row, f"Performance Report - {self.location}", side="left", pady=6, padx=8)
 
