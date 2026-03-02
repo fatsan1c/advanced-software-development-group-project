@@ -112,9 +112,9 @@ def get_lease_trend_timeseries(location=None, start_date=None, end_date=None, gr
             'grouping': str,
             'series': [{
                 'period': str,
-                'new_leases': int,
-                'active_leases': int,
-                'expired_leases': int
+                'new_leases': int (new leases started in this period),
+                'active_leases': int (leases active during this period),
+                'expired_leases': int (cumulative total expired up to this period)
             }, ...]
         }
     """
@@ -190,18 +190,20 @@ def get_lease_trend_timeseries(location=None, start_date=None, end_date=None, gr
         """
         active_result = execute_query(active_query, tuple(params), fetch_one=True) or {}
         
-        # Expired leases in this period
+        # Total expired leases up to this period (cumulative)
         expired_query = f"""
             SELECT COUNT(*) AS count
             FROM lease_agreements la
             JOIN apartments a ON la.apartment_ID = a.apartment_ID
             JOIN locations l ON a.location_ID = l.location_ID
-            WHERE date(la.end_date) >= date(?)
-              AND date(la.end_date) <= date(?)
+            WHERE date(la.end_date) <= date(?)
               AND (la.active = 0 OR date(la.end_date) < date('now'))
               {loc_filter}
         """
-        expired_result = execute_query(expired_query, tuple(params), fetch_one=True) or {}
+        expired_params = [pe]
+        if city:
+            expired_params.append(city)
+        expired_result = execute_query(expired_query, tuple(expired_params), fetch_one=True) or {}
         
         series.append({
             "period": period_label,
@@ -243,7 +245,7 @@ def create_lease_trend_graph(parent, location=None, start_date=None, end_date=No
     new_values = np.array([int(row.get("new_leases") or 0) for row in series_data], dtype=float)
     active_values = np.array([int(row.get("active_leases") or 0) for row in series_data], dtype=float)
     expired_values = np.array([int(row.get("expired_leases") or 0) for row in series_data], dtype=float)
-    print(location)
+    
     title_location = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
     return create_trend_chart(
         parent,
