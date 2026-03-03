@@ -30,7 +30,7 @@ def form_element(
         fields: List of field dictionaries with keys:
             - 'name': Field name/label (required)
             - 'type': Input type - 'text', 'dropdown', 'checkbox' (default: 'text')
-            - 'subtype': Subtype for text fields - 'text', 'number', 'password', 'currency', 'date' (default: 'text')
+            - 'subtype': Subtype for text fields - 'text', 'number', 'password', 'currency', 'date', 'dynamic' - only for dropdown (default: 'text')
             - 'options': List of options for dropdown (required if type='dropdown')
             - 'default': Default value
             - 'required': Whether field is required (default: False)
@@ -84,6 +84,8 @@ def form_element(
     
     # Store field widgets for retrieval
     field_widgets = {}
+    dynamic_dropdown_refreshers = {}  # Store refresh functions for dynamic dropdowns
+    dynamic_dropdown_maps = {}  # Store value maps for dynamic dropdowns
 
     fields_count = 0
     current_row = None
@@ -156,8 +158,8 @@ def form_element(
                 ctk.CTkButton(
                     date_row,
                     text="📅",
-                    width=34,
-                    height=input_height,
+                    width=30,
+                    height=30,
                     font=("Arial", 13),
                     command=open_calendar,
                     fg_color=SECONDARY_GRAY,
@@ -170,22 +172,44 @@ def form_element(
             if field_subtype != 'date':
                 widget.pack(fill="x")
             
-        elif field_type == 'dropdown':
-            options = field.get('options', [])
-            
-            widget = ctk.CTkOptionMenu(
-                field_frame,
-                values=options,
-                height=input_height,
-                font=("Arial", input_font_size)
-            )
-            ui_utils.style_primary_dropdown(widget)
-            
-            if field_default and field_default in options:
-                widget.set(field_default)
-            elif options:
-                widget.set(options[0])
-            widget.pack(fill="x")
+        elif field_type == 'dropdown':            
+            if field_subtype == 'dynamic':
+                # Dynamic dropdown expects 'options' to be a dict with:
+                # - 'data_fetcher': Function that returns list of data
+                # - 'display_formatter': Function that transforms item to (display, value)
+                # - 'empty_message': Optional message when no data (default: "No items available")
+                options_config = field.get('options', {})
+                data_fetcher = options_config.get('data_fetcher')
+                display_formatter = options_config.get('display_formatter', lambda x: (str(x), x))
+                empty_message = options_config.get('empty_message', "No items available")
+
+                widget, data_map, refresh_func = ui_utils.create_dynamic_dropdown_with_refresh(
+                    parent=field_frame,
+                    data_fetcher=data_fetcher,
+                    display_formatter=display_formatter,
+                    empty_message=empty_message
+                )
+                
+                # Store the data map and refresh function for this field
+                dynamic_dropdown_maps[field_name] = data_map
+                dynamic_dropdown_refreshers[field_name] = refresh_func
+            else:
+                options = field.get('options', [])
+
+                widget = ctk.CTkOptionMenu(
+                    field_frame,
+                    values=options,
+                    height=input_height,
+                    font=("Arial", input_font_size)
+                )
+                ui_utils.style_primary_dropdown(widget)
+                
+                # Set default value for non-dynamic dropdowns
+                if field_default and field_default in options:
+                    widget.set(field_default)
+                elif options:
+                    widget.set(options[0])
+                widget.pack(fill="x")
             
         elif field_type == 'checkbox':
             widget = ctk.CTkCheckBox(
@@ -197,7 +221,7 @@ def form_element(
                 widget.select()
             widget.pack(anchor="w")
         
-        field_widgets[field_name] = {'widget': widget, 'type': field_type, 'required': field_required}
+        field_widgets[field_name] = {'widget': widget, 'type': field_type, 'subtype': field_subtype, 'required': field_required}
         fields_count += 1
     
     # Error message label (initially hidden)
@@ -237,7 +261,12 @@ def form_element(
             if field_type == 'text':
                 value = widget.get().strip()
             elif field_type == 'dropdown':
-                value = widget.get()
+                display_value = widget.get()
+                # For dynamic dropdowns, map display text to actual value
+                if field_name in dynamic_dropdown_maps:
+                    value = dynamic_dropdown_maps[field_name].get(display_value, display_value)
+                else:
+                    value = display_value
             elif field_type == 'checkbox':
                 value = widget.get() == 1
             else:
@@ -254,30 +283,41 @@ def form_element(
         
         # Call the callback if validation passes
         if all_valid and on_submit:
+            # Refresh all dynamic dropdowns to show new data (delayed)
+            def refresh_dropdowns():
+                for refresh_func in dynamic_dropdown_refreshers.values():
+                    refresh_func()
+
             result = on_submit(values)
             # If callback returns a string, it's an error message
             if isinstance(result, str):
                 error_label.configure(text=result)
                 error_label.pack(pady=0, padx=10)
+                
+                form.after(50, refresh_dropdowns)
             elif result is True:
                 # Success - show success message
                 success_label.configure(text="Operation completed successfully.")
                 success_label.pack(pady=0, padx=10)
+                
+                form.after(50, refresh_dropdowns)
+                
                 # Clear all input fields after successful submission
                 for field_name, field_info in field_widgets.items():
                     widget = field_info['widget']
                     field_type = field_info['type']
+                    sub_type = field_info.get('subtype', None)
                     
                     if field_type == 'text':
                         widget.delete(0, 'end')
                     elif field_type == 'checkbox':
                         widget.deselect()
-                    elif field_type == 'dropdown':
+                    elif field_type == 'dropdown' and sub_type != 'dynamic':
                         # Find the original field definition to get options
                         field_def = next((f for f in fields if f['name'] == field_name), None)
                         if field_def:
                             options = field_def.get('options', [])
-                            if options:
+                            if options and isinstance(options, list):
                                 widget.set(options[0])
     
     submit_button = ctk.CTkButton(

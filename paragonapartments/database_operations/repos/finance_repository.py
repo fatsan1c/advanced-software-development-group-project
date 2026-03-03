@@ -34,12 +34,12 @@ def _payment_base_join_sql() -> str:
     """
     return """
         FROM payments p
-        JOIN tenants t ON p.tenant_ID = t.tenant_ID
+        JOIN invoices i ON p.invoice_ID = i.invoice_ID
+        JOIN tenants t ON i.tenant_ID = t.tenant_ID
         LEFT JOIN lease_agreements la
                ON la.tenant_ID = t.tenant_ID AND la.active = 1
         LEFT JOIN apartments a ON la.apartment_ID = a.apartment_ID
         LEFT JOIN locations l ON a.location_ID = l.location_ID
-        LEFT JOIN invoices i ON p.invoice_ID = i.invoice_ID
     """
 
 
@@ -214,7 +214,6 @@ def get_payments(location: str | None = None):
         SELECT
             p.payment_ID,
             p.invoice_ID,
-            p.tenant_ID,
             {get_tenant_name_select_sql()},
             l.city,
             p.payment_date,
@@ -228,13 +227,12 @@ def get_payments(location: str | None = None):
     return execute_query(query, params, fetch_all=True)
 
 
-def record_payment(invoice_id: int, tenant_id: int, amount: float, payment_date: str | None = None, mark_invoice_paid: bool = True):
+def record_payment(invoice_id: int, amount: float, payment_date: str | None = None, mark_invoice_paid: bool = True):
     """
     Record a payment, optionally marking the invoice as paid.
 
     Args:
         invoice_id (int): Invoice ID being paid
-        tenant_id (int): Tenant ID making the payment
         amount (float): Payment amount
         payment_date (str, optional): 'YYYY-MM-DD'. Defaults to today.
         mark_invoice_paid (bool): If True, set invoices.paid=1 for the given invoice.
@@ -250,8 +248,6 @@ def record_payment(invoice_id: int, tenant_id: int, amount: float, payment_date:
     )
     if not inv:
         raise ValueError(f"Invoice ID {invoice_id} does not exist.")
-    if int(inv.get("tenant_ID")) != int(tenant_id):
-        raise ValueError(f"Invoice {invoice_id} belongs to tenant ID {inv.get('tenant_ID')}, not {tenant_id}.")
     if int(inv.get("paid") or 0) == 1:
         raise ValueError(f"Invoice {invoice_id} is already marked as paid.")
 
@@ -265,12 +261,12 @@ def record_payment(invoice_id: int, tenant_id: int, amount: float, payment_date:
 
     payment_date_expr = payment_date if payment_date else None
     insert_query = """
-        INSERT INTO payments (invoice_ID, tenant_ID, payment_date, amount)
-        VALUES (?, ?, COALESCE(?, date('now')), ?)
+        INSERT INTO payments (invoice_ID, payment_date, amount)
+        VALUES (?, COALESCE(?, date('now')), ?)
     """
     payment_id = execute_query(
         insert_query,
-        (int(invoice_id), int(tenant_id), payment_date_expr, float(amount)),
+        (int(invoice_id), payment_date_expr, float(amount)),
         commit=True
     )
 

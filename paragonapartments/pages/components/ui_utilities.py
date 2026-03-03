@@ -278,7 +278,7 @@ def style_secondary_dropdown(dropdown):
         pass
 
 # ============================= Common UI Patterns =============================
-def create_refresh_button(parent, command, side="left", padx=(12, 0)):
+def create_refresh_button(parent, command, side="left", padx=(12, 0), square=False):
     """
     Create a standardized refresh button.
     
@@ -287,16 +287,16 @@ def create_refresh_button(parent, command, side="left", padx=(12, 0)):
         command: Function to call when clicked
         side: Pack side (default: "left")
         padx: Padding x (default: (12, 0))
-        
+        square: If True, creates a square-shaped button (default: False)
     Returns:
         The created button
     """
     button = ctk.CTkButton(
         parent,
-        text="⟳ Refresh",
+        text="⟳ Refresh" if not square else "⟳",
         command=command,
-        height=32,
-        width=120,
+        height=30 if square else 32,
+        width=30 if square else 120,
         fg_color=SECONDARY_GRAY,
         hover_color=SECONDARY_GRAY_HOVER,
         text_color=TEXT_COLOR,
@@ -636,7 +636,7 @@ def setup_complete_graph_popup(controls, content, graph_function, location_mappe
     render_graph()
 
 
-def create_dynamic_dropdown_with_refresh(parent, label, data_fetcher, display_formatter, 
+def create_dynamic_dropdown_with_refresh(parent, data_fetcher, display_formatter=lambda x: (str(x), x),
                                          empty_message="No items available"):
     """Create a dropdown with dynamic data and refresh button.
     
@@ -668,10 +668,7 @@ def create_dynamic_dropdown_with_refresh(parent, label, data_fetcher, display_fo
     """
     # Container
     container = ctk.CTkFrame(parent, fg_color="transparent")
-    container.pack(fill="x", padx=10, pady=(10, 0))
-    
-    # Label
-    ctk.CTkLabel(container, text=label, font=("Arial", 13, "bold")).pack(pady=(0, 5))
+    container.pack(fill="x", padx=0, pady=0)
     
     # Dropdown
     dropdown = ctk.CTkOptionMenu(
@@ -711,7 +708,7 @@ def create_dynamic_dropdown_with_refresh(parent, label, data_fetcher, display_fo
             data_map.clear()
     
     # Refresh button
-    create_refresh_button(container, refresh, side="left", padx=(10, 0))
+    create_refresh_button(container, refresh, side="left", padx=(5, 0), square=True)
     
     # Initial load
     refresh()

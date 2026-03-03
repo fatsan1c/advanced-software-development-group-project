@@ -247,10 +247,10 @@ def seed_finance_data(
 
         cur.execute(
             """
-            INSERT INTO payments (invoice_ID, tenant_ID, payment_date, amount)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO payments (invoice_ID, payment_date, amount)
+            VALUES (?, ?, ?)
             """,
-            (invoice_id, inv["tenant_id"], payment_date.isoformat(), inv["amount_due"]),
+            (invoice_id, payment_date.isoformat(), inv["amount_due"]),
         )
 
     conn.commit()

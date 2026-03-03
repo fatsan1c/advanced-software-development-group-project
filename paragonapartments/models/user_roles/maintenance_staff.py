@@ -341,38 +341,33 @@ class MaintenanceStaff(User):
             display = f"ID {req['request_ID']}: {issue_short} - {req['tenant_name']} (P{req['priority_level']})"
             return (display, req['request_ID'])
 
-        # Create dynamic dropdown with refresh functionality
-        request_dropdown, request_map, refresh_requests = pe.create_dynamic_dropdown_with_refresh(
-            complete_card,
-            "Select Request:",
-            fetch_requests,
-            format_request,
-            "No pending requests"
-        )
-
         # Form submission handler
         def handle_submit(values):
-            selected = request_dropdown.get()
-            if not selected or selected not in request_map:
+            request_id = values.get("Select Request")
+            
+            if not request_id:
                 return "Please select a request"
 
-            request_id = request_map[selected]
-            
             submit_values = {
                 "Request ID": request_id,
                 "Final Cost": values.get("Final Cost", "")
             }
 
-            result = self.complete_maintenance_request(submit_values)
-            
-            if result is True:
-                refresh_requests()
-                return True
-            else:
-                return result
+            return self.complete_maintenance_request(submit_values)
 
-        # Use styled form for Final Cost input
+        # Use styled form with dynamic dropdown
         fields = [
+            {
+                'name': 'Select Request',
+                'type': 'dropdown',
+                'subtype': 'dynamic',
+                'required': True,
+                'options': {
+                    'data_fetcher': fetch_requests,
+                    'display_formatter': format_request,
+                    'empty_message': 'No pending requests'
+                }
+            },
             {
                 'name': 'Final Cost',
                 'type': 'text',
@@ -408,38 +403,33 @@ class MaintenanceStaff(User):
             display = f"ID {req['request_ID']}: {issue_short} - {req['tenant_name']} (P{req['priority_level']}) {scheduled_status}"
             return (display, req['request_ID'])
 
-        # Create dynamic dropdown with refresh functionality
-        request_dropdown, request_map, refresh_requests = pe.create_dynamic_dropdown_with_refresh(
-            schedule_card,
-            "Select Request:",
-            fetch_requests,
-            format_request,
-            "No pending requests"
-        )
-
         # Form submission handler
         def handle_submit(values):
-            selected = request_dropdown.get()
-            if not selected or selected not in request_map:
+            request_id = values.get("Select Request")
+            
+            if not request_id:
                 return "Please select a request"
 
-            request_id = request_map[selected]
-            
             submit_values = {
                 "Request ID": request_id,
                 "Scheduled Date": values.get("Scheduled Date", "")
             }
 
-            result = self.schedule_maintenance(submit_values)
-            
-            if result is True:
-                refresh_requests()
-                return True
-            else:
-                return result
+            return self.schedule_maintenance(submit_values)
 
-        # Use styled form for Scheduled Date input
+        # Use styled form with dynamic dropdown
         fields = [
+            {
+                'name': 'Select Request',
+                'type': 'dropdown',
+                'subtype': 'dynamic',
+                'required': True,
+                'options': {
+                    'data_fetcher': fetch_requests,
+                    'display_formatter': format_request,
+                    'empty_message': 'No pending requests'
+                }
+            },
             {
                 'name': 'Scheduled Date',
                 'type': 'text',
@@ -462,10 +452,6 @@ class MaintenanceStaff(User):
         """Load create new maintenance request card with apartment dropdown."""
         create_card = pe.function_card(row, "Create Request", side="left")
 
-        # Container for dynamic dropdown and refresh button
-        dropdown_container = ctk.CTkFrame(create_card, fg_color="transparent")
-        dropdown_container.pack(fill="x", padx=10, pady=(10, 0))
-
         # Define data fetcher and formatter for apartment dropdown
         def fetch_apartments():
             return maintenance_repo.get_apartments_with_tenants(self.location)
@@ -478,59 +464,13 @@ class MaintenanceStaff(User):
             }
             return (display, value)
 
-        # Create dynamic dropdown with refresh functionality (with custom refresh button position)
-        # First create label
-        ctk.CTkLabel(
-            dropdown_container,
-            text="Select Apartment:",
-            font=("Arial", 13, "bold")
-        ).pack(pady=(0, 5))
-
-        # Create a horizontal container for dropdown and refresh button
-        dropdown_row = ctk.CTkFrame(dropdown_container, fg_color="transparent")
-        dropdown_row.pack(fill="x", pady=(0, 8))
-
-        apartment_dropdown = ctk.CTkOptionMenu(
-            dropdown_row,
-            values=["Loading..."],
-            font=("Arial", 12)
-        )
-        apartment_dropdown.pack(side="left", fill="x", expand=True)
-        pe.style_secondary_dropdown(apartment_dropdown)
-
-        apartment_map = {}
-
-        def refresh_apartments():
-            apartments = fetch_apartments()
-            
-            if not apartments:
-                apartment_dropdown.configure(values=["No apartments with active leases"])
-                apartment_dropdown.set("No apartments with active leases")
-                apartment_map.clear()
-                return
-
-            apartment_options = []
-            apartment_map.clear()
-            for apt in apartments:
-                display, value = format_apartment(apt)
-                apartment_options.append(display)
-                apartment_map[display] = value
-
-            apartment_dropdown.configure(values=apartment_options)
-            apartment_dropdown.set(apartment_options[0])
-
-        refresh_btn = pe.create_refresh_button(dropdown_row, refresh_apartments, side="left", padx=(10, 0))
-
-        # Initial load
-        refresh_apartments()
-
         # Form submission handler
         def handle_submit(values):
-            selected_apt = apartment_dropdown.get()
-            if not selected_apt or selected_apt not in apartment_map:
+            apt_info = values.get("Select Apartment")
+            
+            if not apt_info or not isinstance(apt_info, dict):
                 return "Please select an apartment"
 
-            apt_info = apartment_map[selected_apt]
             priority_str = values.get("Priority Level", "3 - Medium")
             
             # Extract priority number
@@ -545,16 +485,21 @@ class MaintenanceStaff(User):
                 "Cost Estimate": values.get("Cost Estimate", "")
             }
 
-            result = self.create_maintenance_request(submit_values)
-            
-            if result is True:
-                refresh_apartments()
-                return True
-            else:
-                return result
+            return self.create_maintenance_request(submit_values)
 
-        # Use styled form for input fields
+        # Use styled form with dynamic dropdown
         fields = [
+            {
+                'name': 'Select Apartment',
+                'type': 'dropdown',
+                'subtype': 'dynamic',
+                'required': True,
+                'options': {
+                    'data_fetcher': fetch_apartments,
+                    'display_formatter': format_apartment,
+                    'empty_message': 'No apartments with active leases'
+                }
+            },
             {
                 'name': 'Issue Description',
                 'type': 'text',

@@ -2,6 +2,7 @@ import customtkinter as ctk
 import pages.components.page_elements as pe
 import pages.components.input_validation as input_validation
 import database_operations.repos.finance_repository as finance_repo
+import database_operations.repos.tenants_repository as tenant_repo
 from models.user import User
 
 class FinanceManager(User):
@@ -32,13 +33,15 @@ class FinanceManager(User):
     def create_invoice(self, values):
         """Create a new invoice."""
         try:
-            tenant_id = int(values.get("Tenant ID", 0))
+            tenant_id = values.get("Tenant")
+            if tenant_id:
+                tenant_id = int(tenant_id)
             amount_due = float(values.get("Amount Due", 0))
             due_date = self._ui_date_to_db(values.get("Due Date", ""))
             issue_date = self._ui_date_to_db(values.get("Issue Date", "")) or None
 
             if not tenant_id:
-                return "Tenant ID is required."
+                return "Tenant is required."
             if not due_date:
                 return "Due Date is required (YYYY-MM-DD)."
             if amount_due <= 0:
@@ -89,29 +92,25 @@ class FinanceManager(User):
     def record_payment(self, values):
         """Record a payment and mark invoice as paid."""
         try:
-            invoice_id = int(values.get("Invoice ID", 0))
-            tenant_id = int(values.get("Tenant ID", 0))
+            invoice_id = values.get("Invoice")
+            if invoice_id:
+                invoice_id = int(invoice_id)
             amount = float(values.get("Amount", 0))
             payment_date = self._ui_date_to_db(values.get("Payment Date", "")) or None
 
             if not invoice_id:
-                return "Invoice ID is required."
-            if not tenant_id:
-                return "Tenant ID is required."
+                return "Invoice is required."
             if amount <= 0:
                 return "Amount must be greater than 0."
 
             invoice = finance_repo.get_invoice_by_id(invoice_id)
             if not invoice:
                 return f"Invoice ID {invoice_id} does not exist."
-            if int(invoice.get("tenant_ID")) != tenant_id:
-                return f"Invoice {invoice_id} belongs to tenant ID {invoice.get('tenant_ID')}, not {tenant_id}."
             if int(invoice.get("paid") or 0) == 1:
                 return f"Invoice {invoice_id} is already marked as paid."
 
             payment_id = finance_repo.record_payment(
                 invoice_id=invoice_id,
-                tenant_id=tenant_id,
                 amount=amount,
                 payment_date=payment_date,
                 mark_invoice_paid=True
@@ -212,8 +211,16 @@ class FinanceManager(User):
     def load_invoice_content(self, row, side="left"):
         invoices_card = pe.function_card(row, "Manage Invoices", side=side, pady=6, padx=8)
 
+        def format_tenants(tenant):
+            display = f"ID {tenant['tenant_ID']}: {tenant['first_name']} {tenant['last_name']}"
+            return (display, tenant['tenant_ID'])
+
         fields = [
-            {"name": "Tenant ID", "type": "text", "subtype": "number", "required": True},
+            {"name": "Tenant", "type": "dropdown", "subtype": "dynamic", 'options': {
+                    'data_fetcher': tenant_repo.get_all_tenant_names,
+                    'display_formatter': format_tenants,
+                    'empty_message': 'No tenants available'
+                }, "required": True},
             {"name": "Amount Due", "type": "text", "subtype": "currency", "required": True, "placeholder": "£0.00"},
             {"name": "Due Date", "type": "text", "subtype": "date", "placeholder": "YYYY-MM-DD", "required": True},
             {"name": "Issue Date", "type": "text", "subtype": "date", "placeholder": "YYYY-MM-DD", "required": False},
@@ -291,9 +298,27 @@ class FinanceManager(User):
     def load_payments_content(self, row, side="top"):
         payments_card = pe.function_card(row, "Payments", side=side, pady=6, padx=8)
 
+        # Define data fetcher and formatter for unpaid invoices
+        def fetch_unpaid_invoices():
+            location = self.location if self.location else "all"
+            return finance_repo.get_invoices(location=location, paid=0)
+
+        def format_invoice(inv):
+            display = f"Invoice #{inv['invoice_ID']} - {inv['tenant_name']} - £{inv['amount_due']:.2f} (Due: {inv['due_date']})"
+            return (display, inv['invoice_ID'])
+
         fields = [
-            {"name": "Invoice ID", "type": "text", "subtype": "number", "required": True},
-            {"name": "Tenant ID", "type": "text", "subtype": "number", "required": True},
+            {
+                "name": "Invoice",
+                "type": "dropdown",
+                "subtype": "dynamic",
+                "required": True,
+                "options": {
+                    'data_fetcher': fetch_unpaid_invoices,
+                    'display_formatter': format_invoice,
+                    'empty_message': 'No unpaid invoices'
+                }
+            },
             {"name": "Amount", "type": "text", "subtype": "currency", "required": True, "placeholder": "£0.00"},
             {"name": "Payment Date", "type": "text", "subtype": "date", "placeholder": "YYYY-MM-DD", "required": False}
         ]
