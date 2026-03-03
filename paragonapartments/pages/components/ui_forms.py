@@ -10,7 +10,7 @@ This module provides comprehensive form building functionality including:
 
 import customtkinter as ctk
 from datetime import datetime
-from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BTN, ROUND_INPUT
+from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BTN, ROUND_INPUT, SECONDARY_GRAY, SECONDARY_GRAY_HOVER, TEXT_COLOR
 import pages.components.input_validation as input_validation
 import pages.components.ui_utilities as ui_utils
 
@@ -160,8 +160,9 @@ def form_element(
                     height=input_height,
                     font=("Arial", 13),
                     command=open_calendar,
-                    fg_color=("gray80", "gray25"),
-                    hover_color=("gray70", "gray30"),
+                    fg_color=SECONDARY_GRAY,
+                    hover_color=SECONDARY_GRAY_HOVER,
+                    text_color=TEXT_COLOR,
                 ).pack(side="left", padx=(6, 0))
 
             if field_default:

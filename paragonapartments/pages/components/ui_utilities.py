@@ -6,7 +6,7 @@ import customtkinter as ctk
 from customtkinter import ThemeManager
 from PIL import Image, ImageDraw
 from datetime import datetime
-from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BTN
+from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BTN, TEXT_COLOR, SECONDARY_GRAY, SECONDARY_GRAY_HOVER
 
 try:
     from tkcalendar import Calendar  # type: ignore[reportMissingImports]
@@ -164,8 +164,8 @@ def open_date_picker(entry_widget, parent_window):
         width=104,
         height=34,
         font=("Arial", 14),
-        fg_color=("gray80", "gray28"),
-        hover_color=("gray70", "gray33"),
+        fg_color=SECONDARY_GRAY,
+        hover_color=SECONDARY_GRAY_HOVER,
     ).pack(side="left")
     
     ctk.CTkButton(
@@ -234,9 +234,9 @@ def style_secondary_button(button, font_size=13):
             height=40,
             font=("Arial", font_size, "bold"),
             corner_radius=ROUND_BTN,
-            fg_color=("gray85", "gray25"),
-            hover_color=("gray80", "gray30"),
-            text_color=("gray15", "gray92"),
+            fg_color=SECONDARY_GRAY,
+            hover_color=SECONDARY_GRAY_HOVER,
+            text_color=TEXT_COLOR,
         )
         button.pack_configure(pady=(4, 0))
     except Exception:
@@ -269,10 +269,10 @@ def style_secondary_dropdown(dropdown):
     try:
         dropdown.configure(
             corner_radius=ROUND_BTN,
-            fg_color=("gray85", "gray25"),
+            fg_color=ThemeManager.theme["CTkComboBox"]["fg_color"],
             button_color=ThemeManager.theme["CTkComboBox"]["button_color"],
             button_hover_color=ThemeManager.theme["CTkComboBox"]["button_hover_color"],
-            text_color=("gray15", "gray92"),
+            text_color=TEXT_COLOR,
         )
     except Exception:
         pass
@@ -297,8 +297,9 @@ def create_refresh_button(parent, command, side="left", padx=(12, 0)):
         command=command,
         height=32,
         width=120,
-        fg_color=("gray70", "gray30"),
-        hover_color=("gray60", "gray25")
+        fg_color=SECONDARY_GRAY,
+        hover_color=SECONDARY_GRAY_HOVER,
+        text_color=TEXT_COLOR,
     )
     button.pack(side=side, padx=padx)
     return button
@@ -496,10 +497,10 @@ def create_graph_popup_controls(content, include_location=True, default_location
     # Date picker buttons
     ctk.CTkButton(start_wrap, text="📅", width=34, height=28, font=("Arial", 13),
                  command=lambda: open_date_picker(start_entry, content.winfo_toplevel()),
-                 fg_color=("gray80", "gray25"), hover_color=("gray70", "gray30")).pack(side="left", padx=(6, 0))
+                 fg_color=SECONDARY_GRAY, hover_color=SECONDARY_GRAY_HOVER, text_color=TEXT_COLOR).pack(side="left", padx=(6, 0))
     ctk.CTkButton(end_wrap, text="📅", width=34, height=28, font=("Arial", 13),
                  command=lambda: open_date_picker(end_entry, content.winfo_toplevel()),
-                 fg_color=("gray80", "gray25"), hover_color=("gray70", "gray30")).pack(side="left", padx=(6, 0))
+                 fg_color=SECONDARY_GRAY, hover_color=SECONDARY_GRAY_HOVER, text_color=TEXT_COLOR).pack(side="left", padx=(6, 0))
     
     # Function to apply grouping defaults
     def apply_grouping_defaults(grouping_value):
@@ -527,9 +528,7 @@ def create_graph_popup_controls(content, include_location=True, default_location
     graph_container.pack(fill="both", expand=True)
     
     # Refresh button (to be added to row_top by caller)
-    refresh_btn = ctk.CTkButton(row_top, text="⟳ Refresh", height=32, width=120,
-                                fg_color=("gray70", "gray30"), hover_color=("gray60", "gray25"))
-    refresh_btn.pack(side="left", padx=(18, 0))
+    refresh_btn = create_refresh_button(row_top, command=lambda: None, side="left", padx=(18, 0))  # Command to be set by caller
     
     return {
         'controls': controls,

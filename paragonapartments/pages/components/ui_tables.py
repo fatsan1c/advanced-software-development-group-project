@@ -11,7 +11,8 @@ This module provides comprehensive data table functionality including:
 
 import customtkinter as ctk
 import pages.components.input_validation as input_validation
-
+from pages.components.config.theme import DISABLED_TEXT_COLOR, SECONDARY_GRAY, SECONDARY_GRAY_HOVER, TEXT_COLOR
+from pages.components.ui_utilities import create_refresh_button
 
 def data_table(parent, columns, data=None, editable=False, deletable=False,
                on_update=None, on_delete=None, refresh_data=None,
@@ -119,7 +120,7 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
             content = content_ref['content']
         
         # Header row
-        header_row = ctk.CTkFrame(content, fg_color=("gray75", "gray25"))
+        header_row = ctk.CTkFrame(content, fg_color=SECONDARY_GRAY)
         header_row.pack(fill="x", padx=5, pady=(5, 0))
         
         for col in columns:
@@ -171,7 +172,7 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                 content,
                 text=f"Loading {len(page_data)} rows...",
                 font=("Arial", 12),
-                text_color=("gray25", "gray70"),
+                text_color=TEXT_COLOR,
             )
             loading_label.pack(anchor="w", padx=5, pady=(8, 2))
 
@@ -199,8 +200,10 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                     height=32,
                     command=lambda: set_page(max(1, pagination_ref["page"] - 1)),
                     state="normal" if pagination_ref["page"] > 1 else "disabled",
-                    fg_color=("gray70", "gray30"),
-                    hover_color=("gray60", "gray25"),
+                    fg_color=SECONDARY_GRAY,
+                    hover_color=SECONDARY_GRAY_HOVER,
+                    text_color=TEXT_COLOR,
+                    text_color_disabled=DISABLED_TEXT_COLOR
                 )
                 prev_btn.pack(side="left")
 
@@ -219,8 +222,10 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                         height=32,
                         command=(lambda p=page_num: set_page(p)) if page_num else None,
                         state="disabled" if disabled else "normal",
-                        fg_color=("gray70", "gray30"),
-                        hover_color=("gray60", "gray25"),
+                        fg_color=SECONDARY_GRAY,
+                        hover_color=SECONDARY_GRAY_HOVER,
+                        text_color=TEXT_COLOR,
+                        text_color_disabled=DISABLED_TEXT_COLOR,
                     )
                     btn.pack(side="left", padx=2)
 
@@ -248,8 +253,10 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                     height=32,
                     command=lambda: set_page(min(total, pagination_ref["page"] + 1)),
                     state="normal" if pagination_ref["page"] < total else "disabled",
-                    fg_color=("gray70", "gray30"),
-                    hover_color=("gray60", "gray25"),
+                    fg_color=SECONDARY_GRAY,
+                    hover_color=SECONDARY_GRAY_HOVER,
+                    text_color=TEXT_COLOR,
+                    text_color_disabled=DISABLED_TEXT_COLOR
                 )
                 next_btn.pack(side="left", padx=(10, 0))
 
@@ -257,21 +264,13 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                     pager,
                     text=f"Page {cur} / {total} ({total_rows} rows)",
                     font=("Arial", 12),
-                    text_color=("gray25", "gray70"),
+                    text_color=TEXT_COLOR,
                 ).pack(side="right")
 
             # Refresh button
             if show_refresh_button:
-                refresh_btn = ctk.CTkButton(
-                    pager,
-                    text="⟳ Refresh",
-                    command=refresh_table,
-                    height=32,
-                    width=110,
-                    fg_color=("gray70", "gray30"),
-                    hover_color=("gray60", "gray25")
-                )
-                refresh_btn.pack(padx=25, side="left" if (ps > 0 and total_rows > ps) else None)  # Align left if pagination exists, otherwise right
+                refresh_btn = create_refresh_button(pager, refresh_table, padx=25)
+                refresh_btn.pack(side="left" if (ps > 0 and total_rows > ps) else None)  # Align left if pagination exists, otherwise right
 
         def render_rows_range(start_idx: int):
             end_idx = len(page_data) if not batch_size else min(start_idx + batch_size, len(page_data))
@@ -375,8 +374,9 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                     height=28,
                     command=lambda: edit_row(row_data, cell_widgets, cols, 
                                             update_callback, refresh_callback, error_label),
-                    fg_color=("gray70", "gray30"),
-                    hover_color=("gray60", "gray25")
+                    fg_color=SECONDARY_GRAY,
+                    hover_color=SECONDARY_GRAY_HOVER,
+                    text_color=TEXT_COLOR
                 )
                 edit_btn.pack(side="left", padx=2)
             
@@ -503,8 +503,9 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                                 btn.configure(
                                     text="Cancel",
                                     command=lambda: refresh_callback(),
-                                    fg_color=("gray70", "gray30"),
-                                    hover_color=("gray60", "gray25")
+                                    fg_color=SECONDARY_GRAY,
+                                    hover_color=SECONDARY_GRAY_HOVER,
+                                    text_color=TEXT_COLOR
                                 )
     
     def save_row(row_data, edit_data, update_callback, refresh_callback, error_label):
