@@ -128,12 +128,28 @@ def form_element(
                 widget.configure(show="•")
             elif field_subtype == 'number':
                 vcmd = (widget.register(input_validation.validate_number_input), '%P')
-                widget.configure(validate="key", validatecommand=vcmd)
+                widget.configure(validate="key", validatecommand=vcmd, require_redraw=True)
+                
+                # Force placeholder to show on focus out when empty
+                def on_focusout(event, w=widget):
+                    if not w.get():
+                        w.configure(validate="none")
+                        w.delete(0, 'end')
+                        w.configure(validate="key")
+                widget.bind("<FocusOut>", on_focusout)
 
             elif field_subtype == 'currency':
                 # Currency validation: allows numbers with optional decimal and max 2 decimal places
                 vcmd = (widget.register(input_validation.validate_currency_input), '%P')
                 widget.configure(validate="key", validatecommand=vcmd)
+                
+                # Force placeholder to show on focus out when empty
+                def on_focusout(event, w=widget):
+                    if not w.get():
+                        w.configure(validate="none")
+                        w.delete(0, 'end')
+                        w.configure(validate="key")
+                widget.bind("<FocusOut>", on_focusout)
 
             elif field_subtype == 'date':
                 # Date validation: allows YYYY-MM-DD format with required hyphens.
@@ -166,6 +182,14 @@ def form_element(
                     hover_color=SECONDARY_GRAY_HOVER,
                     text_color=TEXT_COLOR,
                 ).pack(side="left", padx=(6, 0))
+                
+                # Force placeholder to show on focus out when empty
+                def on_focusout(event, w=widget):
+                    if not w.get():
+                        w.configure(validate="none")
+                        w.delete(0, 'end')
+                        w.configure(validate="key")
+                widget.bind("<FocusOut>", on_focusout)
 
             if field_default:
                 widget.insert(0, str(field_default))
