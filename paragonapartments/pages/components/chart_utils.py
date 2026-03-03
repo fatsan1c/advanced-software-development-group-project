@@ -205,7 +205,7 @@ def create_bar_chart(
         lbl.set_fontweight("bold")
     for lbl in ax.get_yticklabels():
         lbl.set_fontweight("bold")
-    fig.subplots_adjust(left=0.12, bottom=0.12, right=0.95, top=0.88)
+    fig.tight_layout(pad=1.5, rect=[0, 0, 1, 0.96])
 
     canvas = FigureCanvasTkAgg(fig, master=parent)
     canvas.draw()
@@ -227,7 +227,7 @@ def create_trend_chart(
     primary_color: str | None = None,
     secondary_axis: tuple[str, np.ndarray, str] | None = None,
     kpi_style: str = "text",
-    show_kpi: bool = True,
+    show_kpi: bool = False,
     show_toolbar: bool = True,
     y_lim_dynamic: bool = False,
     show_today_marker: bool = True,
@@ -262,7 +262,7 @@ def create_trend_chart(
         ax.set_title(title or "No data for the selected period", fontsize=16, color=GRAPH_TITLE_COLOR)
         canvas = FigureCanvasTkAgg(fig, master=parent)
         canvas.draw()
-        canvas.get_tk_widget().pack(fill="both", expand=True, padx=20, pady=20)
+        canvas.get_tk_widget().pack(fill="both", expand=True, pad=0)
         setup_graph_cleanup(parent, canvas, fig)
         return canvas
 
@@ -330,7 +330,7 @@ def create_trend_chart(
     if ax2:
         ax2.margins(x=0)
 
-    ax.set_title(title, fontsize=20, fontweight="600", color=GRAPH_TITLE_COLOR, y=1.10)
+    ax.set_title(title, fontsize=20, fontweight="600", color=GRAPH_TITLE_COLOR, y=1.02)
     ax.set_ylabel(y_label, fontsize=14, color=GRAPH_LABEL_COLOR)
     if y_formatter == "currency":
         ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"£{int(v):,}"))
@@ -407,13 +407,12 @@ def create_trend_chart(
     handles = lines
     ax.legend(
         handles, [h.get_label() for h in handles],
-        loc="lower left", bbox_to_anchor=(0.0, 1.02),
         ncol=len(handles), framealpha=0.98, facecolor="white", edgecolor=LEGEND_EDGE,
         prop={"size": 12, "weight": "500"},
     )
 
-    right_margin = 0.87 if show_kpi else 0.95
-    fig.subplots_adjust(left=0.088, bottom=bottom_margin, right=right_margin, top=0.836)
+    right_margin = 0.87 if show_kpi else 1.0
+    fig.tight_layout(pad=1.2, rect=[-0.02, 0, right_margin, 0.98])
 
     # KPI badges (right side)
     if show_kpi:
@@ -433,10 +432,10 @@ def create_trend_chart(
 
     canvas = FigureCanvasTkAgg(fig, master=parent)
     canvas.draw()
-    canvas.get_tk_widget().pack(fill="both", expand=True, padx=20, pady=20)
+    canvas.get_tk_widget().pack(fill="both", expand=True, padx=0, pady=(10, 0))
     if show_toolbar:
         toolbar = NavigationToolbar2Tk(canvas, parent, pack_toolbar=False)
         toolbar.update()
-        toolbar.pack(fill="x", padx=20, pady=(0, 10))
+        toolbar.pack(fill="x")
     setup_graph_cleanup(parent, canvas, fig)
     return canvas
