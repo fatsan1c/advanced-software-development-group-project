@@ -275,7 +275,7 @@ def open_graph_popup(parent, popup_title: str, button_text: str, graph_function,
             return canvas.figure if hasattr(canvas, 'figure') else canvas
         
         button_container = ctk.CTkFrame(parent, fg_color="transparent")
-        button_container.pack(fill="x", expand=True)
+        button_container.pack(fill="x")
         
         popup_btn, open_popup_func = popup_card(button_container, title=popup_title, 
                                                 button_text=button_text, button_size="full")

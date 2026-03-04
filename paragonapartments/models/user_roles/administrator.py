@@ -228,36 +228,18 @@ class Administrator(User):
         refresh_timer, schedule_refresh = pe.create_debounced_refresh(occupancy_card, update_occupancy_display)
 
         # Graph popup button
-        button, open_popup_func = pe.popup_card(
+        pe.open_graph_popup(
             occupancy_card,
-            title=f"Apartment Occupancy Graph - {self.location}",
+            popup_title=f"Apartment Occupancy Graph - {self.location}",
             button_text="View Graphs",
-            small=False,
-            button_size="medium"
+            graph_function=apartment_repo.create_occupancy_trend_graph,
+            include_location=False,
+            get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
+            date_range_params=self.location,
+            fixed_location=self.location,
+            export_title="Admin Occupancy Report",
+            export_filename="admin_occupancy_report",
         )
-        pe.style_primary_button(button)
-
-        def setup_graph_popup():
-            content = open_popup_func()
-            
-            # Use reusable graph popup controls component (without location dropdown since Admin is location-specific)
-            controls = pe.create_graph_popup_controls(
-                content,
-                include_location=False,
-                get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
-                date_range_params=self.location
-            )
-            
-            # Setup complete graph with automatic rendering and event bindings
-            # Note: location is fixed to self.location since Admin is location-specific
-            pe.setup_complete_graph_popup(
-                controls,
-                content,
-                apartment_repo.create_occupancy_trend_graph,
-                fixed_location=self.location  # No location mapper needed - location is fixed
-            )
-
-        button.configure(command=setup_graph_popup)
         
     def load_account_content(self, row):
         accounts_card = pe.function_card(row, f"Manage Accounts - {self.location}", side="left", pady=6, padx=8)
@@ -357,35 +339,18 @@ class Administrator(User):
         refresh_timer, schedule_refresh = pe.create_debounced_refresh(lease_card, update_lease_display)
 
         # Graph popup button
-        button, open_popup_func = pe.popup_card(
+        pe.open_graph_popup(
             lease_card,
-            title=f"Lease Trends Graph - {self.location}",
+            popup_title=f"Lease Trends Graph - {self.location}",
             button_text="View Graphs",
-            small=False,
-            button_size="medium"
+            graph_function=lease_repo.create_lease_trend_graph,
+            include_location=False,
+            get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
+            date_range_params=self.location,
+            fixed_location=self.location,
+            export_title="Lease Trends Report",
+            export_filename="lease_trends_report",
         )
-        pe.style_primary_button(button)
-
-        def setup_graph_popup():
-            content = open_popup_func()
-            
-            # Use reusable graph popup controls component (without location dropdown since Admin is location-specific)
-            controls = pe.create_graph_popup_controls(
-                content,
-                include_location=False,
-                get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
-                date_range_params=self.location
-            )
-            
-            # Setup complete graph with automatic rendering and event bindings
-            pe.setup_complete_graph_popup(
-                controls,
-                content,
-                lease_repo.create_lease_trend_graph,
-                fixed_location=self.location  # Pass fixed location since Admin is location-specific
-            )
-
-        button.configure(command=setup_graph_popup)
 
         # View Data button for lease agreements table
         data_button, open_data_popup_func = pe.popup_card(
@@ -466,36 +431,18 @@ class Administrator(User):
         update_performance_display()
         refresh_timer, schedule_refresh = pe.create_debounced_refresh(reports_card, update_performance_display)
 
-        button, open_popup_func = pe.popup_card(
+        pe.open_graph_popup(
             reports_card,
-            title=f"Performance Report Graph - {self.location}",
+            popup_title=f"Performance Report Graph - {self.location}",
             button_text="View Graphs",
-            small=False,
-            button_size="medium"
+            graph_function=apartment_repo.create_revenue_trend_graph,
+            include_location=False,
+            get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
+            date_range_params=self.location,
+            fixed_location=self.location,
+            export_title="Performance Report",
+            export_filename=f"performance_report_{self.location}"
         )
-        pe.style_primary_button(button)
-
-        def setup_performance_graph_popup():
-            content = open_popup_func()
-            
-            # Use reusable graph popup controls component (without location dropdown since Admin is location-specific)
-            controls = pe.create_graph_popup_controls(
-                content,
-                include_location=False,
-                get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
-                date_range_params=self.location
-            )
-            
-            # Setup complete graph with automatic rendering and event bindings
-            # Note: location is fixed to self.location since Admin is location-specific
-            pe.setup_complete_graph_popup(
-                controls,
-                content,
-                apartment_repo.create_revenue_trend_graph,
-                fixed_location=self.location  # No location mapper needed - location is fixed
-            )
-
-        button.configure(command=setup_performance_graph_popup)
 
     def load_apartment_content(self, row):
         apartment_card = pe.function_card(row, f"Manage Apartments - {self.location}", side="top", pady=6, padx=8)
