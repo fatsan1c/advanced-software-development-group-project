@@ -35,11 +35,19 @@ from .ui_utilities import (
     round_image_corners,
     content_separator,
     vertical_divider,
-    create_graph_popup_controls,
-    setup_complete_graph_popup,
     create_dynamic_dropdown_with_refresh,
     style_primary_dropdown,
     style_secondary_dropdown,
+    show_pdf_export_success_popup,
+    show_pdf_export_error_popup,
+    create_export_pdf_button,
+)
+
+# Graph popup utilities: specialized functions for graph popups
+from .graph_popup_utilities import (
+    create_graph_popup_controls,
+    setup_complete_graph_popup,
+    open_graph_popup,
 )
 
 # Containers: layout and scrolling
@@ -88,9 +96,12 @@ __all__ = [
     'content_separator',
     'vertical_divider',
     'create_graph_popup_controls',
-    'style_accent_secondary_button',
     'setup_complete_graph_popup',
     'create_dynamic_dropdown_with_refresh',
+    'show_pdf_export_success_popup',
+    'show_pdf_export_error_popup',
+    'create_export_pdf_button',
+    'open_graph_popup',
     # Containers
     'content_container',
     'scrollable_container',

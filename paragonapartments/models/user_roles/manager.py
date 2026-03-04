@@ -241,39 +241,21 @@ class Manager(User):
         refresh_timer, schedule_refresh = pe.create_debounced_refresh(occupancy_card, update_occupancy_display)
         location_dropdown.configure(command=schedule_refresh)
 
-        # Graph popup button - styled like finance
-        button, open_popup_func = pe.popup_card(
-            occupancy_card,
-            title="Apartment Occupancy Graph",
-            button_text="View Graphs",
-            small=False,
-            button_size="medium"
-        )
-        pe.style_primary_button(button)
-
         def _selected_location(val):
             return "all" if (val or "") == "All Locations" else (val or "all")
 
-        def setup_graph_popup():
-            content = open_popup_func()
-            
-            controls = pe.create_graph_popup_controls(
-                content,
-                include_location=True,
-                default_location=location_dropdown.get() or "All Locations",
-                get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
-                date_range_params=_selected_location(location_dropdown.get())
-            )
-            
-            # Setup complete graph with automatic rendering and event bindings
-            pe.setup_complete_graph_popup(
-                controls,
-                content,
-                apartment_repo.create_occupancy_trend_graph,
-                location_mapper=_selected_location
-            )
-
-        button.configure(command=setup_graph_popup)
+        # Graph popup button - using unified system like performance report
+        pe.open_graph_popup(
+            occupancy_card,
+            popup_title="Apartment Occupancy Graph",
+            button_text="View Graphs",
+            graph_function=apartment_repo.create_occupancy_trend_graph,
+            default_location=lambda: location_dropdown.get() or "All Locations",
+            get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
+            location_mapper=_selected_location,
+            export_title="Occupancy Report",
+            export_filename="occupancy_report",
+        )
 
     def load_account_content(self, row):
         accounts_card = pe.function_card(row, "Manage Accounts", side="left", pady=6, padx=8)
@@ -366,39 +348,20 @@ class Manager(User):
         refresh_timer, schedule_refresh = pe.create_debounced_refresh(reports_card, update_performance_display)
         location_dropdown.configure(command=schedule_refresh)
 
-        button, open_popup_func = pe.popup_card(
-            reports_card,
-            title="Performance Report Graph",
-            button_text="View Graphs",
-            small=False,
-            button_size="medium"
-        )
-        pe.style_primary_button(button)
-
         def _sel(val):
             return "all" if (val or "") == "All Locations" else (val or "all")
 
-        def setup_performance_graph_popup():
-            content = open_popup_func()
-            
-            # Use reusable graph popup controls component
-            controls = pe.create_graph_popup_controls(
-                content,
-                include_location=True,
-                default_location=location_dropdown.get() or "All Locations",
-                get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
-                date_range_params=_sel(location_dropdown.get())
-            )
-            
-            # Setup complete graph with automatic rendering and event bindings
-            pe.setup_complete_graph_popup(
-                controls,
-                content,
-                apartment_repo.create_revenue_trend_graph,
-                location_mapper=_sel
-            )
-
-        button.configure(command=setup_performance_graph_popup)
+        pe.open_graph_popup(
+            reports_card,
+            popup_title="Performance Report Graph",
+            button_text="View Graphs",
+            graph_function=apartment_repo.create_revenue_trend_graph,
+            default_location=lambda: location_dropdown.get() or "All Locations",
+            get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
+            location_mapper=_sel,
+            export_title="Performance Report",
+            export_filename="performance_report",
+        )
 
     def load_business_expansion_content(self, row):
         expand_card = pe.function_card(row, "Expand Business", side="top", pady=6, padx=8)

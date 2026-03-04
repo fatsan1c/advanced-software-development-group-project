@@ -21,6 +21,21 @@ class FinanceManager(User):
     def generate_financial_reports(self, location: str = "all"):
         """Return financial summary data (used by the dashboard)."""
         return finance_repo.get_financial_summary(location)
+    
+    def format_financial_stats(self, location: str = "all") -> str:
+        """Format financial summary as stats text string for reports.
+        
+        Args:
+            location: Location to get summary for (default: "all")
+            
+        Returns:
+            str: Formatted stats text with invoiced, collected, outstanding, and late invoices
+        """
+        summary = self.generate_financial_reports(location)
+        return (f"Total Invoiced: £{summary['total_invoiced']:,.2f}\n"
+                f"Total Collected: £{summary['total_collected']:,.2f}\n"
+                f"Outstanding: £{summary['outstanding']:,.2f}\n"
+                f"Late Invoices: {summary['late_invoice_count']}")
 
     def _ui_date_to_db(self, date_str: str | None) -> str | None:
         """
@@ -166,42 +181,21 @@ class FinanceManager(User):
             except Exception as e:
                 late_badge.configure(text=f"Error: {str(e)}", text_color="red")
 
-        # Replace View Summary with a graph popup (summary still auto-refreshes on dropdown change)
-        button, open_popup = pe.popup_card(
+        # Graph popup with inline export button
+        button, export_btn = pe.open_graph_popup(
             summary_card,
-            title="Finance Trends Graph",
+            popup_title="Finance Trends Graph",
             button_text="View Graphs",
-            small=False,
-            button_size="medium"
+            graph_function=finance_repo.create_collected_trend_graph,
+            default_location=lambda: location_dropdown.get() or "All Locations",
+            get_date_range_func=lambda location_str, grouping: finance_repo.get_finance_date_range(
+                self._selected_location(location_str), grouping=grouping
+            ),
+            location_mapper=self._selected_location,
+            stats_generator=self.format_financial_stats,
+            export_title="Finance Trends Report",
+            export_filename="finance_trends"
         )
-        pe.style_primary_button(button, font_size=16)
-
-        def setup_graph_popup():
-            content = open_popup()
-            
-            # Helper to get date range with location parameter
-            def get_date_range_wrapper(location_str, grouping):
-                location = self._selected_location(location_str)
-                return finance_repo.get_finance_date_range(location, grouping=grouping)
-            
-            # Create standardized graph controls
-            controls = pe.create_graph_popup_controls(
-                content,
-                include_location=True,
-                default_location=location_dropdown.get() or "All Locations",
-                get_date_range_func=get_date_range_wrapper,
-                date_range_params=location_dropdown.get() or "All Locations"
-            )
-            
-            # Setup complete graph with automatic rendering and event bindings
-            pe.setup_complete_graph_popup(
-                controls,
-                content,
-                finance_repo.create_collected_trend_graph,
-                location_mapper=self._selected_location
-            )
-
-        button.configure(command=setup_graph_popup)
 
         # Auto-refresh summary on location change (debounced)
         refresh_timer, schedule_refresh = pe.create_debounced_refresh(summary_card, update_summary)

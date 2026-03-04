@@ -1,30 +1,50 @@
-"""
-UI Utilities - Helper functions for dates, buttons, and common patterns.
-"""
+"""UI Utilities - Helper functions for dates, buttons, styling, and common UI patterns."""
 
 import customtkinter as ctk
 from customtkinter import ThemeManager
 from PIL import Image, ImageDraw
 from datetime import datetime
+import os
 from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BTN, TEXT_COLOR, SECONDARY_GRAY, SECONDARY_GRAY_HOVER
+import pages.components.pdf_export as pdf_export
 
 try:
-    from tkcalendar import Calendar  # type: ignore[reportMissingImports]
+    from tkcalendar import Calendar
 except Exception:
     Calendar = None
 
 
-# ============================= Date Utility Functions =============================
-def parse_date_string(date_str):
-    """
-    Parse a date string in YYYY-MM-DD format to a date object.
+def enable_click_outside_to_close(popup, parent_window):
+    """Enable closing popup by clicking outside of it."""
+    def check_click_outside(event):
+        if popup.winfo_exists():
+            popup_x = popup.winfo_x()
+            popup_y = popup.winfo_y()
+            popup_width = popup.winfo_width()
+            popup_height = popup.winfo_height()
+            click_x = event.x_root
+            click_y = event.y_root
+            
+            outside_x = click_x < popup_x or click_x > popup_x + popup_width
+            outside_y = click_y < popup_y or click_y > popup_y + popup_height
+            
+            if outside_x or outside_y:
+                popup.destroy()
+                parent_window.unbind("<Button-1>", binding_id)
     
-    Args:
-        date_str: String in YYYY-MM-DD format
-        
-    Returns:
-        date object or None if invalid/empty
-    """
+    binding_id = parent_window.bind("<Button-1>", check_click_outside, add="+")
+    
+    def on_popup_destroy(event=None):
+        try:
+            parent_window.unbind("<Button-1>", binding_id)
+        except Exception:
+            pass
+    
+    popup.bind("<Destroy>", on_popup_destroy)
+
+
+def parse_date_string(date_str):
+    """Parse YYYY-MM-DD date string to date object."""
     s = (date_str or "").strip()
     if not s:
         return None
@@ -35,65 +55,33 @@ def parse_date_string(date_str):
 
 
 def open_date_picker(entry_widget, parent_window):
-    """
-    Open a calendar date picker popup for an entry widget.
-    
-    Args:
-        entry_widget: CTkEntry widget to update with selected date
-        parent_window: Parent window for the popup (usually content.winfo_toplevel())
-    """
+    """Open calendar date picker popup for an entry widget."""
     popup = ctk.CTkToplevel(parent_window)
     popup.title("Select Date")
     popup.geometry("360x430")
     popup.resizable(False, False)
     popup.transient(parent_window)
-    popup.grab_set()
+    enable_click_outside_to_close(popup, parent_window)
 
-    # Parse current value or default to today
-    selected = parse_date_string(entry_widget.get())
-    selected = selected or datetime.now().date()
-
-    # Determine theme
+    selected = parse_date_string(entry_widget.get()) or datetime.now().date()
     mode = str(ctk.get_appearance_mode()).lower()
     is_dark = mode == "dark"
 
-    # Create styled shell frame
-    shell = ctk.CTkFrame(
-        popup,
-        corner_radius=12,
-        fg_color=("#F3F4F6", "#1F232A"),
-        border_width=1,
-        border_color=("#D8DCE2", "#2C313A"),
-    )
+    shell = ctk.CTkFrame(popup, corner_radius=12, fg_color=("#F3F4F6", "#1F232A"),
+                        border_width=1, border_color=("#D8DCE2", "#2C313A"))
     shell.pack(fill="both", expand=True, padx=8, pady=8)
 
-    # Header
-    ctk.CTkLabel(
-        shell,
-        text="Pick a Date",
-        font=("Arial", 24, "bold"),
-        text_color=("#22252B", "#E9ECF2"),
-    ).pack(anchor="w", padx=12, pady=(12, 4))
+    ctk.CTkLabel(shell, text="Pick a Date", font=("Arial", 24, "bold"),
+                text_color=("#22252B", "#E9ECF2")).pack(anchor="w", padx=12, pady=(12, 4))
+    ctk.CTkLabel(shell, text="Format: YYYY-MM-DD", font=("Arial", 12),
+                text_color=("#5E6672", "#AAB2BE")).pack(anchor="w", padx=12, pady=(0, 8))
 
-    ctk.CTkLabel(
-        shell,
-        text="Format: YYYY-MM-DD",
-        font=("Arial", 12),
-        text_color=("#5E6672", "#AAB2BE"),
-    ).pack(anchor="w", padx=12, pady=(0, 8))
-
-    # Calendar widget (if available)
     if Calendar is None:
-        ctk.CTkLabel(
-            shell,
-            text="Calendar unavailable.\nInstall tkcalendar package.",
-            justify="center",
-            font=("Arial", 12),
-        ).pack(pady=18)
+        ctk.CTkLabel(shell, text="Calendar unavailable.\nInstall tkcalendar package.",
+                    justify="center", font=("Arial", 12)).pack(pady=18)
         ctk.CTkButton(shell, text="Close", command=popup.destroy, width=120).pack(pady=(10, 0))
         return
 
-    # Calendar configuration
     cal_kwargs = {
         "selectmode": "day",
         "date_pattern": "yyyy-mm-dd",
@@ -102,157 +90,96 @@ def open_date_picker(entry_widget, parent_window):
         "day": selected.day,
     }
     
-    # Theme-specific styling
     if is_dark:
-        cal_kwargs.update(
-            {
-                "font": ("Arial", 17),
-                "headersfont": ("Arial", 15, "bold"),
-                "background": "#2A2F36",
-                "foreground": "#E9ECF2",
-                "bordercolor": "#2A2F36",
-                "headersbackground": "#222831",
-                "headersforeground": "#E9ECF2",
-                "normalbackground": "#2A2F36",
-                "normalforeground": "#E9ECF2",
-                "weekendbackground": "#2A2F36",
-                "weekendforeground": "#E9ECF2",
-                "othermonthbackground": "#2A2F36",
-                "othermonthforeground": "#7F8A98",
-                "selectbackground": PRIMARY_BLUE,
-                "selectforeground": "#FFFFFF",
-            }
-        )
+        cal_kwargs.update({
+            "font": ("Arial", 17),
+            "headersfont": ("Arial", 15, "bold"),
+            "background": "#2A2F36",
+            "foreground": "#E9ECF2",
+            "bordercolor": "#2A2F36",
+            "headersbackground": "#222831",
+            "headersforeground": "#E9ECF2",
+            "normalbackground": "#2A2F36",
+            "normalforeground": "#E9ECF2",
+            "weekendbackground": "#2A2F36",
+            "weekendforeground": "#E9ECF2",
+            "othermonthbackground": "#2A2F36",
+            "othermonthforeground": "#7F8A98",
+            "selectbackground": PRIMARY_BLUE,
+            "selectforeground": "#FFFFFF",
+        })
     else:
-        cal_kwargs.update(
-            {
-                "font": ("Arial", 17),
-                "headersfont": ("Arial", 15, "bold"),
-                "background": "#FFFFFF",
-                "foreground": "#1B2430",
-                "bordercolor": "#D7DBE2",
-                "headersbackground": "#EEF2F7",
-                "headersforeground": "#1B2430",
-                "normalbackground": "#FFFFFF",
-                "normalforeground": "#1B2430",
-                "selectbackground": PRIMARY_BLUE,
-                "selectforeground": "#FFFFFF",
-            }
-        )
+        cal_kwargs.update({
+            "font": ("Arial", 17),
+            "headersfont": ("Arial", 15, "bold"),
+            "background": "#FFFFFF",
+            "foreground": "#1B2430",
+            "bordercolor": "#D7DBE2",
+            "headersbackground": "#EEF2F7",
+            "headersforeground": "#1B2430",
+            "normalbackground": "#FFFFFF",
+            "normalforeground": "#1B2430",
+            "selectbackground": PRIMARY_BLUE,
+            "selectforeground": "#FFFFFF",
+        })
 
-    cal = Calendar(
-        shell,
-        **cal_kwargs,
-        showweeknumbers=False,
-    )
+    cal = Calendar(shell, **cal_kwargs, showweeknumbers=False)
     cal.pack(fill="both", expand=True, padx=12, pady=(4, 10))
 
-    # Apply selected date to entry
     def apply_date():
         entry_widget.delete(0, "end")
         entry_widget.insert(0, cal.get_date())
         popup.destroy()
 
-    # Button row
     btn_row = ctk.CTkFrame(shell, fg_color="transparent")
     btn_row.pack(fill="x", padx=10, pady=(0, 10))
     
-    ctk.CTkButton(
-        btn_row,
-        text="Cancel",
-        command=popup.destroy,
-        width=104,
-        height=34,
-        font=("Arial", 14),
-        fg_color=SECONDARY_GRAY,
-        hover_color=SECONDARY_GRAY_HOVER,
-    ).pack(side="left")
-    
-    ctk.CTkButton(
-        btn_row,
-        text="Use Date",
-        command=apply_date,
-        width=104,
-        height=34,
-        font=("Arial", 14),
-        fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
-        hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
-    ).pack(side="right")
+    ctk.CTkButton(btn_row, text="Cancel", command=popup.destroy, width=104, height=34,
+                 font=("Arial", 14), fg_color=SECONDARY_GRAY,
+                 hover_color=SECONDARY_GRAY_HOVER).pack(side="left")
+    ctk.CTkButton(btn_row, text="Use Date", command=apply_date, width=104, height=34,
+                 font=("Arial", 14), fg_color=PRIMARY_BLUE,
+                 hover_color=PRIMARY_BLUE_HOVER).pack(side="right")
 
 
-# ============================= Button Styling Utilities =============================
 def style_primary_button(button, font_size=14):
-    """
-    Apply primary button styling (for main CTAs like "View Graphs").
-    
-    Args:
-        button: CTkButton widget to style
-        font_size: Font size for button text (default: 14)
-    """
+    """Apply primary button styling."""
     try:
         button.configure(
-            height=40,
-            font=("Arial", font_size, "bold"),
-            corner_radius=ROUND_BTN,
-            fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
-            hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
+            height=40, font=("Arial", font_size, "bold"), corner_radius=ROUND_BTN,
+            fg_color=(PRIMARY_BLUE, PRIMARY_BLUE), hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER)
         )
         button.pack_configure(fill="x", padx=6, pady=(2, 0))
     except Exception:
         pass
 
 def style_accent_secondary_button(button, font_size=14):
-    """
-    Apply accent secondary button styling (for secondary actions like "viewtable").
-    
-    Args:
-        button: CTkButton widget to style
-        font_size: Font size for button text (default: 14)
-    """
+    """Apply accent secondary button styling."""
     try:
         button.configure(
-            height=40,
-            font=("Arial", font_size, "bold"),
-            corner_radius=ROUND_BTN,
-            fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
-            hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
+            height=40, font=("Arial", font_size, "bold"), corner_radius=ROUND_BTN,
+            fg_color=(PRIMARY_BLUE, PRIMARY_BLUE), hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER)
         )
         button.pack_configure(pady=(4, 0))
     except Exception:
         pass
 
 def style_secondary_button(button, font_size=13):
-    """
-    Apply secondary button styling (for edit/management actions).
-    
-    Args:
-        button: CTkButton widget to style
-        font_size: Font size for button text (default: 13)
-    """
+    """Apply secondary button styling."""
     try:
         button.configure(
-            height=40,
-            font=("Arial", font_size, "bold"),
-            corner_radius=ROUND_BTN,
-            fg_color=SECONDARY_GRAY,
-            hover_color=SECONDARY_GRAY_HOVER,
-            text_color=TEXT_COLOR,
+            height=40, font=("Arial", font_size, "bold"), corner_radius=ROUND_BTN,
+            fg_color=SECONDARY_GRAY, hover_color=SECONDARY_GRAY_HOVER, text_color=TEXT_COLOR
         )
         button.pack_configure(pady=(4, 0))
     except Exception:
         pass
 
 def style_primary_dropdown(dropdown):
-    """
-    Apply primary dropdown styling.
-    
-    Args:
-        dropdown: CTkComboBox or CTkOptionMenu widget to style
-    """
+    """Apply primary dropdown styling."""
     try:
         dropdown.configure(
-            corner_radius=ROUND_BTN,
-            fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
+            corner_radius=ROUND_BTN, fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
             button_color=ThemeManager.theme["CTkOptionMenu"]["button_color"],
             button_hover_color=ThemeManager.theme["CTkOptionMenu"]["button_hover_color"]
         )
@@ -260,37 +187,20 @@ def style_primary_dropdown(dropdown):
         pass
 
 def style_secondary_dropdown(dropdown):
-    """
-    Apply secondary dropdown styling.
-    
-    Args:
-        dropdown: CtkComboBox or CtkOptionMenu widget to style
-    """
+    """Apply secondary dropdown styling."""
     try:
         dropdown.configure(
-            corner_radius=ROUND_BTN,
+            corner_radius=ROUND_BTN, text_color=TEXT_COLOR,
             fg_color=ThemeManager.theme["CTkComboBox"]["fg_color"],
             button_color=ThemeManager.theme["CTkComboBox"]["button_color"],
-            button_hover_color=ThemeManager.theme["CTkComboBox"]["button_hover_color"],
-            text_color=TEXT_COLOR,
+            button_hover_color=ThemeManager.theme["CTkComboBox"]["button_hover_color"]
         )
     except Exception:
         pass
 
-# ============================= Common UI Patterns =============================
+
 def create_refresh_button(parent, command, side="left", padx=(12, 0), square=False):
-    """
-    Create a standardized refresh button.
-    
-    Args:
-        parent: Parent widget
-        command: Function to call when clicked
-        side: Pack side (default: "left")
-        padx: Padding x (default: (12, 0))
-        square: If True, creates a square-shaped button (default: False)
-    Returns:
-        The created button
-    """
+    """Create a standardized refresh button."""
     button = ctk.CTkButton(
         parent,
         text="⟳ Refresh" if not square else "⟳",
@@ -306,20 +216,9 @@ def create_refresh_button(parent, command, side="left", padx=(12, 0), square=Fal
 
 
 def create_debounced_refresh(widget, callback, delay_ms=150):
-    """
-    Create a debounced refresh function for dropdowns.
+    """Create a debounced refresh function for dropdowns.
     
-    Args:
-        widget: Widget to attach after() to (usually the card/content widget)
-        callback: Function to call after debounce
-        delay_ms: Delay in milliseconds (default: 150)
-        
-    Returns:
-        Tuple of (refresh_timer dict, schedule_refresh function)
-        
-    Example:
-        timer, schedule = create_debounced_refresh(card, update_display)
-        dropdown.configure(command=schedule)
+    Returns tuple of (refresh_timer dict, schedule_refresh function).
     """
     refresh_timer = {"id": None}
     
@@ -332,6 +231,128 @@ def create_debounced_refresh(widget, callback, delay_ms=150):
         refresh_timer["id"] = widget.after(delay_ms, callback)
     
     return refresh_timer, schedule_refresh
+
+
+def show_pdf_export_success_popup(parent_widget, pdf_path):
+    """Show success popup after PDF export."""
+    success_popup = ctk.CTkToplevel(parent_widget)
+    success_popup.title("Export Successful")
+    success_popup.geometry("400x170")
+    success_popup.resizable(False, False)
+    success_popup.transient(parent_widget)
+    
+    # Center the popup
+    success_popup.update_idletasks()
+    x = (success_popup.winfo_screenwidth() // 2) - (400 // 2)
+    y = (success_popup.winfo_screenheight() // 2) - (170 // 2)
+    success_popup.geometry(f"400x170+{x}+{y}")
+    
+    # Enable click outside to close
+    enable_click_outside_to_close(success_popup, parent_widget)
+    
+    # Success message
+    ctk.CTkLabel(
+        success_popup,
+        text="PDF Exported Successfully",
+        font=("Arial", 16, "bold"),
+        text_color="#2BA89A"
+    ).pack(pady=(20, 10))
+    
+    # File path
+    ctk.CTkLabel(
+        success_popup,
+        text=f"Saved to:\n{pdf_path}",
+        font=("Arial", 11),
+        wraplength=400
+    ).pack(pady=(0, 15))
+    
+    # Button container
+    button_frame = ctk.CTkFrame(success_popup, fg_color="transparent")
+    button_frame.pack(pady=(0, 15))
+    
+    def open_pdf():
+        try:
+            os.startfile(pdf_path)
+            success_popup.destroy()
+        except Exception:
+            # Fallback for non-Windows systems
+            import subprocess
+            try:
+                subprocess.run(['xdg-open', pdf_path])
+            except Exception:
+                pass
+    
+    # Open button
+    ctk.CTkButton(
+        button_frame,
+        text="Open",
+        command=open_pdf,
+        width=100,
+        height=32,
+        fg_color=PRIMARY_BLUE,
+        hover_color=PRIMARY_BLUE_HOVER,
+        corner_radius=ROUND_BTN
+    ).pack(side="left", padx=(0, 10))
+    
+    # Close button
+    ctk.CTkButton(
+        button_frame,
+        text="Close",
+        command=success_popup.destroy,
+        width=100,
+        height=32,
+        fg_color=SECONDARY_GRAY,
+        hover_color=SECONDARY_GRAY_HOVER,
+        corner_radius=ROUND_BTN
+    ).pack(side="left")
+
+
+def show_pdf_export_error_popup(parent_widget, error_message):
+    """Show an error popup when PDF export fails.
+    
+    Args:
+        parent_widget: Parent widget to attach the popup to (usually content.winfo_toplevel())
+        error_message: Error message to display
+    """
+    error_popup = ctk.CTkToplevel(parent_widget)
+    error_popup.title("Export Failed")
+    error_popup.geometry("400x150")
+    error_popup.resizable(False, False)
+    error_popup.transient(parent_widget)
+    
+    # Center the popup
+    error_popup.update_idletasks()
+    x = (error_popup.winfo_screenwidth() // 2) - (400 // 2)
+    y = (error_popup.winfo_screenheight() // 2) - (150 // 2)
+    error_popup.geometry(f"400x150+{x}+{y}")
+    
+    # Enable click outside to close
+    enable_click_outside_to_close(error_popup, parent_widget)
+    
+    # Error title
+    ctk.CTkLabel(
+        error_popup,
+        text="Export Failed",
+        font=("Arial", 16, "bold"),
+        text_color="#C75B6D"
+    ).pack(pady=(20, 10))
+    
+    # Error message
+    ctk.CTkLabel(
+        error_popup,
+        text=f"Error: {error_message}",
+        font=("Arial", 11),
+        wraplength=350
+    ).pack(pady=(0, 15))
+    
+    # OK button
+    ctk.CTkButton(
+        error_popup,
+        text="OK",
+        command=error_popup.destroy,
+        width=100,
+        height=32
+    ).pack(pady=(0, 15))
 
 
 def create_popup_header_with_location(content):
@@ -406,265 +427,18 @@ def vertical_divider(parent, pady=5, padx=(0, 5)):
     return separator
 
 
-# ============================= Graph Popup Components =============================
-def create_graph_popup_controls(content, include_location=True, default_location=None, 
-                                get_date_range_func=None, date_range_params=None):
-    """Create standardized graph popup controls (location, grouping, date range).
-    
-    This creates the common control panel structure used across Manager, Administrator, 
-    and Finance Manager graph popups with location selector, grouping dropdown, 
-    and date range inputs with date pickers.
-    
-    Args:
-        content: Parent container for the controls
-        include_location: Whether to include location dropdown (default: True)
-        default_location: Default location value (default: "All Locations")
-        get_date_range_func: Function to get default date range. Should accept 
-                            (location, grouping) and return dict with start_date/end_date
-        date_range_params: Additional params to pass to get_date_range_func (e.g., location)
-        
-    Returns:
-        dict with keys:
-            - 'controls': Main controls frame
-            - 'location_dropdown': Location dropdown widget (if include_location=True)
-            - 'grouping_dropdown': Grouping dropdown widget
-            - 'start_entry': Start date entry widget
-            - 'end_entry': End date entry widget
-            - 'error_label': Error message label
-            - 'graph_container': Container for the graph
-            - 'refresh_btn': Refresh button widget
-            - 'apply_grouping_defaults': Function to update dates based on grouping
-    """
-    import database_operations.repos.location_repository as location_repo
-    
-    # Controls container
-    controls = ctk.CTkFrame(content, fg_color="transparent")
-    controls.pack(fill="x", padx=10, pady=(5, 10))
-    
-    # Top row: location and grouping
-    row_top = ctk.CTkFrame(controls, fg_color="transparent")
-    row_top.pack(fill="x")
-    
-    # Location dropdown (optional)
-    popup_location_dropdown = None
-    if include_location:
-        ctk.CTkLabel(row_top, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
-        popup_cities = ["All Locations"] + location_repo.get_all_cities()
-        popup_location_dropdown = ctk.CTkComboBox(row_top, values=popup_cities, width=220, font=("Arial", 13))
-        popup_location_dropdown.set(default_location or "All Locations")
-        popup_location_dropdown.pack(side="left")
-    
-    # Grouping dropdown
-    label_padx = (18, 8) if include_location else (0, 8)
-    ctk.CTkLabel(row_top, text="Grouping:", font=("Arial", 14, "bold")).pack(side="left", padx=label_padx)
-    grouping_dropdown = ctk.CTkComboBox(row_top, values=["Monthly", "Yearly"], width=140, font=("Arial", 13))
-    grouping_dropdown.set("Monthly")
-    grouping_dropdown.pack(side="left")
-    
-    # Date range row
-    row_dates = ctk.CTkFrame(controls, fg_color="transparent")
-    row_dates.pack(fill="x", pady=(10, 0))
-    
-    # Get default date range if function provided
-    default_start = ""
-    default_end = ""
-    if get_date_range_func and date_range_params is not None:
-        try:
-            default_range = get_date_range_func(date_range_params, grouping="month")
-            default_start = default_range.get("start_date", "")
-            default_end = default_range.get("end_date", "")
-        except Exception as e:
-            print(f"Error getting default date range: {e}")
-    
-    # Start date
-    ctk.CTkLabel(row_dates, text="Start (YYYY-MM-DD):", font=("Arial", 13, "bold")).pack(side="left", padx=(0, 8))
-    start_wrap = ctk.CTkFrame(row_dates, fg_color="transparent")
-    start_wrap.pack(side="left")
-    start_entry = ctk.CTkEntry(start_wrap, width=140, font=("Arial", 13))
-    if default_start:
-        start_entry.insert(0, default_start)
-    start_entry.pack(side="left")
-    
-    # End date
-    ctk.CTkLabel(row_dates, text="End (YYYY-MM-DD):", font=("Arial", 13, "bold")).pack(side="left", padx=(18, 8))
-    end_wrap = ctk.CTkFrame(row_dates, fg_color="transparent")
-    end_wrap.pack(side="left")
-    end_entry = ctk.CTkEntry(end_wrap, width=140, font=("Arial", 13))
-    if default_end:
-        end_entry.insert(0, default_end)
-    end_entry.pack(side="left")
-    
-    # Date picker buttons
-    ctk.CTkButton(start_wrap, text="📅", width=34, height=28, font=("Arial", 13),
-                 command=lambda: open_date_picker(start_entry, content.winfo_toplevel()),
-                 fg_color=SECONDARY_GRAY, hover_color=SECONDARY_GRAY_HOVER, text_color=TEXT_COLOR).pack(side="left", padx=(6, 0))
-    ctk.CTkButton(end_wrap, text="📅", width=34, height=28, font=("Arial", 13),
-                 command=lambda: open_date_picker(end_entry, content.winfo_toplevel()),
-                 fg_color=SECONDARY_GRAY, hover_color=SECONDARY_GRAY_HOVER, text_color=TEXT_COLOR).pack(side="left", padx=(6, 0))
-    
-    # Function to apply grouping defaults
-    def apply_grouping_defaults(grouping_value):
-        """Update date range based on grouping selection."""
-        if not get_date_range_func or date_range_params is None:
-            return
-        gv = (grouping_value or "").strip().lower()
-        g = "year" if gv.startswith("year") else "month"
-        try:
-            rng = get_date_range_func(date_range_params, grouping=g)
-            start_entry.delete(0, "end")
-            end_entry.delete(0, "end")
-            if rng.get("start_date"):
-                start_entry.insert(0, rng["start_date"])
-            if rng.get("end_date"):
-                end_entry.insert(0, rng["end_date"])
-        except Exception as e:
-            print(f"Error applying grouping defaults: {e}")
-    
-    # Error label
-    error_label = ctk.CTkLabel(content, text="", font=("Arial", 12), text_color="red", wraplength=900)
-    
-    # Graph container
-    graph_container = ctk.CTkFrame(content, fg_color="transparent")
-    graph_container.pack(fill="both", expand=True)
-    
-    # Refresh button (to be added to row_top by caller)
-    refresh_btn = create_refresh_button(row_top, command=lambda: None, side="left", padx=(18, 0))  # Command to be set by caller
-    
-    return {
-        'controls': controls,
-        'location_dropdown': popup_location_dropdown,
-        'grouping_dropdown': grouping_dropdown,
-        'start_entry': start_entry,
-        'end_entry': end_entry,
-        'error_label': error_label,
-        'graph_container': graph_container,
-        'refresh_btn': refresh_btn,
-        'apply_grouping_defaults': apply_grouping_defaults
-    }
-
-
-def setup_complete_graph_popup(controls, content, graph_function, location_mapper=None, fixed_location=None):
-    """Set up complete graph popup with render function, bindings, and auto-refresh.
-    
-    This handles the common graph rendering logic used across all graph popups,
-    including error handling, debounced refresh, and event bindings.
-    
-    Args:
-        controls: Dict returned from create_graph_popup_controls
-        content: Parent content widget for debounced refresh
-        graph_function: Function to create the graph. Should accept (container, location, start_date, end_date, grouping)
-        location_mapper: Optional function to map location dropdown value to location parameter
-        fixed_location: Optional fixed location value to use instead of dropdown value
-    Example:
-        controls = pe.create_graph_popup_controls(content, ...)
-        pe.setup_complete_graph_popup(
-            controls, content,
-            graph_function=finance_repo.create_collected_trend_graph,
-            location_mapper=lambda val: "all" if val == "All Locations" else val
-        )
-    """
-    location_dropdown = controls['location_dropdown']
-    grouping_dropdown = controls['grouping_dropdown']
-    start_entry = controls['start_entry']
-    end_entry = controls['end_entry']
-    error_label = controls['error_label']
-    graph_container = controls['graph_container']
-    refresh_btn = controls['refresh_btn']
-    apply_grouping_defaults = controls['apply_grouping_defaults']
-    
-    def render_graph():
-        # Clear previous graph widgets/canvases
-        for w in graph_container.winfo_children():
-            try:
-                w.destroy()
-            except Exception:
-                pass
-        
-        try:
-            if fixed_location:
-                location = fixed_location
-            # Get parameters
-            elif location_dropdown is not None:
-                location = location_dropdown.get()
-                if location_mapper:
-                    location = location_mapper(location)
-            else:
-                location = None
-            
-            start_date = start_entry.get().strip() or None
-            end_date = end_entry.get().strip() or None
-            
-            grouping_value = (grouping_dropdown.get() or "Monthly").strip().lower()
-            grouping = "year" if grouping_value.startswith("year") else "month"
-            
-            # Call graph function
-            if location is not None:
-                graph_function(graph_container, location=location, start_date=start_date, 
-                             end_date=end_date, grouping=grouping)
-            else:
-                graph_function(graph_container, start_date=start_date, 
-                             end_date=end_date, grouping=grouping)
-            
-            error_label.pack_forget()
-        except Exception as e:
-            error_label.configure(text=str(e))
-            error_label.pack(fill="x", padx=10, pady=(0, 5), before=graph_container)
-    
-    # Set up refresh button
-    refresh_btn.configure(command=render_graph)
-    
-    # Auto-refresh with debounce
-    refresh_timer, schedule_refresh = create_debounced_refresh(content, render_graph)
-    
-    # Bind location dropdown if present
-    if location_dropdown is not None:
-        location_dropdown.configure(command=schedule_refresh)
-    
-    # Bind grouping dropdown with defaults update
-    def on_grouping_change(choice=None):
-        apply_grouping_defaults(grouping_dropdown.get())
-        schedule_refresh(choice)
-    grouping_dropdown.configure(command=on_grouping_change)
-    
-    # Bind date entries to refresh on Enter or focus out
-    start_entry.bind("<Return>", lambda e: schedule_refresh())
-    start_entry.bind("<FocusOut>", lambda e: schedule_refresh())
-    end_entry.bind("<Return>", lambda e: schedule_refresh())
-    end_entry.bind("<FocusOut>", lambda e: schedule_refresh())
-    
-    # Initial render
-    render_graph()
-
-
 def create_dynamic_dropdown_with_refresh(parent, data_fetcher, display_formatter=lambda x: (str(x), x),
                                          empty_message="No items available"):
     """Create a dropdown with dynamic data and refresh button.
     
-    This creates the common pattern of a labeled dropdown that fetches data dynamically
-    and includes a refresh button to reload the data.
-    
     Args:
         parent: Parent container
-        label: Label text for the dropdown
         data_fetcher: Function that returns list of data dicts when called
         display_formatter: Function that takes a data dict and returns (display_string, value_dict)
         empty_message: Message to show when no data available
-        width: Width of the dropdown (default: 400)
         
     Returns:
         Tuple of (dropdown_widget, data_map_dict, refresh_function)
-        
-    Example:
-        def fetch_requests():
-            return maintenance_repo.get_maintenance_requests(location="all", completed=0)
-        
-        def format_request(req):
-            display = f"ID {req['request_ID']}: {req['issue_description'][:40]}"
-            return (display, req['request_ID'])
-        
-        dropdown, data_map, refresh = create_dynamic_dropdown_with_refresh(
-            parent, "Select Request:", fetch_requests, format_request
-        )
     """
     # Container
     container = ctk.CTkFrame(parent, fg_color="transparent")
@@ -714,3 +488,132 @@ def create_dynamic_dropdown_with_refresh(parent, data_fetcher, display_formatter
     refresh()
     
     return dropdown, data_map, refresh
+
+
+def create_export_pdf_button(parent, canvas_or_fig=None, default_filename: str | None = None,
+                             stats_text: str | None = None, title: str = "Report",
+                             button_text: str = "Export to PDF", button_width: int = 180,
+                             pady: int = 5, padx: int = 5, variant: str = "standard"):
+    """Create a button that exports a chart to PDF when clicked.
+    
+    Args:
+        parent: Parent widget for the button
+        canvas_or_fig: Either a FigureCanvasTkAgg, matplotlib Figure object, callable returning one, or None
+        default_filename: Default filename (without .pdf extension)
+        stats_text: Optional statistics text to include on second page (can be string or callable)
+        title: Title for the report
+        button_text: Text to display on the button
+        button_width: Width of the button in pixels
+        pady: Vertical padding
+        padx: Horizontal padding
+        variant: Button style variant - "standard", "inline", or "popup"
+        
+    Returns:
+        CTkButton: The export button widget
+    """
+    def handle_export():
+        try:
+            # Get canvas/figure (handle callables)
+            if callable(canvas_or_fig):
+                obj = canvas_or_fig()
+            else:
+                obj = canvas_or_fig
+            
+            # Get stats text (handle callable)
+            stats = stats_text() if callable(stats_text) else stats_text
+            
+            # Extract figure if canvas was provided
+            if hasattr(obj, 'figure'):
+                fig = obj.figure
+            else:
+                fig = obj
+            
+            # Check if we have a valid figure
+            if fig is None:
+                raise ValueError("No chart available to export")
+            
+            # Export to PDF
+            pdf_path = pdf_export.export_chart_to_pdf(fig, filename=default_filename,
+                                                      stats_text=stats, title=title)
+            
+            if pdf_path:
+                show_pdf_export_success_popup(parent.winfo_toplevel(), pdf_path)
+                
+        except Exception as e:
+            show_pdf_export_error_popup(parent.winfo_toplevel(), str(e))
+    
+    # Use placeholder command if no canvas provided
+    command = handle_export if canvas_or_fig is not None else lambda: None
+    
+    # Load upload icon for inline/popup variants
+    upload_icon = None
+    if variant in ("inline", "popup"):
+        try:
+            from pathlib import Path
+            icons_dir = Path(__file__).parent.parent / "icons"
+            upload_icon_path_light = icons_dir / "upload_icon.png"
+            upload_icon_path_dark = icons_dir / "upload_icon_dark.png"
+            
+            upload_icon = ctk.CTkImage(
+                light_image=Image.open(upload_icon_path_light),
+                dark_image=Image.open(upload_icon_path_dark),
+                size=(18, 18) if variant == "inline" else (16, 16)
+            )
+        except Exception as e:
+            print(f"Warning: Could not load upload icon: {e}")
+            upload_icon = None
+    
+    # Configure button based on variant
+    if variant == "inline":
+        button_config = {
+            "master": parent,
+            "text": "" if upload_icon else "↑",
+            "command": command,
+            "width": 40,
+            "height": 40,
+            "font": ("Arial", 14, "bold"),
+            "corner_radius": ROUND_BTN,
+            "fg_color": SECONDARY_GRAY,
+            "hover_color": SECONDARY_GRAY_HOVER,
+            "text_color": TEXT_COLOR
+        }
+        if upload_icon:
+            button_config["image"] = upload_icon
+        button = ctk.CTkButton(**button_config)
+        button.pack(side="left", pady=0, padx=0)
+        
+    elif variant == "popup":
+        button_config = {
+            "master": parent,
+            "text": "Export",
+            "command": command,
+            "width": 100,
+            "height": 32,
+            "font": ("Arial", 14, "bold"),
+            "corner_radius": ROUND_BTN,
+            "fg_color": SECONDARY_GRAY,
+            "hover_color": SECONDARY_GRAY_HOVER,
+            "text_color": TEXT_COLOR
+        }
+        if upload_icon:
+            button_config["image"] = upload_icon
+            button_config["compound"] = "left"
+        button = ctk.CTkButton(**button_config)
+        button.pack(side="right", pady=0, padx=0)
+        
+    else:  # standard
+        button = ctk.CTkButton(
+            parent,
+            text=button_text,
+            command=command,
+            width=button_width,
+            height=36,
+            font=("Arial", 13),
+            corner_radius=ROUND_BTN,
+            fg_color=SECONDARY_GRAY,
+            hover_color=SECONDARY_GRAY_HOVER,
+            text_color=TEXT_COLOR
+        )
+        button.pack(pady=pady, padx=padx)
+    
+    return button
