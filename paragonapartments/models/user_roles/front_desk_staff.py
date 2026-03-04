@@ -1331,33 +1331,129 @@ class FrontDeskStaff(User):
         
         def setup_view_popup():
             content = view_popup_func()
-            
+
+            # ── Fixed search / filter bar ────────────────────────────────────────
+            search_bar = ctk.CTkFrame(content, fg_color=("gray92", "gray18"), corner_radius=8)
+            search_bar.pack(fill="x", padx=30, pady=(15, 4))
+
+            search_row = ctk.CTkFrame(search_bar, fg_color="transparent")
+            search_row.pack(fill="x", padx=12, pady=10)
+
+            search_entry = ctk.CTkEntry(
+                search_row,
+                placeholder_text="Search tenant, apartment or issue…",
+                height=38, font=("Arial", 13)
+            )
+            search_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
+
+            status_filter = ctk.CTkOptionMenu(
+                search_row,
+                values=["All", "Pending", "Completed"],
+                width=140, height=38, font=("Arial", 13),
+                fg_color=("#1a3c5c", "#4196E0"),
+                button_color=("#0d2438", "#3380CC"),
+                button_hover_color=("#0a1d2e", "#2570B8"),
+            )
+            status_filter.set("All")
+            status_filter.pack(side="left", padx=(0, 8))
+
+            search_btn = ctk.CTkButton(
+                search_row, text="Search", width=90, height=38,
+                font=("Arial", 13, "bold"),
+                fg_color=("#1a3c5c", "#4196E0"),
+                hover_color=("#0d2438", "#3380CC"),
+            )
+            search_btn.pack(side="left", padx=(0, 5))
+
+            clear_btn = ctk.CTkButton(
+                search_row, text="Clear", width=70, height=38,
+                font=("Arial", 13),
+                fg_color=("gray65", "gray35"),
+                hover_color=("gray55", "gray28"),
+            )
+            clear_btn.pack(side="left")
+
             scrollable = ctk.CTkScrollableFrame(content, fg_color="transparent")
-            scrollable.pack(fill="both", expand=True, padx=30, pady=20)
-            
-            def refresh_requests():
+            scrollable.pack(fill="both", expand=True, padx=30, pady=(4, 20))
+
+            _MAINT_PAGE_SIZE = 20
+            _maint_page = {"n": 0}
+            _maint_filter = {"term": "", "status": "All"}
+
+            def _apply_maint_filter(rows):
+                term = _maint_filter["term"].strip().lower()
+                status = _maint_filter["status"]
+                if term:
+                    rows = [
+                        r for r in rows
+                        if term in str(r.get("tenant_name", "")).lower()
+                        or term in str(r.get("apartment_address", "")).lower()
+                        or term in str(r.get("issue_description", "")).lower()
+                        or term in str(r.get("request_ID", ""))
+                    ]
+                if status == "Pending":
+                    rows = [r for r in rows if not r.get("completed")]
+                elif status == "Completed":
+                    rows = [r for r in rows if r.get("completed")]
+                return rows
+
+            def refresh_requests(page=0):
+                _maint_page["n"] = page
                 # Clear existing content
                 for widget in scrollable.winfo_children():
                     widget.destroy()
-                
-                requests = tenant_repo.get_all_maintenance_requests(location=self.location)
-                
-                if requests:
+
+                all_requests = tenant_repo.get_all_maintenance_requests(location=self.location)
+                all_requests = _apply_maint_filter(all_requests)
+                total = len(all_requests)
+                total_pages = max(1, (total + _MAINT_PAGE_SIZE - 1) // _MAINT_PAGE_SIZE)
+                current_page = min(page, total_pages - 1)
+                _maint_page["n"] = current_page
+                start = current_page * _MAINT_PAGE_SIZE
+                end = start + _MAINT_PAGE_SIZE
+                requests = all_requests[start:end]
+
+                if all_requests:
                     # Summary header
                     summary_frame = ctk.CTkFrame(scrollable, fg_color=("gray95", "gray15"), corner_radius=10)
                     summary_frame.pack(fill="x", pady=(0, 15))
-                    
-                    pending_count = sum(1 for r in requests if not r.get('completed'))
-                    completed_count = sum(1 for r in requests if r.get('completed'))
-                    
-                    summary_text = f"📊 Total Requests: {len(requests)}  |  ⏳ Pending: {pending_count}  |  ✓ Completed: {completed_count}"
+
+                    pending_count = sum(1 for r in all_requests if not r.get('completed'))
+                    completed_count = sum(1 for r in all_requests if r.get('completed'))
+
+                    showing = f"  (showing {start + 1}\u2013{min(end, total)} of {total})"
+                    summary_text = f"\U0001f4ca Total: {total}  |  \u23f3 Pending: {pending_count}  |  \u2713 Completed: {completed_count}{showing}"
                     ctk.CTkLabel(
                         summary_frame,
                         text=summary_text,
-                        font=("Arial", 14, "bold"),
+                        font=("Arial", 13, "bold"),
                         text_color=("#1a3c5c", "#4196E0")
                     ).pack(pady=15)
-                    
+
+                    # Pagination nav bar
+                    if total > _MAINT_PAGE_SIZE:
+                        nav = ctk.CTkFrame(scrollable, fg_color="transparent")
+                        nav.pack(fill="x", pady=(0, 10))
+                        ctk.CTkLabel(
+                            nav,
+                            text=f"Page {current_page + 1} of {total_pages}",
+                            font=("Arial", 12)
+                        ).pack(side="left", padx=(0, 10))
+                        if current_page > 0:
+                            ctk.CTkButton(
+                                nav, text="\u2190 Prev", width=90, height=32,
+                                command=lambda p=current_page - 1: refresh_requests(p),
+                                fg_color=("gray70", "gray30"),
+                                hover_color=("gray60", "gray25")
+                            ).pack(side="left", padx=(0, 5))
+                        if current_page < total_pages - 1:
+                            ctk.CTkButton(
+                                nav, text="Next \u2192", width=90, height=32,
+                                command=lambda p=current_page + 1: refresh_requests(p),
+                                fg_color=("#1a3c5c", "#4196E0"),
+                                hover_color=("#0d2438", "#3380CC")
+                            ).pack(side="left")
+
                     for req in requests:
                         req_frame = ctk.CTkFrame(scrollable, fg_color=("gray90", "gray17"), corner_radius=10)
                         req_frame.pack(fill="x", pady=(0, 12))
@@ -1493,29 +1589,50 @@ class FrontDeskStaff(User):
                         )
                         delete_btn.pack(side="left")
                 else:
+                    no_msg = (
+                        "📭 No requests match your search"
+                        if _maint_filter["term"] or _maint_filter["status"] != "All"
+                        else "📭 No maintenance requests found"
+                    )
                     ctk.CTkLabel(
                         scrollable,
-                        text="📭 No maintenance requests found",
+                        text=no_msg,
                         font=("Arial", 15),
                         text_color=("gray50", "gray60")
                     ).pack(pady=40)
-            
+
+            def _do_maint_search():
+                _maint_filter["term"] = search_entry.get()
+                _maint_filter["status"] = status_filter.get()
+                refresh_requests(0)
+
+            def _do_maint_clear():
+                search_entry.delete(0, "end")
+                status_filter.set("All")
+                _maint_filter["term"] = ""
+                _maint_filter["status"] = "All"
+                refresh_requests(0)
+
+            search_btn.configure(command=_do_maint_search)
+            clear_btn.configure(command=_do_maint_clear)
+            search_entry.bind("<Return>", lambda _e: _do_maint_search())
+
             def handle_flag_request(request_id, current_status):
                 try:
                     new_status = 0 if current_status else 1
                     tenant_repo.update_maintenance_request_status(request_id, new_status)
-                    refresh_requests()
+                    refresh_requests(_maint_page["n"])
                 except Exception as e:
                     print(f"Error flagging request: {e}")
-            
+
             def handle_delete_request(request_id):
                 try:
                     tenant_repo.delete_maintenance_request(request_id)
-                    refresh_requests()
+                    refresh_requests(_maint_page["n"])
                 except Exception as e:
                     print(f"Error deleting request: {e}")
-            
-            refresh_requests()
+
+            refresh_requests(0)
         
         view_button.configure(command=setup_view_popup)
 
@@ -1680,33 +1797,128 @@ class FrontDeskStaff(User):
         
         def setup_view_complaint_popup():
             content = view_complaint_popup_func()
-            
+
+            # ── Fixed search / filter bar ────────────────────────────────────────
+            search_bar_c = ctk.CTkFrame(content, fg_color=("gray92", "gray18"), corner_radius=8)
+            search_bar_c.pack(fill="x", padx=30, pady=(15, 4))
+
+            search_row_c = ctk.CTkFrame(search_bar_c, fg_color="transparent")
+            search_row_c.pack(fill="x", padx=12, pady=10)
+
+            search_entry_c = ctk.CTkEntry(
+                search_row_c,
+                placeholder_text="Search tenant name or complaint text…",
+                height=38, font=("Arial", 13)
+            )
+            search_entry_c.pack(side="left", fill="x", expand=True, padx=(0, 8))
+
+            status_filter_c = ctk.CTkOptionMenu(
+                search_row_c,
+                values=["All", "Pending", "Resolved"],
+                width=140, height=38, font=("Arial", 13),
+                fg_color=("#1a3c5c", "#4196E0"),
+                button_color=("#0d2438", "#3380CC"),
+                button_hover_color=("#0a1d2e", "#2570B8"),
+            )
+            status_filter_c.set("All")
+            status_filter_c.pack(side="left", padx=(0, 8))
+
+            search_btn_c = ctk.CTkButton(
+                search_row_c, text="Search", width=90, height=38,
+                font=("Arial", 13, "bold"),
+                fg_color=("#1a3c5c", "#4196E0"),
+                hover_color=("#0d2438", "#3380CC"),
+            )
+            search_btn_c.pack(side="left", padx=(0, 5))
+
+            clear_btn_c = ctk.CTkButton(
+                search_row_c, text="Clear", width=70, height=38,
+                font=("Arial", 13),
+                fg_color=("gray65", "gray35"),
+                hover_color=("gray55", "gray28"),
+            )
+            clear_btn_c.pack(side="left")
+
             scrollable = ctk.CTkScrollableFrame(content, fg_color="transparent")
-            scrollable.pack(fill="both", expand=True, padx=30, pady=20)
-            
-            def refresh_complaints():
+            scrollable.pack(fill="both", expand=True, padx=30, pady=(4, 20))
+
+            _COMP_PAGE_SIZE = 20
+            _comp_page = {"n": 0}
+            _comp_filter = {"term": "", "status": "All"}
+
+            def _apply_comp_filter(rows):
+                term = _comp_filter["term"].strip().lower()
+                status = _comp_filter["status"]
+                if term:
+                    rows = [
+                        r for r in rows
+                        if term in str(r.get("tenant_name", "")).lower()
+                        or term in str(r.get("description", "")).lower()
+                        or term in str(r.get("complaint_ID", ""))
+                    ]
+                if status == "Pending":
+                    rows = [r for r in rows if not r.get("resolved")]
+                elif status == "Resolved":
+                    rows = [r for r in rows if r.get("resolved")]
+                return rows
+
+            def refresh_complaints(page=0):
+                _comp_page["n"] = page
                 # Clear existing content
                 for widget in scrollable.winfo_children():
                     widget.destroy()
-                
-                complaints = tenant_repo.get_all_complaints(location=self.location)
-                
-                if complaints:
+
+                all_complaints = tenant_repo.get_all_complaints(location=self.location)
+                all_complaints = _apply_comp_filter(all_complaints)
+                total = len(all_complaints)
+                total_pages = max(1, (total + _COMP_PAGE_SIZE - 1) // _COMP_PAGE_SIZE)
+                current_page = min(page, total_pages - 1)
+                _comp_page["n"] = current_page
+                start = current_page * _COMP_PAGE_SIZE
+                end = start + _COMP_PAGE_SIZE
+                complaints = all_complaints[start:end]
+
+                if all_complaints:
                     # Summary header
                     summary_frame = ctk.CTkFrame(scrollable, fg_color=("gray95", "gray15"), corner_radius=10)
                     summary_frame.pack(fill="x", pady=(0, 15))
-                    
-                    pending_count = sum(1 for c in complaints if not c.get('resolved'))
-                    resolved_count = sum(1 for c in complaints if c.get('resolved'))
-                    
-                    summary_text = f"💬 Total Complaints: {len(complaints)}  |  🚧 Pending: {pending_count}  |  ✅ Resolved: {resolved_count}"
+
+                    pending_count = sum(1 for c in all_complaints if not c.get('resolved'))
+                    resolved_count = sum(1 for c in all_complaints if c.get('resolved'))
+
+                    showing = f"  (showing {start + 1}\u2013{min(end, total)} of {total})"
+                    summary_text = f"\U0001f4ac Total: {total}  |  \U0001f6a7 Pending: {pending_count}  |  \u2705 Resolved: {resolved_count}{showing}"
                     ctk.CTkLabel(
                         summary_frame,
                         text=summary_text,
-                        font=("Arial", 14, "bold"),
+                        font=("Arial", 13, "bold"),
                         text_color=("#1a3c5c", "#4196E0")
                     ).pack(pady=15)
-                    
+
+                    # Pagination nav bar
+                    if total > _COMP_PAGE_SIZE:
+                        nav = ctk.CTkFrame(scrollable, fg_color="transparent")
+                        nav.pack(fill="x", pady=(0, 10))
+                        ctk.CTkLabel(
+                            nav,
+                            text=f"Page {current_page + 1} of {total_pages}",
+                            font=("Arial", 12)
+                        ).pack(side="left", padx=(0, 10))
+                        if current_page > 0:
+                            ctk.CTkButton(
+                                nav, text="\u2190 Prev", width=90, height=32,
+                                command=lambda p=current_page - 1: refresh_complaints(p),
+                                fg_color=("gray70", "gray30"),
+                                hover_color=("gray60", "gray25")
+                            ).pack(side="left", padx=(0, 5))
+                        if current_page < total_pages - 1:
+                            ctk.CTkButton(
+                                nav, text="Next \u2192", width=90, height=32,
+                                command=lambda p=current_page + 1: refresh_complaints(p),
+                                fg_color=("#1a3c5c", "#4196E0"),
+                                hover_color=("#0d2438", "#3380CC")
+                            ).pack(side="left")
+
                     for comp in complaints:
                         comp_frame = ctk.CTkFrame(scrollable, fg_color=("gray90", "gray17"), corner_radius=10)
                         comp_frame.pack(fill="x", pady=(0, 12))
@@ -1817,29 +2029,50 @@ class FrontDeskStaff(User):
                         )
                         delete_btn.pack(side="left")
                 else:
+                    no_msg = (
+                        "💬 No complaints match your search"
+                        if _comp_filter["term"] or _comp_filter["status"] != "All"
+                        else "💬 No complaints found"
+                    )
                     ctk.CTkLabel(
                         scrollable,
-                        text="💬 No complaints found",
+                        text=no_msg,
                         font=("Arial", 15),
                         text_color=("gray50", "gray60")
                     ).pack(pady=40)
-            
+
+            def _do_comp_search():
+                _comp_filter["term"] = search_entry_c.get()
+                _comp_filter["status"] = status_filter_c.get()
+                refresh_complaints(0)
+
+            def _do_comp_clear():
+                search_entry_c.delete(0, "end")
+                status_filter_c.set("All")
+                _comp_filter["term"] = ""
+                _comp_filter["status"] = "All"
+                refresh_complaints(0)
+
+            search_btn_c.configure(command=_do_comp_search)
+            clear_btn_c.configure(command=_do_comp_clear)
+            search_entry_c.bind("<Return>", lambda _e: _do_comp_search())
+
             def handle_flag_complaint(complaint_id, current_status):
                 try:
                     new_status = 0 if current_status else 1
                     tenant_repo.update_complaint_status(complaint_id, new_status)
-                    refresh_complaints()
+                    refresh_complaints(_comp_page["n"])
                 except Exception as e:
                     print(f"Error flagging complaint: {e}")
-            
+
             def handle_delete_complaint(complaint_id):
                 try:
                     tenant_repo.delete_complaint(complaint_id)
-                    refresh_complaints()
+                    refresh_complaints(_comp_page["n"])
                 except Exception as e:
                     print(f"Error deleting complaint: {e}")
-            
-            refresh_complaints()
+
+            refresh_complaints(0)
 
         
         
