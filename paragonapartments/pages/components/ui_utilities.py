@@ -490,80 +490,38 @@ def create_dynamic_dropdown_with_refresh(parent, data_fetcher, display_formatter
     return dropdown, data_map, refresh
 
 
-def create_export_pdf_button(parent, canvas_or_fig=None, default_filename: str | None = None,
-                             stats_text: str | None = None, title: str = "Report",
-                             button_text: str = "Export to PDF", button_width: int = 180,
-                             pady: int = 5, padx: int = 5, variant: str = "standard"):
-    """Create a button that exports a chart to PDF when clicked.
+def _load_export_icon(variant):
+    """Helper function to load upload icon for export buttons.
     
-    Args:
-        parent: Parent widget for the button
-        canvas_or_fig: Either a FigureCanvasTkAgg, matplotlib Figure object, callable returning one, or None
-        default_filename: Default filename (without .pdf extension)
-        stats_text: Optional statistics text to include on second page (can be string or callable)
-        title: Title for the report
-        button_text: Text to display on the button
-        button_width: Width of the button in pixels
-        pady: Vertical padding
-        padx: Horizontal padding
-        variant: Button style variant - "standard", "inline", or "popup"
-        
     Returns:
-        CTkButton: The export button widget
+        CTkImage or None
     """
-    def handle_export():
-        try:
-            # Get canvas/figure (handle callables)
-            if callable(canvas_or_fig):
-                obj = canvas_or_fig()
-            else:
-                obj = canvas_or_fig
-            
-            # Get stats text (handle callable)
-            stats = stats_text() if callable(stats_text) else stats_text
-            
-            # Extract figure if canvas was provided
-            if hasattr(obj, 'figure'):
-                fig = obj.figure
-            else:
-                fig = obj
-            
-            # Check if we have a valid figure
-            if fig is None:
-                raise ValueError("No chart available to export")
-            
-            # Export to PDF
-            pdf_path = pdf_export.export_chart_to_pdf(fig, filename=default_filename,
-                                                      stats_text=stats, title=title)
-            
-            if pdf_path:
-                show_pdf_export_success_popup(parent.winfo_toplevel(), pdf_path)
-                
-        except Exception as e:
-            show_pdf_export_error_popup(parent.winfo_toplevel(), str(e))
+    if variant not in ("inline", "popup"):
+        return None
     
-    # Use placeholder command if no canvas provided
-    command = handle_export if canvas_or_fig is not None else lambda: None
+    try:
+        from pathlib import Path
+        icons_dir = Path(__file__).parent.parent / "icons"
+        upload_icon_path_light = icons_dir / "upload_icon.png"
+        upload_icon_path_dark = icons_dir / "upload_icon_dark.png"
+        
+        icon_size = (18, 18) if variant == "inline" else (16, 16)
+        return ctk.CTkImage(
+            light_image=Image.open(upload_icon_path_light),
+            dark_image=Image.open(upload_icon_path_dark),
+            size=icon_size
+        )
+    except Exception as e:
+        print(f"Warning: Could not load upload icon: {e}")
+        return None
+
+
+def _create_export_button_widget(parent, command, upload_icon, variant, button_text, button_width, pady, padx):
+    """Helper function to create export button widget with specified configuration.
     
-    # Load upload icon for inline/popup variants
-    upload_icon = None
-    if variant in ("inline", "popup"):
-        try:
-            from pathlib import Path
-            icons_dir = Path(__file__).parent.parent / "icons"
-            upload_icon_path_light = icons_dir / "upload_icon.png"
-            upload_icon_path_dark = icons_dir / "upload_icon_dark.png"
-            
-            upload_icon = ctk.CTkImage(
-                light_image=Image.open(upload_icon_path_light),
-                dark_image=Image.open(upload_icon_path_dark),
-                size=(18, 18) if variant == "inline" else (16, 16)
-            )
-        except Exception as e:
-            print(f"Warning: Could not load upload icon: {e}")
-            upload_icon = None
-    
-    # Configure button based on variant
+    Returns:
+        CTkButton
+    """
     if variant == "inline":
         button_config = {
             "master": parent,
@@ -617,3 +575,149 @@ def create_export_pdf_button(parent, canvas_or_fig=None, default_filename: str |
         button.pack(pady=pady, padx=padx)
     
     return button
+
+
+def create_export_button(
+    parent,
+    chart_generator=None,
+    pie_chart_generator=None,
+    bar_chart_generator=None,
+    stats_generator=None,
+    bar_text_generator=None,
+    export_title="Report",
+    export_filename="report",
+    button_text="Export to PDF",
+    button_width=180,
+    pady=5,
+    padx=5,
+    variant="standard"
+):
+    """Create a unified export button that handles both single and comprehensive exports.
+    
+    If pie_chart_generator and bar_chart_generator are provided, creates a comprehensive export.
+    Otherwise, creates a single chart export.
+    
+    Args:
+        parent: Parent widget for the button
+        chart_generator: Callable that generates main chart (returns Figure or canvas)
+        pie_chart_generator: Optional callable for pie chart (comprehensive export)
+        bar_chart_generator: Optional callable for bar chart (comprehensive export)
+        stats_generator: Optional callable that returns statistics text
+        bar_text_generator: Optional callable for bar chart analysis text
+        export_title: Title for the report
+        export_filename: Default filename (without .pdf extension)
+        button_text: Text to display on the button
+        button_width: Width of the button in pixels
+        pady: Vertical padding
+        padx: Horizontal padding
+        variant: Button style variant - "standard", "inline", or "popup"
+        
+    Returns:
+        CTkButton: The export button widget
+    """
+    def handle_export():
+        try:
+            # Check if comprehensive export (has pie and bar generators)
+            is_comprehensive = pie_chart_generator and bar_chart_generator
+            
+            # Get stats and bar text if generators provided
+            stats = stats_generator() if stats_generator and callable(stats_generator) else None
+            
+            if is_comprehensive:
+                # Comprehensive export
+                bar_text = bar_text_generator() if bar_text_generator and callable(bar_text_generator) else None
+                
+                pdf_path = pdf_export.export_comprehensive_report(
+                    trend_chart_generator=chart_generator,
+                    pie_chart_generator=pie_chart_generator,
+                    bar_chart_generator=bar_chart_generator,
+                    filename=export_filename,
+                    stats_text=stats,
+                    bar_text=bar_text,
+                    title=export_title
+                )
+            else:
+                # Single chart export
+                if callable(chart_generator):
+                    obj = chart_generator()
+                else:
+                    obj = chart_generator
+                
+                # Extract figure if canvas was provided
+                if hasattr(obj, 'figure'):
+                    fig = obj.figure
+                else:
+                    fig = obj
+                
+                if fig is None:
+                    raise ValueError("No chart available to export")
+                
+                pdf_path = pdf_export.export_chart_to_pdf(
+                    fig,
+                    filename=export_filename,
+                    stats_text=stats,
+                    title=export_title
+                )
+            
+            if pdf_path:
+                show_pdf_export_success_popup(parent.winfo_toplevel(), pdf_path)
+                
+        except Exception as e:
+            show_pdf_export_error_popup(parent.winfo_toplevel(), str(e))
+    
+    # Use placeholder command if no chart provided
+    command = handle_export if chart_generator is not None else lambda: None
+    
+    # Load icon and create button
+    upload_icon = _load_export_icon(variant)
+    button = _create_export_button_widget(parent, command, upload_icon, variant, 
+                                          button_text, button_width, pady, padx)
+    
+    return button
+
+
+# Legacy function names for backward compatibility
+def create_comprehensive_export_button(
+    parent,
+    trend_chart_generator,
+    pie_chart_generator,
+    bar_chart_generator,
+    stats_generator=None,
+    bar_text_generator=None,
+    export_title="Comprehensive Report",
+    export_filename="comprehensive_report",
+    button_text="Export Comprehensive Report",
+    variant="standard"
+):
+    """Legacy function - now redirects to create_export_button."""
+    return create_export_button(
+        parent=parent,
+        chart_generator=trend_chart_generator,
+        pie_chart_generator=pie_chart_generator,
+        bar_chart_generator=bar_chart_generator,
+        stats_generator=stats_generator,
+        bar_text_generator=bar_text_generator,
+        export_title=export_title,
+        export_filename=export_filename,
+        button_text=button_text,
+        variant=variant
+    )
+
+
+def create_export_pdf_button(parent, canvas_or_fig=None, default_filename: str | None = None,
+                             stats_text: str | None = None, title: str = "Report",
+                             button_text: str = "Export to PDF", button_width: int = 180,
+                             pady: int = 5, padx: int = 5, variant: str = "standard"):
+    """Legacy function - now redirects to create_export_button."""
+    return create_export_button(
+        parent=parent,
+        chart_generator=canvas_or_fig,
+        stats_generator=stats_text if callable(stats_text) else (lambda: stats_text if stats_text else None),
+        export_title=title,
+        export_filename=default_filename or "report",
+        button_text=button_text,
+        button_width=button_width,
+        pady=pady,
+        padx=padx,
+        variant=variant
+    )

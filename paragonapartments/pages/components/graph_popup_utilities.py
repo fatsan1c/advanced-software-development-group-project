@@ -6,12 +6,48 @@ from .ui_utilities import (
     create_refresh_button, 
     create_debounced_refresh, 
     open_date_picker,
-    create_export_pdf_button,
-    show_pdf_export_success_popup,
-    show_pdf_export_error_popup
+    create_export_button
 )
 from .config.theme import SECONDARY_GRAY, SECONDARY_GRAY_HOVER, TEXT_COLOR
-import pages.components.pdf_export as pdf_export
+
+
+def _create_location_aware_generator(generator, fixed_location=None, location_dropdown=None, 
+                                     default_location=None, location_mapper=None):
+    """Helper to wrap a generator function with location context evaluation.
+    
+    Eliminates code duplication for stats and bar text generators.
+    """
+    if not generator:
+        return None
+    
+    def wrapper():
+        try:
+            if fixed_location:
+                loc = fixed_location
+            elif location_dropdown is not None:
+                loc_value = location_dropdown.get()
+                loc = location_mapper(loc_value) if location_mapper else loc_value
+            elif default_location:
+                evaluated_location = default_location() if callable(default_location) else default_location
+                loc = location_mapper(evaluated_location) if location_mapper and evaluated_location else evaluated_location
+            else:
+                loc = None
+            
+            if callable(generator):
+                try:
+                    import inspect
+                    sig = inspect.signature(generator)
+                    if len(sig.parameters) > 0:
+                        return generator(loc) if loc is not None else generator()
+                    else:
+                        return generator()
+                except (ValueError, TypeError):
+                    return generator()
+            return None
+        except Exception:
+            return None
+    
+    return wrapper
 
 
 def create_graph_popup_controls(content, include_location=True, default_location=None, 
@@ -106,12 +142,12 @@ def create_graph_popup_controls(content, include_location=True, default_location
     graph_container.pack(fill="both", expand=True)
     
     refresh_btn = create_refresh_button(row_top, command=lambda: None, side="left", padx=(18, 0))
-    export_btn = create_export_pdf_button(
+    export_btn = create_export_button(
         row_dates,
-        canvas_or_fig=None,
-        default_filename="report",
-        stats_text=None,
-        title="Report",
+        chart_generator=None,
+        export_filename="report",
+        stats_generator=None,
+        export_title="Report",
         variant="popup"
     )
     
@@ -131,7 +167,8 @@ def create_graph_popup_controls(content, include_location=True, default_location
 
 
 def setup_complete_graph_popup(controls, content, graph_function, location_mapper=None, fixed_location=None,
-                               stats_generator=None, export_title="Report", export_filename="report"):
+                               stats_generator=None, export_title="Report", export_filename="report",
+                               pie_chart_generator=None, bar_chart_generator=None, bar_text_generator=None):
     """Set up graph popup with render function, bindings, and export."""
     location_dropdown = controls['location_dropdown']
     grouping_dropdown = controls['grouping_dropdown']
@@ -198,39 +235,46 @@ def setup_complete_graph_popup(controls, content, graph_function, location_mappe
     
     render_graph()
     
-    def handle_export():
-        try:
-            canvas = current_canvas['canvas']
-            if canvas is None:
-                raise ValueError("No chart available to export")
-            
-            fig = canvas.figure if hasattr(canvas, 'figure') else canvas
-            stats = stats_generator() if stats_generator and callable(stats_generator) else None
-            
-            pdf_path = pdf_export.export_chart_to_pdf(
-                fig,
-                filename=export_filename,
-                stats_text=stats,
-                title=export_title
-            )
-            
-            if pdf_path:
-                show_pdf_export_success_popup(content.winfo_toplevel(), pdf_path)
-        except Exception as e:
-            show_pdf_export_error_popup(content.winfo_toplevel(), str(e))
+    # Create a chart generator function that returns current canvas figure
+    def get_current_chart():
+        canvas = current_canvas['canvas']
+        if canvas is None:
+            raise ValueError("No chart available to export")
+        return canvas.figure if hasattr(canvas, 'figure') else canvas
     
-    export_btn.configure(command=handle_export)
+    # Create a new export button with proper configuration
+    # Remove old placeholder button and create new one with proper setup
+    export_parent = export_btn.master
+    export_btn.destroy()
+    
+    new_export_btn = create_export_button(
+        export_parent,
+        chart_generator=get_current_chart,
+        pie_chart_generator=pie_chart_generator,
+        bar_chart_generator=bar_chart_generator,
+        stats_generator=stats_generator,
+        bar_text_generator=bar_text_generator,
+        export_title=export_title,
+        export_filename=export_filename,
+        variant="popup"
+    )
 
 
 def open_graph_popup(parent, popup_title: str, button_text: str, graph_function,
                     include_location=True, default_location=None, get_date_range_func=None,
                     date_range_params=None, location_mapper=None, fixed_location=None,
                     include_export=True, stats_generator=None, export_title="Report",
-                    export_filename="report", font_size=16):
+                    export_filename="report", font_size=16,
+                    pie_chart_generator=None, bar_chart_generator=None, bar_text_generator=None):
     """Create a complete graph popup button with automatic setup.
     
     Combines popup creation, controls, and graph rendering into one call.
     Returns (button, export_button) if include_export=True, otherwise just button.
+    
+    Args:
+        pie_chart_generator: Optional function to generate pie chart for comprehensive export
+        bar_chart_generator: Optional function to generate bar chart for comprehensive export
+        bar_text_generator: Optional function to generate text for bar chart analysis
     """
     from .ui_cards import popup_card
     from .ui_utilities import style_primary_button
@@ -283,39 +327,25 @@ def open_graph_popup(parent, popup_title: str, button_text: str, graph_function,
         popup_btn.pack_forget()
         popup_btn.pack(side="left", expand=True)
         
-        inline_stats_generator = None
-        if stats_generator:
-            def inline_stats_generator():
-                try:
-                    evaluated_location = default_location() if callable(default_location) else default_location
-                    
-                    if fixed_location:
-                        loc = fixed_location
-                    elif evaluated_location:
-                        loc = location_mapper(evaluated_location) if location_mapper else evaluated_location
-                    else:
-                        loc = None
-                    
-                    if callable(stats_generator):
-                        try:
-                            import inspect
-                            sig = inspect.signature(stats_generator)
-                            if len(sig.parameters) > 0:
-                                return stats_generator(loc) if loc is not None else stats_generator()
-                            else:
-                                return stats_generator()
-                        except (ValueError, TypeError):
-                            return stats_generator()
-                    return None
-                except Exception:
-                    return None
+        # Create location-aware generator wrappers for inline export button
+        inline_stats_generator = _create_location_aware_generator(
+            stats_generator, fixed_location, None, default_location, location_mapper
+        )
         
-        export_btn = create_export_pdf_button(
+        inline_bar_text_generator = _create_location_aware_generator(
+            bar_text_generator, fixed_location, None, default_location, location_mapper
+        )
+        
+        # Use unified export button (automatically handles comprehensive vs single export)
+        export_btn = create_export_button(
             button_container,
-            canvas_or_fig=generate_graph_for_export,
-            default_filename=export_filename,
-            stats_text=inline_stats_generator,
-            title=export_title,
+            chart_generator=generate_graph_for_export,
+            pie_chart_generator=pie_chart_generator,
+            bar_chart_generator=bar_chart_generator,
+            stats_generator=inline_stats_generator,
+            bar_text_generator=inline_bar_text_generator,
+            export_title=export_title,
+            export_filename=export_filename,
             variant="inline"
         )
     else:
@@ -342,31 +372,14 @@ def open_graph_popup(parent, popup_title: str, button_text: str, graph_function,
             date_range_params=evaluated_params
         )
         
-        popup_stats_generator = None
-        if stats_generator:
-            def popup_stats_generator():
-                try:
-                    if fixed_location:
-                        loc = fixed_location
-                    elif controls['location_dropdown'] is not None:
-                        loc_value = controls['location_dropdown'].get()
-                        loc = location_mapper(loc_value) if location_mapper else loc_value
-                    else:
-                        loc = None
-                    
-                    if callable(stats_generator):
-                        try:
-                            import inspect
-                            sig = inspect.signature(stats_generator)
-                            if len(sig.parameters) > 0:
-                                return stats_generator(loc) if loc is not None else stats_generator()
-                            else:
-                                return stats_generator()
-                        except (ValueError, TypeError):
-                            return stats_generator()
-                    return None
-                except Exception:
-                    return None
+        # Create location-aware generator wrappers for popup export button
+        popup_stats_generator = _create_location_aware_generator(
+            stats_generator, fixed_location, controls['location_dropdown'], None, location_mapper
+        )
+        
+        popup_bar_text_generator = _create_location_aware_generator(
+            bar_text_generator, fixed_location, controls['location_dropdown'], None, location_mapper
+        )
         
         setup_complete_graph_popup(
             controls, content, graph_function,
@@ -374,7 +387,10 @@ def open_graph_popup(parent, popup_title: str, button_text: str, graph_function,
             fixed_location=fixed_location,
             stats_generator=popup_stats_generator,
             export_title=export_title,
-            export_filename=export_filename
+            export_filename=export_filename,
+            pie_chart_generator=pie_chart_generator,
+            bar_chart_generator=bar_chart_generator,
+            bar_text_generator=popup_bar_text_generator
         )
     
     popup_btn.configure(command=setup_and_open_popup)

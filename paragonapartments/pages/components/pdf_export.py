@@ -145,18 +145,26 @@ def _create_report_page(chart_fig: Figure, title: str, stats_text: str | None = 
     return fig
 
 
-def export_multiple_charts_to_pdf(
-    figures: list[Figure],
+def export_comprehensive_report(
+    trend_chart_generator,
+    pie_chart_generator,
+    bar_chart_generator,
     filename: str | None = None,
-    title: str = "Report",
+    stats_text: str | None = None,
+    bar_text: str | None = None,
+    title: str = "Comprehensive Report",
     save_directory: str | None = None
 ) -> str | None:
     """
-    Export multiple matplotlib figures to a single PDF.
+    Export a comprehensive report with trend chart, pie chart, and bar chart to PDF.
     
     Args:
-        figures: List of Matplotlib Figure objects to export
+        trend_chart_generator: Callable that returns matplotlib Figure for trend chart
+        pie_chart_generator: Callable that returns matplotlib Figure for pie chart
+        bar_chart_generator: Callable that returns matplotlib Figure for bar chart
         filename: Optional filename (without extension). If None, uses timestamp
+        stats_text: Optional statistics text to include in middle section
+        bar_text: Optional text to display next to bar chart
         title: Title for the report
         save_directory: Directory to save the PDF. If None, prompts user for location
         
@@ -164,9 +172,13 @@ def export_multiple_charts_to_pdf(
         str: Path to saved PDF file, or None if cancelled
         
     Example:
-        fig1 = create_bar_chart(...)
-        fig2 = create_trend_chart(...)
-        pdf_path = export_multiple_charts_to_pdf([fig1, fig2], "quarterly_report")
+        export_comprehensive_report(
+            trend_chart_generator=lambda: apartment_repo.create_occupancy_trend_graph(...),
+            pie_chart_generator=lambda: apartment_repo.create_occupancy_pie_chart(...),
+            bar_chart_generator=lambda: apartment_repo.create_revenue_bar_chart(...),
+            filename="occupancy_report",
+            title="Occupancy Analysis Report"
+        )
     """
     # Generate filename if not provided
     if filename is None:
@@ -199,32 +211,162 @@ def export_multiple_charts_to_pdf(
         save_path.mkdir(parents=True, exist_ok=True)
         file_path = str(save_path / f"{filename}.pdf")
     
-    # Create PDF with multiple pages
+    # Generate all charts
+    try:
+        trend_fig = trend_chart_generator()
+        pie_fig = pie_chart_generator()
+        bar_fig = bar_chart_generator()
+    except Exception as e:
+        print(f"Error generating charts for comprehensive report: {e}")
+        return None
+    
+    # Create PDF with single comprehensive page
     with PdfPages(file_path) as pdf:
-        for fig in figures:
-            pdf.savefig(fig, dpi=300, bbox_inches='tight')
+        comprehensive_page = _create_comprehensive_page(
+            trend_fig, pie_fig, bar_fig, title, stats_text, bar_text
+        )
+        pdf.savefig(comprehensive_page, dpi=300, bbox_inches='tight')
+        plt.close(comprehensive_page)
+        
+        # Clean up generated figures
+        plt.close(trend_fig)
+        plt.close(pie_fig)
+        plt.close(bar_fig)
     
     return file_path
 
 
-def get_figure_from_canvas(canvas) -> Figure | None:
-    """
-    Extract matplotlib Figure from FigureCanvasTkAgg.
+def _create_comprehensive_page(
+    trend_fig: Figure, 
+    pie_fig: Figure, 
+    bar_fig: Figure, 
+    title: str, 
+    stats_text: str | None = None,
+    bar_text: str | None = None
+) -> Figure:
+    """Create a comprehensive single-page report with trend, pie, and bar charts."""
+    import io
+    from PIL import Image
+    import numpy as np
     
-    Args:
-        canvas: FigureCanvasTkAgg object returned by chart_utils functions
+    fig = plt.figure(figsize=(8.5, 11))
+    
+    # Title section
+    title_y = 0.98
+    timestamp_y = 0.96
+    separator_y = 0.945
+    
+    fig.text(0.5, title_y, title, ha='center', va='top', 
+             fontsize=16, fontweight='bold', color='#1A1D24')
+    
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    fig.text(0.5, timestamp_y, f"Generated: {timestamp}", ha='center', va='top',
+             fontsize=8, color='#6B7080', style='italic')
+    
+    fig.add_artist(plt.Line2D([0.1, 0.9], [separator_y, separator_y], 
+                               color='#D0D4DA', linewidth=1.2, 
+                               transform=fig.transFigure))
+    
+    # Render trend chart
+    buf_trend = io.BytesIO()
+    trend_fig.savefig(buf_trend, format='png', dpi=200, bbox_inches='tight', 
+                      facecolor='white', edgecolor='none')
+    buf_trend.seek(0)
+    trend_img = Image.open(buf_trend)
+    
+    # Render pie chart
+    buf_pie = io.BytesIO()
+    pie_fig.savefig(buf_pie, format='png', dpi=200, bbox_inches='tight',
+                    facecolor='white', edgecolor='none')
+    buf_pie.seek(0)
+    pie_img = Image.open(buf_pie)
+    
+    # Render bar chart
+    buf_bar = io.BytesIO()
+    bar_fig.savefig(buf_bar, format='png', dpi=200, bbox_inches='tight',
+                    facecolor='white', edgecolor='none')
+    buf_bar.seek(0)
+    bar_img = Image.open(buf_bar)
+    
+    # Layout positioning
+    # Trend chart at top (full width, larger)
+    trend_top = 0.93
+    trend_height = 0.36
+    trend_left = 0.08
+    trend_width = 0.84
+    
+    trend_ax = fig.add_axes([trend_left, trend_top - trend_height, trend_width, trend_height])
+    trend_ax.imshow(np.array(trend_img))
+    trend_ax.axis('off')
+    
+    # Separator line under trend chart
+    separator_y = trend_top - trend_height - 0.01
+    fig.add_artist(plt.Line2D([0.1, 0.9], [separator_y, separator_y], 
+                               color='#D0D4DA', linewidth=1.2, 
+                               transform=fig.transFigure))
+    
+    # Stats and pie chart side by side (middle section)
+    middle_top = separator_y - 0.02
+    middle_height = 0.24
+    
+    # Stats on left (if provided) - with left margin
+    stats_left = 0.12
+    if stats_text:
+        stats_top = middle_top - 0.02
         
-    Returns:
-        Figure: The underlying matplotlib Figure, or None if extraction fails
+        fig.text(stats_left, stats_top, "Statistics", ha='left', va='top',
+                 fontsize=11, fontweight='bold', color='#1A1D24')
         
-    Example:
-        canvas = create_bar_chart(parent, ...)
-        fig = get_figure_from_canvas(canvas)
-        export_chart_to_pdf(fig, "my_chart")
-    """
-    try:
-        if hasattr(canvas, 'figure'):
-            return canvas.figure
-        return None
-    except Exception:
-        return None
+        fig.add_artist(plt.Line2D([stats_left, stats_left + 0.34], [stats_top - 0.015, stats_top - 0.015], 
+                                   color='#D0D4DA', linewidth=1, 
+                                   transform=fig.transFigure))
+        
+        fig.text(stats_left, stats_top - 0.03, stats_text, ha='left', va='top',
+                 fontsize=9, color='#2A2D35', family='monospace',
+                 transform=fig.transFigure)
+    
+    # Pie chart on right
+    pie_left = 0.54
+    pie_width = 0.38
+    
+    pie_ax = fig.add_axes([pie_left, middle_top - middle_height, pie_width, middle_height])
+    pie_ax.imshow(np.array(pie_img))
+    pie_ax.axis('off')
+    
+    # Separator line before bar chart
+    bar_separator_y = middle_top - middle_height - 0.01
+    fig.add_artist(plt.Line2D([0.1, 0.9], [bar_separator_y, bar_separator_y], 
+                               color='#D0D4DA', linewidth=1.2, 
+                               transform=fig.transFigure))
+    
+    # Bar chart on left side
+    bar_top = bar_separator_y - 0.02
+    bar_height = 0.24
+    bar_left = 0.08
+    bar_width = 0.46
+    
+    bar_ax = fig.add_axes([bar_left, bar_top - bar_height, bar_width, bar_height])
+    bar_ax.imshow(np.array(bar_img))
+    bar_ax.axis('off')
+    
+    # Bar chart analysis text on right
+    if bar_text:
+        bar_text_left = 0.58
+        bar_text_top = bar_top - 0.02
+        
+        fig.text(bar_text_left, bar_text_top, "Revenue Analysis", ha='left', va='top',
+                 fontsize=11, fontweight='bold', color='#1A1D24')
+        
+        fig.add_artist(plt.Line2D([bar_text_left, bar_text_left + 0.34], [bar_text_top - 0.015, bar_text_top - 0.015], 
+                                   color='#D0D4DA', linewidth=1, 
+                                   transform=fig.transFigure))
+        
+        fig.text(bar_text_left, bar_text_top - 0.03, bar_text, ha='left', va='top',
+                 fontsize=9, color='#2A2D35', family='monospace',
+                 transform=fig.transFigure)
+    
+    buf_trend.close()
+    buf_pie.close()
+    buf_bar.close()
+    
+    return fig

@@ -227,9 +227,40 @@ class Administrator(User):
         update_occupancy_display()
         refresh_timer, schedule_refresh = pe.create_debounced_refresh(occupancy_card, update_occupancy_display)
 
-        # Graph popup button
+        # Button container for graph and comprehensive export
+        button_container = ctk.CTkFrame(occupancy_card, fg_color="transparent")
+        button_container.pack(fill="x", pady=(5, 0))
+
+        # Stats and analysis generators (shared by both export buttons)
+        def generate_occupancy_stats():
+            occupied = self.view_apartment_occupancy()
+            total = apartment_repo.get_total_apartments(self.location)
+            vacant = total - occupied
+            return (
+                f"Location: {self.location}\n\n"
+                f"Total Apartments: {total}\n\n"
+                f"Occupied: {occupied} ({(occupied/total*100):.1f}%)\n\n"
+                f"Vacant: {vacant} ({(vacant/total*100):.1f}%)"
+            )
+        
+        def generate_revenue_analysis():
+            actual = apartment_repo.get_monthly_revenue(self.location)
+            potential = apartment_repo.get_potential_revenue(self.location)
+            lost = potential - actual
+            efficiency = (actual / potential * 100) if potential > 0 else 0
+            lost_pct = (lost / potential * 100) if potential > 0 else 0
+            return (
+                f"Location: {self.location}\n\n"
+                f"Actual Revenue: £{actual:,.2f}\n\n"
+                f"Potential Revenue: £{potential:,.2f}\n\n"
+                f"Lost Revenue: £{lost:,.2f}\n\n"
+                f"Revenue Efficiency: {efficiency:.1f}%\n\n"
+                f"Revenue Gap: {lost_pct:.1f}% of potential"
+            )
+
+        # Graph popup button with comprehensive export enabled
         pe.open_graph_popup(
-            occupancy_card,
+            button_container,
             popup_title=f"Apartment Occupancy Graph - {self.location}",
             button_text="View Graphs",
             graph_function=apartment_repo.create_occupancy_trend_graph,
@@ -237,8 +268,12 @@ class Administrator(User):
             get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
             date_range_params=self.location,
             fixed_location=self.location,
-            export_title="Admin Occupancy Report",
-            export_filename="admin_occupancy_report",
+            stats_generator=generate_occupancy_stats,
+            export_title=f"Occupancy Analysis - {self.location}",
+            export_filename=f"occupancy_analysis_{self.location.lower().replace(' ', '_')}",
+            pie_chart_generator=lambda: apartment_repo.create_occupancy_pie_chart(self.location),
+            bar_chart_generator=lambda: apartment_repo.create_revenue_bar_chart(self.location),
+            bar_text_generator=generate_revenue_analysis
         )
         
     def load_account_content(self, row):

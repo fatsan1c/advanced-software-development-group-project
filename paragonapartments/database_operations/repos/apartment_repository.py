@@ -13,6 +13,8 @@ from pages.components.chart_utils import (
     ACCENT_BLUE,
     create_bar_chart,
     create_trend_chart,
+    create_pie_chart,
+    create_comparison_bar_chart,
 )
 
 
@@ -321,3 +323,56 @@ def delete_apartment(apartment_id):
     """
     result = execute_query(query, (apartment_id,), commit=True)
     return result is not None
+
+
+def create_occupancy_pie_chart(location=None):
+    """Create a pie chart showing current occupancy distribution.
+    
+    Returns matplotlib Figure (not canvas) for PDF export.
+    """
+    occupied = get_all_occupancy(location)
+    total = get_total_apartments(location)
+    vacant = total - occupied
+    
+    title_loc = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
+    
+    labels = [f'Occupied\n{occupied} units', f'Vacant\n{vacant} units']
+    values = [occupied, vacant]
+    colors = [ACCENT_GREEN, ACCENT_ORANGE]
+    
+    return create_pie_chart(
+        parent=None,
+        labels=labels,
+        values=values,
+        colors=colors,
+        title=f"Occupancy Distribution - {title_loc}",
+        explode=(0.05, 0),
+        return_figure=True
+    )
+
+
+def create_revenue_bar_chart(location=None):
+    """Create a bar chart comparing actual vs potential revenue.
+    
+    Returns matplotlib Figure (not canvas) for PDF export.
+    """
+    actual = get_monthly_revenue(location)
+    potential = get_potential_revenue(location)
+    lost = potential - actual
+    
+    title_loc = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
+    
+    categories = ['Actual Revenue', 'Potential Revenue', 'Lost Revenue']
+    values = [actual, potential, lost]
+    colors = [ACCENT_GREEN, ACCENT_BLUE, ACCENT_RED]
+    
+    return create_comparison_bar_chart(
+        parent=None,
+        categories=categories,
+        values=values,
+        colors=colors,
+        title=f"Revenue Comparison - {title_loc}",
+        y_label='Revenue (£)',
+        value_formatter='currency_decimal',
+        return_figure=True
+    )

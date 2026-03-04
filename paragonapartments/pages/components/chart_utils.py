@@ -439,3 +439,160 @@ def create_trend_chart(
         toolbar.pack(fill="x")
     setup_graph_cleanup(parent, canvas, fig)
     return canvas
+
+
+def create_pie_chart(
+    parent,
+    labels: list[str],
+    values: list[float],
+    colors: list[str],
+    title: str,
+    *,
+    explode: tuple[float, ...] | None = None,
+    return_figure: bool = False,
+) -> FigureCanvasTkAgg | plt.Figure:
+    """
+    Create and embed a pie chart showing distribution.
+    
+    Args:
+        parent: Tk/CTk parent widget (ignored if return_figure=True)
+        labels: Slice labels
+        values: Slice values
+        colors: Slice colors
+        title: Chart title
+        explode: Optional tuple of explode distances for each slice
+        return_figure: If True, return Figure instead of canvas (for PDF export)
+        
+    Returns:
+        FigureCanvasTkAgg canvas or matplotlib Figure
+    """
+    fig, ax = plt.subplots(figsize=(8, 6))
+    fig.patch.set_facecolor(GRAPH_BG)
+    ax.set_facecolor(GRAPH_BG)
+    
+    total = sum(values)
+    if total == 0:
+        ax.text(0.5, 0.5, "No data available", ha='center', va='center', 
+                fontsize=14, color=GRAPH_LABEL_COLOR)
+        ax.set_title(title, fontsize=16, fontweight='bold', color=GRAPH_TITLE_COLOR, pad=20)
+        ax.axis('off')
+        
+        if return_figure:
+            return fig
+        canvas = FigureCanvasTkAgg(fig, master=parent)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill="both", expand=True, padx=20, pady=20)
+        setup_graph_cleanup(parent, canvas, fig)
+        return canvas
+    
+    if explode is None:
+        explode = tuple([0.05 if i == 0 else 0 for i in range(len(values))])
+    
+    wedges, texts, autotexts = ax.pie(
+        values,
+        labels=labels,
+        colors=colors,
+        autopct='%1.1f%%',
+        startangle=90,
+        explode=explode,
+        textprops={'fontsize': 12, 'fontweight': 'bold'}
+    )
+    
+    for autotext in autotexts:
+        autotext.set_color('white')
+        autotext.set_fontsize(14)
+        autotext.set_fontweight('bold')
+    
+    ax.set_title(title, fontsize=16, fontweight='bold', color=GRAPH_TITLE_COLOR, pad=20)
+    ax.axis('equal')
+    
+    if return_figure:
+        plt.tight_layout()
+        return fig
+    
+    canvas = FigureCanvasTkAgg(fig, master=parent)
+    canvas.draw()
+    canvas.get_tk_widget().pack(fill="both", expand=True, padx=20, pady=20)
+    setup_graph_cleanup(parent, canvas, fig)
+    return canvas
+
+
+def create_comparison_bar_chart(
+    parent,
+    categories: list[str],
+    values: list[float],
+    colors: list[str],
+    title: str,
+    y_label: str,
+    *,
+    value_formatter: str = "currency",
+    return_figure: bool = False,
+) -> FigureCanvasTkAgg | plt.Figure:
+    """
+    Create a comparison bar chart (e.g., Actual vs Potential vs Lost Revenue).
+    
+    Args:
+        parent: Tk/CTk parent widget (ignored if return_figure=True)
+        categories: Category names for x-axis
+        values: Values for each category
+        colors: Colors for each bar
+        title: Chart title
+        y_label: Y-axis label
+        value_formatter: "currency", "currency_decimal", or "count"
+        return_figure: If True, return Figure instead of canvas (for PDF export)
+        
+    Returns:
+        FigureCanvasTkAgg canvas or matplotlib Figure
+    """
+    fig, ax = plt.subplots(figsize=(8, 6))
+    fig.patch.set_facecolor('white')
+    ax.set_facecolor('white')
+    
+    bars = ax.bar(categories, values, color=colors, alpha=0.8, 
+                  edgecolor=BAR_EDGE, linewidth=1.5)
+    
+    # Add value labels on bars
+    for bar, value in zip(bars, values):
+        height = bar.get_height()
+        if value_formatter == "currency":
+            txt = f'£{int(value):,}'
+        elif value_formatter == "currency_decimal":
+            txt = f'£{value:,.2f}'
+        else:
+            txt = str(int(value))
+        
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+                txt, ha='center', va='bottom', fontsize=12, fontweight='bold',
+                color=GRAPH_TITLE_COLOR)
+    
+    ax.set_ylabel(y_label, fontsize=13, fontweight='bold', color=GRAPH_LABEL_COLOR)
+    ax.set_title(title, fontsize=16, fontweight='bold', color=GRAPH_TITLE_COLOR, pad=20)
+    
+    if value_formatter in ("currency", "currency_decimal"):
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'£{x:,.0f}'))
+    
+    # Remove grid lines for white background
+    ax.grid(False)
+    ax.set_axisbelow(True)
+    
+    for s in ("top", "right"):
+        ax.spines[s].set_visible(False)
+    ax.spines["left"].set_color(SPINE_COLOR)
+    ax.spines["bottom"].set_color(SPINE_COLOR)
+    ax.spines["left"].set_linewidth(1.5)
+    ax.spines["bottom"].set_linewidth(1.5)
+    ax.tick_params(axis="both", colors=TICK_COLOR, labelsize=11)
+    for lbl in ax.get_xticklabels():
+        lbl.set_fontweight("bold")
+    for lbl in ax.get_yticklabels():
+        lbl.set_fontweight("bold")
+    
+    if return_figure:
+        plt.tight_layout()
+        return fig
+    
+    canvas = FigureCanvasTkAgg(fig, master=parent)
+    canvas.draw()
+    canvas.get_tk_widget().pack(fill="both", expand=True, padx=20, pady=20)
+    setup_graph_cleanup(parent, canvas, fig)
+    return canvas
