@@ -2,16 +2,8 @@ import customtkinter as ctk
 import pages.components.page_elements as pe
 import pages.components.input_validation as input_validation
 import database_operations.repos.finance_repository as finance_repo
-import database_operations.repos.location_repository as location_repo
+import database_operations.repos.tenants_repository as tenant_repo
 from models.user import User
-from datetime import datetime
-from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BOX, ROUND_BTN, ROUND_INPUT
-
-try:
-    from tkcalendar import Calendar
-except Exception:
-    Calendar = None
-
 
 class FinanceManager(User):
     """Finance manager with financial reporting and payment processing capabilities."""
@@ -29,6 +21,21 @@ class FinanceManager(User):
     def generate_financial_reports(self, location: str = "all"):
         """Return financial summary data (used by the dashboard)."""
         return finance_repo.get_financial_summary(location)
+    
+    def format_financial_stats(self, location: str = "all") -> str:
+        """Format financial summary as stats text string for reports.
+        
+        Args:
+            location: Location to get summary for (default: "all")
+            
+        Returns:
+            str: Formatted stats text with invoiced, collected, outstanding, and late invoices
+        """
+        summary = self.generate_financial_reports(location)
+        return (f"Total Invoiced: £{summary['total_invoiced']:,.2f}\n"
+                f"Total Collected: £{summary['total_collected']:,.2f}\n"
+                f"Outstanding: £{summary['outstanding']:,.2f}\n"
+                f"Late Invoices: {summary['late_invoice_count']}")
 
     def _ui_date_to_db(self, date_str: str | None) -> str | None:
         """
@@ -41,13 +48,15 @@ class FinanceManager(User):
     def create_invoice(self, values):
         """Create a new invoice."""
         try:
-            tenant_id = int(values.get("Tenant ID", 0))
+            tenant_id = values.get("Tenant")
+            if tenant_id:
+                tenant_id = int(tenant_id)
             amount_due = float(values.get("Amount Due", 0))
             due_date = self._ui_date_to_db(values.get("Due Date", ""))
             issue_date = self._ui_date_to_db(values.get("Issue Date", "")) or None
 
             if not tenant_id:
-                return "Tenant ID is required."
+                return "Tenant is required."
             if not due_date:
                 return "Due Date is required (YYYY-MM-DD)."
             if amount_due <= 0:
@@ -98,29 +107,25 @@ class FinanceManager(User):
     def record_payment(self, values):
         """Record a payment and mark invoice as paid."""
         try:
-            invoice_id = int(values.get("Invoice ID", 0))
-            tenant_id = int(values.get("Tenant ID", 0))
+            invoice_id = values.get("Invoice")
+            if invoice_id:
+                invoice_id = int(invoice_id)
             amount = float(values.get("Amount", 0))
             payment_date = self._ui_date_to_db(values.get("Payment Date", "")) or None
 
             if not invoice_id:
-                return "Invoice ID is required."
-            if not tenant_id:
-                return "Tenant ID is required."
+                return "Invoice is required."
             if amount <= 0:
                 return "Amount must be greater than 0."
 
             invoice = finance_repo.get_invoice_by_id(invoice_id)
             if not invoice:
                 return f"Invoice ID {invoice_id} does not exist."
-            if int(invoice.get("tenant_ID")) != tenant_id:
-                return f"Invoice {invoice_id} belongs to tenant ID {invoice.get('tenant_ID')}, not {tenant_id}."
             if int(invoice.get("paid") or 0) == 1:
                 return f"Invoice {invoice_id} is already marked as paid."
 
             payment_id = finance_repo.record_payment(
                 invoice_id=invoice_id,
-                tenant_id=tenant_id,
                 amount=amount,
                 payment_date=payment_date,
                 mark_invoice_paid=True
@@ -136,7 +141,7 @@ class FinanceManager(User):
         # Load base content first
         super().load_homepage_content(home_page)
 
-        container = pe.scrollable_container(parent=home_page)
+        container = pe.scrollable_container(parent=home_page, hide_scrollbar_when_loading=True)
 
         # Row 1: summary full-width
         row1 = pe.row_container(parent=container)
@@ -176,167 +181,64 @@ class FinanceManager(User):
             except Exception as e:
                 late_badge.configure(text=f"Error: {str(e)}", text_color="red")
 
-        # Replace View Summary with a graph popup (summary still auto-refreshes on dropdown change)
-        button, open_popup = pe.popup_card(
+        # Enhanced stats and analysis generators for comprehensive export
+        def generate_detailed_stats(location=None):
+            loc = self._selected_location(location) if location else "all"
+            summary = finance_repo.get_financial_summary(loc)
+            loc_label = location if location and location != "All Locations" else "All Locations"
+            collection_rate = (summary['total_collected'] / summary['total_invoiced'] * 100) if summary['total_invoiced'] > 0 else 0
+            return (
+                f"Location: {loc_label}\n\n"
+                f"Total Invoiced: £{summary['total_invoiced']:,.2f}\n\n"
+                f"Total Collected: £{summary['total_collected']:,.2f}\n\n"
+                f"Outstanding: £{summary['outstanding']:,.2f}\n\n"
+                f"Late Invoices: {summary['late_invoice_count']}\n\n"
+                f"Collection Rate: {collection_rate:.1f}%"
+            )
+        
+        def generate_financial_analysis(location=None):
+            loc = self._selected_location(location) if location else "all"
+            summary = finance_repo.get_financial_summary(loc)
+            loc_label = location if location and location != "All Locations" else "All Locations"
+            collection_rate = (summary['total_collected'] / summary['total_invoiced'] * 100) if summary['total_invoiced'] > 0 else 0
+            outstanding_rate = (summary['outstanding'] / summary['total_invoiced'] * 100) if summary['total_invoiced'] > 0 else 0
+            return (
+                f"Location: {loc_label}\n\n"
+                f"Total Invoiced: £{summary['total_invoiced']:,.2f}\n\n"
+                f"Collected: £{summary['total_collected']:,.2f}\n\n"
+                f"Outstanding: £{summary['outstanding']:,.2f}\n\n"
+                f"Collection Rate: {collection_rate:.1f}%\n\n"
+                f"Outstanding Rate: {outstanding_rate:.1f}%\n\n"
+                f"Late Invoices: {summary['late_invoice_count']}\n\n"
+                f"Financial Health: {'Excellent' if collection_rate >= 90 else 'Good' if collection_rate >= 75 else 'Fair' if collection_rate >= 60 else 'Needs Attention'}"
+            )
+
+        def create_financial_pie(location=None):
+            loc = self._selected_location(location) if location else "all"
+            return finance_repo.create_financial_status_pie_chart(loc)
+        
+        def create_financial_bar(location=None):
+            loc = self._selected_location(location) if location else "all"
+            return finance_repo.create_financial_comparison_bar_chart(loc)
+
+        # Graph popup with comprehensive export enabled
+        button, export_btn = pe.open_graph_popup(
             summary_card,
-            title="Finance Trends Graph",
+            popup_title="Finance Trends Graph",
             button_text="View Graphs",
-            small=False,
-            button_size="medium"
+            graph_function=finance_repo.create_collected_trend_graph,
+            default_location=lambda: location_dropdown.get() or "All Locations",
+            get_date_range_func=lambda location_str, grouping: finance_repo.get_finance_date_range(
+                self._selected_location(location_str), grouping=grouping
+            ),
+            location_mapper=self._selected_location,
+            stats_generator=generate_detailed_stats,
+            export_title="Financial Analysis Report",
+            export_filename="financial_analysis_report",
+            pie_chart_generator=create_financial_pie,
+            bar_chart_generator=create_financial_bar,
+            bar_text_generator=generate_financial_analysis
         )
-        pe.style_primary_button(button, font_size=16)
-
-        def setup_graph_popup():
-            content = open_popup()
-            # Controls
-            controls = ctk.CTkFrame(content, fg_color="transparent")
-            controls.pack(fill="x", padx=10, pady=(5, 10))
-
-            row_top = ctk.CTkFrame(controls, fg_color="transparent")
-            row_top.pack(fill="x")
-
-            ctk.CTkLabel(row_top, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
-            popup_cities = ["All Locations"] + location_repo.get_all_cities()
-            popup_location_dropdown = ctk.CTkComboBox(row_top, values=popup_cities, width=220, font=("Arial", 13))
-            popup_location_dropdown.set(location_dropdown.get() or "All Locations")
-            popup_location_dropdown.pack(side="left")
-
-            ctk.CTkLabel(row_top, text="Grouping:", font=("Arial", 14, "bold")).pack(side="left", padx=(18, 8))
-            grouping_dropdown = ctk.CTkComboBox(row_top, values=["Monthly", "Yearly"], width=140, font=("Arial", 13))
-            grouping_dropdown.set("Monthly")
-            grouping_dropdown.pack(side="left")
-
-            # Date range row
-            row_dates = ctk.CTkFrame(controls, fg_color="transparent")
-            row_dates.pack(fill="x", pady=(10, 0))
-
-            # Default date range based on available data (monthly initial view)
-            location_for_defaults = self._selected_location(popup_location_dropdown.get())
-            default_range = finance_repo.get_finance_date_range(location_for_defaults, grouping="month")
-            default_start = default_range.get("start_date", "")
-            default_end = default_range.get("end_date", "")
-
-            ctk.CTkLabel(row_dates, text="Start (YYYY-MM-DD):", font=("Arial", 13, "bold")).pack(side="left", padx=(0, 8))
-            start_wrap = ctk.CTkFrame(row_dates, fg_color="transparent")
-            start_wrap.pack(side="left")
-            start_entry = ctk.CTkEntry(start_wrap, width=140, font=("Arial", 13))
-            if default_start:
-                start_entry.insert(0, default_start)
-            start_entry.pack(side="left")
-
-            ctk.CTkLabel(row_dates, text="End (YYYY-MM-DD):", font=("Arial", 13, "bold")).pack(side="left", padx=(18, 8))
-            end_wrap = ctk.CTkFrame(row_dates, fg_color="transparent")
-            end_wrap.pack(side="left")
-            end_entry = ctk.CTkEntry(end_wrap, width=140, font=("Arial", 13))
-            if default_end:
-                end_entry.insert(0, default_end)
-            end_entry.pack(side="left")
-
-            ctk.CTkButton(
-                start_wrap,
-                text="📅",
-                width=34,
-                height=28,
-                font=("Arial", 13),
-                command=lambda: pe.open_date_picker(start_entry, content.winfo_toplevel()),
-                fg_color=("gray80", "gray25"),
-                hover_color=("gray70", "gray30"),
-            ).pack(side="left", padx=(6, 0))
-
-            ctk.CTkButton(
-                end_wrap,
-                text="📅",
-                width=34,
-                height=28,
-                font=("Arial", 13),
-                command=lambda: pe.open_date_picker(end_entry, content.winfo_toplevel()),
-                fg_color=("gray80", "gray25"),
-                hover_color=("gray70", "gray30"),
-            ).pack(side="left", padx=(6, 0))
-
-            def apply_grouping_defaults(grouping_value: str):
-                gv = (grouping_value or "").strip().lower()
-                if gv.startswith("year"):
-                    grouping_norm = "year"
-                else:
-                    grouping_norm = "month"
-
-                location = self._selected_location(popup_location_dropdown.get())
-                rng = finance_repo.get_finance_date_range(location, grouping=grouping_norm)
-                start_entry.delete(0, "end")
-                end_entry.delete(0, "end")
-                if rng.get("start_date"):
-                    start_entry.insert(0, rng["start_date"])
-                if rng.get("end_date"):
-                    end_entry.insert(0, rng["end_date"])
-
-            # Error/status label
-            error_label = ctk.CTkLabel(
-                content,
-                text="",
-                font=("Arial", 12),
-                text_color="red",
-                wraplength=900,
-                anchor="w",
-                justify="left",
-            )
-            error_label.pack(fill="x", padx=10, pady=(0, 5))
-
-            # Graph container
-            graph_container = ctk.CTkFrame(content, fg_color="transparent")
-            graph_container.pack(fill="both", expand=True)
-
-            def render_graph():
-                # Clear previous graph widgets/canvases
-                for w in graph_container.winfo_children():
-                    try:
-                        w.destroy()
-                    except Exception:
-                        pass
-
-                try:
-                    location = self._selected_location(popup_location_dropdown.get())
-                    start_date = start_entry.get().strip() or None
-                    end_date = end_entry.get().strip() or None
-
-                    grouping_value = (grouping_dropdown.get() or "Monthly").strip().lower()
-                    grouping = "year" if grouping_value.startswith("year") else "month"
-
-                    finance_repo.create_collected_trend_graph(
-                        graph_container,
-                        location=location,
-                        start_date=start_date,
-                        end_date=end_date,
-                        grouping=grouping,
-                    )
-                    error_label.configure(text="")
-                except Exception as e:
-                    error_label.configure(text=str(e))
-
-            refresh_btn = ctk.CTkButton(
-                row_top,
-                text="⟳ Refresh",
-                command=render_graph,
-                height=32,
-                width=120,
-                fg_color=("gray70", "gray30"),
-                hover_color=("gray60", "gray25"),
-            )
-            refresh_btn.pack(side="left", padx=(18, 0))
-
-            # Auto-refresh when location changes (debounced)
-            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, render_graph)
-
-            popup_location_dropdown.configure(command=schedule_refresh)
-            def on_grouping_change(choice=None):
-                apply_grouping_defaults(grouping_dropdown.get())
-                schedule_refresh(choice)
-            grouping_dropdown.configure(command=on_grouping_change)
-
-            # Initial render
-            render_graph()
-
-        button.configure(command=setup_graph_popup)
 
         # Auto-refresh summary on location change (debounced)
         refresh_timer, schedule_refresh = pe.create_debounced_refresh(summary_card, update_summary)
@@ -346,29 +248,26 @@ class FinanceManager(User):
     def load_invoice_content(self, row, side="left"):
         invoices_card = pe.function_card(row, "Manage Invoices", side=side, pady=6, padx=8)
 
+        def format_tenants(tenant):
+            display = f"ID {tenant['tenant_ID']}: {tenant['first_name']} {tenant['last_name']}"
+            return (display, tenant['tenant_ID'])
+
         fields = [
-            {"name": "Tenant ID", "type": "text", "subtype": "number", "required": True},
-            {"name": "Amount Due", "type": "text", "subtype": "currency", "required": True},
-            {"name": "Due Date", "type": "text", "subtype": "date", "placeholder": "Due Date (YYYY-MM-DD)", "required": True},
-            {"name": "Issue Date", "type": "text", "subtype": "date", "placeholder": "Issue Date (YYYY-MM-DD)", "required": False},
+            {"name": "Tenant", "type": "dropdown", "subtype": "dynamic", 'options': {
+                    'data_fetcher': tenant_repo.get_all_tenant_names,
+                    'display_formatter': format_tenants,
+                    'empty_message': 'No tenants available'
+                }, "required": True},
+            {"name": "Amount Due", "type": "text", "subtype": "currency", "required": True, "placeholder": "£0.00"},
+            {"name": "Due Date", "type": "text", "subtype": "date", "placeholder": "YYYY-MM-DD", "required": True},
+            {"name": "Issue Date", "type": "text", "subtype": "date", "placeholder": "YYYY-MM-DD", "required": False},
         ]
         pe.form_element(
             invoices_card,
             fields,
             name="",
             submit_text="Create invoice",
-            on_submit=self.create_invoice,
-            small=True,
-            expand=False,
-            fill="x",
-            pady=(2, 2),
-            submit_button_height=40,
-            submit_button_font_size=15,
-            input_corner_radius=ROUND_INPUT,
-            submit_corner_radius=ROUND_BTN,
-            submit_fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
-            submit_hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
-            submit_text_color=("white", "white"),
+            on_submit=self.create_invoice
         )
 
         # Edit invoices popup
@@ -389,13 +288,13 @@ class FinanceManager(User):
 
             columns = [
                 {"name": "ID", "key": "invoice_ID", "width": 40, "editable": False},
-                {"name": "Tenant ID", "key": "tenant_ID", "width": 80},
+                {"name": "Tenant ID", "key": "tenant_ID", "width": 80, "format": "number"},
                 {"name": "Tenant", "key": "tenant_name", "width": 120, "editable": False},
                 {"name": "City", "key": "city", "width": 90, "editable": False},
                 {"name": "Amount", "key": "amount_due", "width": 80, "format": "currency"},
                 {"name": "Due Date", "key": "due_date", "width": 100, "format": "date"},
                 {"name": "Issue Date", "key": "issue_date", "width": 100, "format": "date"},
-                {"name": "Paid (0/1)", "key": "paid", "width": 70},
+                {"name": "Paid", "key": "paid", "width": 70, "format": "boolean", "options": ["Paid", "Unpaid"]},
             ]
 
             def get_data():
@@ -416,8 +315,7 @@ class FinanceManager(User):
                 on_update=self.update_invoice_row,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=10,
-                scrollable=False
+                page_size=10
             )
 
             # Top refresh button next to the dropdown
@@ -437,29 +335,36 @@ class FinanceManager(User):
     def load_payments_content(self, row, side="top"):
         payments_card = pe.function_card(row, "Payments", side=side, pady=6, padx=8)
 
+        # Define data fetcher and formatter for unpaid invoices
+        def fetch_unpaid_invoices():
+            location = self.location if self.location else "all"
+            return finance_repo.get_invoices(location=location, paid=0)
+
+        def format_invoice(inv):
+            display = f"Invoice #{inv['invoice_ID']} - {inv['tenant_name']} - £{inv['amount_due']:.2f} (Due: {inv['due_date']})"
+            return (display, inv['invoice_ID'])
+
         fields = [
-            {"name": "Invoice ID", "type": "text", "subtype": "number", "required": True},
-            {"name": "Tenant ID", "type": "text", "subtype": "number", "required": True},
-            {"name": "Amount", "type": "text", "subtype": "currency", "required": True},
-            {"name": "Payment Date", "type": "text", "subtype": "date", "placeholder": "Payment Date (YYYY-MM-DD)", "required": False}
+            {
+                "name": "Invoice",
+                "type": "dropdown",
+                "subtype": "dynamic",
+                "required": True,
+                "options": {
+                    'data_fetcher': fetch_unpaid_invoices,
+                    'display_formatter': format_invoice,
+                    'empty_message': 'No unpaid invoices'
+                }
+            },
+            {"name": "Amount", "type": "text", "subtype": "currency", "required": True, "placeholder": "£0.00"},
+            {"name": "Payment Date", "type": "text", "subtype": "date", "placeholder": "YYYY-MM-DD", "required": False}
         ]
         pe.form_element(
             payments_card,
             fields,
             name="",
             submit_text="Record Payment",
-            on_submit=self.record_payment,
-            small=True,
-            expand=False,
-            fill="x",
-            pady=(2, 2),
-            submit_button_height=40,
-            submit_button_font_size=15,
-            input_corner_radius=ROUND_INPUT,
-            submit_corner_radius=ROUND_BTN,
-            submit_fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
-            submit_hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
-            submit_text_color=("white", "white"),
+            on_submit=self.record_payment
         )
 
         actions = ctk.CTkFrame(payments_card, fg_color="transparent")
@@ -502,7 +407,7 @@ class FinanceManager(User):
                 {"name": "Invoice ID", "key": "invoice_ID", "width": 100, "editable": False},
                 {"name": "Tenant", "key": "tenant_name", "width": 220, "editable": False},
                 {"name": "City", "key": "city", "width": 160, "editable": False},
-                {"name": "Payment Date", "key": "payment_date", "width": 130, "editable": False},
+                {"name": "Payment Date", "key": "payment_date", "width": 130, "editable": False, "format": "date"},
                 {"name": "Amount", "key": "amount", "width": 120, "editable": False, "format": "currency"},
             ]
 
@@ -541,8 +446,9 @@ class FinanceManager(User):
                 {"name": "Tenant", "key": "tenant_name", "width": 220, "editable": False},
                 {"name": "City", "key": "city", "width": 160, "editable": False},
                 {"name": "Amount", "key": "amount_due", "width": 120, "editable": False, "format": "currency"},
-                {"name": "Due Date", "key": "due_date", "width": 120, "editable": False},
-                {"name": "Issue Date", "key": "issue_date", "width": 120, "editable": False}
+                {"name": "Due Date", "key": "due_date", "width": 120, "editable": False, "format": "date"},
+                {"name": "Issue Date", "key": "issue_date", "width": 120, "editable": False, "format": "date"},
+                {"name": "Days Late", "key": "days_late", "width": 100, "editable": False, "format": "number"},
             ]
 
             def get_data():
@@ -573,129 +479,4 @@ class FinanceManager(User):
         pay_btn.configure(command=setup_payments_popup)
         late_btn.configure(command=setup_late_popup)
 
-    def load_late_payments_content(self, row):
-        late_card = pe.function_card(row, "Late Payments", side="left")
-
-        button, open_popup = pe.popup_card(
-            late_card,
-            title="Late / Unpaid Invoices",
-            button_text="View Late Invoices",
-            small=False,
-            button_size="medium"
-        )
-
-        def setup_popup():
-            content = open_popup()
-
-            header, location_dropdown = pe.create_popup_header_with_location(content)
-
-            columns = [
-                {"name": "ID", "key": "invoice_ID", "width": 80, "editable": False},
-                {"name": "Tenant", "key": "tenant_name", "width": 220, "editable": False},
-                {"name": "City", "key": "city", "width": 160, "editable": False},
-                {"name": "Amount", "key": "amount_due", "width": 120, "editable": False, "format": "currency"},
-                {"name": "Due Date", "key": "due_date", "width": 120, "editable": False},
-                {"name": "Issue Date", "key": "issue_date", "width": 120, "editable": False}
-            ]
-
-            def get_data():
-                try:
-                    location = self._selected_location(location_dropdown.get())
-                    return finance_repo.get_late_invoices(location)
-                except Exception as e:
-                    print(f"Error loading late invoices: {e}")
-                    return []
-
-            _, refresh_table = pe.data_table(
-                content,
-                columns,
-                editable=False,
-                deletable=False,
-                refresh_data=get_data,
-                show_refresh_button=False,
-                render_batch_size=20,
-                page_size=10,
-                scrollable=False
-            )
-
-            pe.create_refresh_button(header, refresh_table)
-
-            def refresh_with_reset():
-                if hasattr(refresh_table, "reset_page"):
-                    refresh_table.reset_page()
-                refresh_table()
-            
-            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, refresh_with_reset)
-            location_dropdown.configure(command=schedule_refresh)
-
-        button.configure(command=setup_popup)
-
-    def load_payment_content(self, row):
-        payment_card = pe.function_card(row, "Record Payment", side="left")
-
-        fields = [
-            {"name": "Invoice ID", "type": "text", "subtype": "number", "required": True},
-            {"name": "Tenant ID", "type": "text", "subtype": "number", "required": True},
-            {"name": "Amount", "type": "text", "subtype": "currency", "required": True},
-            {"name": "Payment Date", "type": "text", "subtype": "date", "required": False}
-        ]
-        pe.form_element(payment_card, fields, name="Payment", submit_text="Record Payment", on_submit=self.record_payment, small=True)
-
-    def load_payments_table_content(self, row):
-        payments_card = pe.function_card(row, "Payments", side="top")
-
-        button, open_popup = pe.popup_card(
-            payments_card,
-            title="Payments",
-            button_text="View Payments",
-            small=False,
-            button_size="medium"
-        )
-
-        def setup_popup():
-            content = open_popup()
-
-            header, location_dropdown = pe.create_popup_header_with_location(content)
-
-            columns = [
-                {"name": "ID", "key": "payment_ID", "width": 80, "editable": False},
-                {"name": "Invoice ID", "key": "invoice_ID", "width": 100, "editable": False},
-                {"name": "Tenant", "key": "tenant_name", "width": 220, "editable": False},
-                {"name": "City", "key": "city", "width": 160, "editable": False},
-                {"name": "Payment Date", "key": "payment_date", "width": 130, "editable": False},
-                {"name": "Amount", "key": "amount", "width": 120, "editable": False, "format": "currency"},
-            ]
-
-            def get_data():
-                try:
-                    location = self._selected_location(location_dropdown.get())
-                    return finance_repo.get_payments(location)
-                except Exception as e:
-                    print(f"Error loading payments: {e}")
-                    return []
-
-            _, refresh_table = pe.data_table(
-                content,
-                columns,
-                editable=False,
-                deletable=False,
-                refresh_data=get_data,
-                show_refresh_button=False,
-                render_batch_size=20,
-                page_size=10,
-                scrollable=False
-            )
-
-            pe.create_refresh_button(header, refresh_table)
-
-            def refresh_with_reset():
-                # Reset to page 1 whenever filter changes
-                if hasattr(refresh_table, "reset_page"):
-                    refresh_table.reset_page()
-                refresh_table()
-            
-            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, refresh_with_reset)
-            location_dropdown.configure(command=schedule_refresh)
-
-        button.configure(command=setup_popup)
 # ============================= ^ Homepage UI Content ^ =====================================

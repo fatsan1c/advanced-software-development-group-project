@@ -37,7 +37,7 @@ def content_container(parent, anchor=None, side=None,
     return container
 
 
-def scrollable_container(parent, expand=True, fill="both", pady=10, padx=10):
+def scrollable_container(parent, expand=True, fill="both", pady=10, padx=10, hide_scrollbar_when_loading=False):
     """Create a scrollable container for content that may exceed visible area.
     
     Automatically hides scrollbar when all content fits on screen.
@@ -48,11 +48,12 @@ def scrollable_container(parent, expand=True, fill="both", pady=10, padx=10):
         fill: Fill direction (x, y, both, none)
         pady: Vertical padding
         padx: Horizontal padding
-        
+        hide_scrollbar_when_loading: Whether to hide scrollbar when loading content (default: False)
+            Use when loading content that is expected to fit within the container to prevent scrollbar flicker during load.
     Returns:
         The scrollable container (add widgets directly to this)
     """
-    scrollable = AutoHideScrollableFrame(parent, fg_color="transparent", scroll_speed=2)
+    scrollable = AutoHideScrollableFrame(parent, fg_color="transparent", scroll_speed=2, hide_scrollbar_when_loading=hide_scrollbar_when_loading)
     scrollable.pack(expand=expand, fill=fill, pady=pady, padx=padx)
     return scrollable
 

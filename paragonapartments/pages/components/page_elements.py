@@ -27,6 +27,7 @@ from .ui_utilities import (
     parse_date_string,
     open_date_picker,
     style_primary_button,
+    style_accent_secondary_button,
     style_secondary_button,
     create_refresh_button,
     create_debounced_refresh,
@@ -34,6 +35,19 @@ from .ui_utilities import (
     round_image_corners,
     content_separator,
     vertical_divider,
+    create_dynamic_dropdown_with_refresh,
+    style_primary_dropdown,
+    style_secondary_dropdown,
+    show_pdf_export_success_popup,
+    show_pdf_export_error_popup,
+    create_export_pdf_button,
+)
+
+# Graph popup utilities: specialized functions for graph popups
+from .graph_popup_utilities import (
+    create_graph_popup_controls,
+    setup_complete_graph_popup,
+    open_graph_popup,
 )
 
 # Containers: layout and scrolling
@@ -62,6 +76,7 @@ from .ui_forms import (
 # Tables: data tables with CRUD
 from .ui_tables import (
     data_table,
+    create_edit_popup_with_table,
 )
 
 # Export all for 'from page_elements import *'
@@ -70,13 +85,23 @@ __all__ = [
     'parse_date_string',
     'open_date_picker',
     'style_primary_button',
+    'style_accent_secondary_button',
     'style_secondary_button',
+    'style_primary_dropdown',
+    'style_secondary_dropdown',
     'create_refresh_button',
     'create_debounced_refresh',
     'create_popup_header_with_location',
     'round_image_corners',
     'content_separator',
     'vertical_divider',
+    'create_graph_popup_controls',
+    'setup_complete_graph_popup',
+    'create_dynamic_dropdown_with_refresh',
+    'show_pdf_export_success_popup',
+    'show_pdf_export_error_popup',
+    'create_export_pdf_button',
+    'open_graph_popup',
     # Containers
     'content_container',
     'scrollable_container',
@@ -93,4 +118,5 @@ __all__ = [
     'form_element',
     # Tables
     'data_table',
+    'create_edit_popup_with_table',
 ]

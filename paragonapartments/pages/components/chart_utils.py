@@ -10,6 +10,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from datetime import date as _date
 
 try:
     from scipy.interpolate import PchipInterpolator
@@ -64,6 +65,43 @@ def _throttle_xticks(periods: list, max_labels: int = 12):
             indices.append(n - 1)
         return indices, [periods[i] for i in indices], 45, "right", 0.18
     return list(range(n)), periods, 45 if n > 6 else 0, "right" if n > 6 else "center", 0.18 if n > 6 else 0.117
+
+
+def _find_today_position(periods: list[str]) -> int | None:
+    """
+    Find the position in periods list that corresponds to today's date.
+    Handles formats like "Jan 2024" (monthly) or "2024" (yearly).
+    Returns None if today is not found in the periods.
+    """
+    today = _date.today()
+    month_map = {
+        "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+        "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12
+    }
+    
+    for i, period in enumerate(periods):
+        period_lower = period.lower().strip()
+        parts = period_lower.split()
+        
+        try:
+            # Yearly format: "2024"
+            if len(parts) == 1 and parts[0].isdigit():
+                year = int(parts[0])
+                if year == today.year:
+                    return i
+            
+            # Monthly format: "Jan 2024", "January 2024"
+            elif len(parts) == 2:
+                month_str = parts[0][:3]  # Take first 3 chars for month
+                year = int(parts[1])
+                if month_str in month_map:
+                    month = month_map[month_str]
+                    if year == today.year and month == today.month:
+                        return i
+        except (ValueError, IndexError):
+            continue
+    
+    return None
 
 
 def create_bar_chart(
@@ -167,7 +205,7 @@ def create_bar_chart(
         lbl.set_fontweight("bold")
     for lbl in ax.get_yticklabels():
         lbl.set_fontweight("bold")
-    fig.subplots_adjust(left=0.12, bottom=0.12, right=0.95, top=0.88)
+    fig.tight_layout(pad=1.5, rect=[0, 0, 1, 0.96])
 
     canvas = FigureCanvasTkAgg(fig, master=parent)
     canvas.draw()
@@ -189,9 +227,10 @@ def create_trend_chart(
     primary_color: str | None = None,
     secondary_axis: tuple[str, np.ndarray, str] | None = None,
     kpi_style: str = "text",
-    show_kpi: bool = True,
+    show_kpi: bool = False,
     show_toolbar: bool = True,
     y_lim_dynamic: bool = False,
+    show_today_marker: bool = True,
 ) -> FigureCanvasTkAgg:
     """
     Create and embed a multi-series trend line chart with grid, legend, KPI badges, toolbar.
@@ -211,6 +250,7 @@ def create_trend_chart(
         show_kpi: Show percentage change badges on the right
         show_toolbar: Add NavigationToolbar2Tk
         y_lim_dynamic: Use dynamic y-limits (non-zero aware) for primary axis
+        show_today_marker: Show vertical line marking today's date
 
     Returns:
         FigureCanvasTkAgg canvas
@@ -222,7 +262,7 @@ def create_trend_chart(
         ax.set_title(title or "No data for the selected period", fontsize=16, color=GRAPH_TITLE_COLOR)
         canvas = FigureCanvasTkAgg(fig, master=parent)
         canvas.draw()
-        canvas.get_tk_widget().pack(fill="both", expand=True, padx=20, pady=20)
+        canvas.get_tk_widget().pack(fill="both", expand=True, pad=0)
         setup_graph_cleanup(parent, canvas, fig)
         return canvas
 
@@ -290,7 +330,7 @@ def create_trend_chart(
     if ax2:
         ax2.margins(x=0)
 
-    ax.set_title(title, fontsize=20, fontweight="600", color=GRAPH_TITLE_COLOR, y=1.10)
+    ax.set_title(title, fontsize=20, fontweight="600", color=GRAPH_TITLE_COLOR, y=1.02)
     ax.set_ylabel(y_label, fontsize=14, color=GRAPH_LABEL_COLOR)
     if y_formatter == "currency":
         ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"£{int(v):,}"))
@@ -330,6 +370,23 @@ def create_trend_chart(
     ax.grid(True, axis="y", color=GRID_Y_COLOR, alpha=0.55, linewidth=0.9)
     ax.grid(True, axis="x", color=GRID_X_COLOR, alpha=0.4, linewidth=0.65)
 
+    # Today marker - vertical line at current date position
+    if show_today_marker:
+        today_pos = _find_today_position(periods)
+        if today_pos is not None:
+            y_min, y_max = ax.get_ylim()
+            # Draw line from bottom to 92% of height (leave room for label at top)
+            ax.plot([today_pos, today_pos], [y_min, y_max * 0.92], 
+                   color="#E74C3C", linestyle="--", linewidth=2, alpha=0.7, zorder=5)
+            # Add "Today" label at the top
+            ax.text(
+                today_pos, y_max * 0.96, "Today",
+                ha="center", va="center", fontsize=10, fontweight="bold",
+                color="#E74C3C",
+                bbox=dict(boxstyle="round,pad=0.4", facecolor="white", edgecolor="#E74C3C", alpha=0.95, linewidth=1.5),
+                zorder=6
+            )
+
     for s in ("top", "right"):
         ax.spines[s].set_visible(False)
         if ax2:
@@ -350,13 +407,12 @@ def create_trend_chart(
     handles = lines
     ax.legend(
         handles, [h.get_label() for h in handles],
-        loc="lower left", bbox_to_anchor=(0.0, 1.02),
         ncol=len(handles), framealpha=0.98, facecolor="white", edgecolor=LEGEND_EDGE,
         prop={"size": 12, "weight": "500"},
     )
 
-    right_margin = 0.87 if show_kpi else 0.95
-    fig.subplots_adjust(left=0.088, bottom=bottom_margin, right=right_margin, top=0.836)
+    right_margin = 0.87 if show_kpi else 1.0
+    fig.tight_layout(pad=1.2, rect=[-0.02, 0, right_margin, 0.98])
 
     # KPI badges (right side)
     if show_kpi:
@@ -376,10 +432,167 @@ def create_trend_chart(
 
     canvas = FigureCanvasTkAgg(fig, master=parent)
     canvas.draw()
-    canvas.get_tk_widget().pack(fill="both", expand=True, padx=20, pady=20)
+    canvas.get_tk_widget().pack(fill="both", expand=True, padx=0, pady=(10, 0))
     if show_toolbar:
         toolbar = NavigationToolbar2Tk(canvas, parent, pack_toolbar=False)
         toolbar.update()
-        toolbar.pack(fill="x", padx=20, pady=(0, 10))
+        toolbar.pack(fill="x")
+    setup_graph_cleanup(parent, canvas, fig)
+    return canvas
+
+
+def create_pie_chart(
+    parent,
+    labels: list[str],
+    values: list[float],
+    colors: list[str],
+    title: str,
+    *,
+    explode: tuple[float, ...] | None = None,
+    return_figure: bool = False,
+) -> FigureCanvasTkAgg | plt.Figure:
+    """
+    Create and embed a pie chart showing distribution.
+    
+    Args:
+        parent: Tk/CTk parent widget (ignored if return_figure=True)
+        labels: Slice labels
+        values: Slice values
+        colors: Slice colors
+        title: Chart title
+        explode: Optional tuple of explode distances for each slice
+        return_figure: If True, return Figure instead of canvas (for PDF export)
+        
+    Returns:
+        FigureCanvasTkAgg canvas or matplotlib Figure
+    """
+    fig, ax = plt.subplots(figsize=(8, 6))
+    fig.patch.set_facecolor(GRAPH_BG)
+    ax.set_facecolor(GRAPH_BG)
+    
+    total = sum(values)
+    if total == 0:
+        ax.text(0.5, 0.5, "No data available", ha='center', va='center', 
+                fontsize=14, color=GRAPH_LABEL_COLOR)
+        ax.set_title(title, fontsize=16, fontweight='bold', color=GRAPH_TITLE_COLOR, pad=20)
+        ax.axis('off')
+        
+        if return_figure:
+            return fig
+        canvas = FigureCanvasTkAgg(fig, master=parent)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill="both", expand=True, padx=20, pady=20)
+        setup_graph_cleanup(parent, canvas, fig)
+        return canvas
+    
+    if explode is None:
+        explode = tuple([0.05 if i == 0 else 0 for i in range(len(values))])
+    
+    wedges, texts, autotexts = ax.pie(
+        values,
+        labels=labels,
+        colors=colors,
+        autopct='%1.1f%%',
+        startangle=90,
+        explode=explode,
+        textprops={'fontsize': 12, 'fontweight': 'bold'}
+    )
+    
+    for autotext in autotexts:
+        autotext.set_color('white')
+        autotext.set_fontsize(14)
+        autotext.set_fontweight('bold')
+    
+    ax.set_title(title, fontsize=16, fontweight='bold', color=GRAPH_TITLE_COLOR, pad=20)
+    ax.axis('equal')
+    
+    if return_figure:
+        plt.tight_layout()
+        return fig
+    
+    canvas = FigureCanvasTkAgg(fig, master=parent)
+    canvas.draw()
+    canvas.get_tk_widget().pack(fill="both", expand=True, padx=20, pady=20)
+    setup_graph_cleanup(parent, canvas, fig)
+    return canvas
+
+
+def create_comparison_bar_chart(
+    parent,
+    categories: list[str],
+    values: list[float],
+    colors: list[str],
+    title: str,
+    y_label: str,
+    *,
+    value_formatter: str = "currency",
+    return_figure: bool = False,
+) -> FigureCanvasTkAgg | plt.Figure:
+    """
+    Create a comparison bar chart (e.g., Actual vs Potential vs Lost Revenue).
+    
+    Args:
+        parent: Tk/CTk parent widget (ignored if return_figure=True)
+        categories: Category names for x-axis
+        values: Values for each category
+        colors: Colors for each bar
+        title: Chart title
+        y_label: Y-axis label
+        value_formatter: "currency", "currency_decimal", or "count"
+        return_figure: If True, return Figure instead of canvas (for PDF export)
+        
+    Returns:
+        FigureCanvasTkAgg canvas or matplotlib Figure
+    """
+    fig, ax = plt.subplots(figsize=(8, 6))
+    fig.patch.set_facecolor('white')
+    ax.set_facecolor('white')
+    
+    bars = ax.bar(categories, values, color=colors, alpha=0.8, 
+                  edgecolor=BAR_EDGE, linewidth=1.5)
+    
+    # Add value labels on bars
+    for bar, value in zip(bars, values):
+        height = bar.get_height()
+        if value_formatter == "currency":
+            txt = f'£{int(value):,}'
+        elif value_formatter == "currency_decimal":
+            txt = f'£{value:,.2f}'
+        else:
+            txt = str(int(value))
+        
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+                txt, ha='center', va='bottom', fontsize=12, fontweight='bold',
+                color=GRAPH_TITLE_COLOR)
+    
+    ax.set_ylabel(y_label, fontsize=13, fontweight='bold', color=GRAPH_LABEL_COLOR)
+    ax.set_title(title, fontsize=16, fontweight='bold', color=GRAPH_TITLE_COLOR, pad=20)
+    
+    if value_formatter in ("currency", "currency_decimal"):
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'£{x:,.0f}'))
+    
+    # Remove grid lines for white background
+    ax.grid(False)
+    ax.set_axisbelow(True)
+    
+    for s in ("top", "right"):
+        ax.spines[s].set_visible(False)
+    ax.spines["left"].set_color(SPINE_COLOR)
+    ax.spines["bottom"].set_color(SPINE_COLOR)
+    ax.spines["left"].set_linewidth(1.5)
+    ax.spines["bottom"].set_linewidth(1.5)
+    ax.tick_params(axis="both", colors=TICK_COLOR, labelsize=11)
+    for lbl in ax.get_xticklabels():
+        lbl.set_fontweight("bold")
+    for lbl in ax.get_yticklabels():
+        lbl.set_fontweight("bold")
+    
+    if return_figure:
+        plt.tight_layout()
+        return fig
+    
+    canvas = FigureCanvasTkAgg(fig, master=parent)
+    canvas.draw()
+    canvas.get_tk_widget().pack(fill="both", expand=True, padx=20, pady=20)
     setup_graph_cleanup(parent, canvas, fig)
     return canvas

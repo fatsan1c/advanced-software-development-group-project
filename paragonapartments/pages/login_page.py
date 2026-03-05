@@ -63,7 +63,7 @@ class LoginPage(ctk.CTkToplevel):
         # Username and password entry fields
         self.username_entry = ctk.CTkEntry(inner_frame, placeholder_text="Username", font=("Arial", 14))
         self.username_entry.pack(pady=(30,6))
-        self.password_entry = ctk.CTkEntry(inner_frame, placeholder_text="Password", show="*", font=("Arial", 14))
+        self.password_entry = ctk.CTkEntry(inner_frame, placeholder_text="Password", show="•", font=("Arial", 14))
         self.password_entry.pack(pady=6)
         
         # Bind Enter key to both entry fields

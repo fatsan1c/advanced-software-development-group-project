@@ -11,8 +11,9 @@ This module provides card-style UI elements including:
 """
 
 import customtkinter as ctk
-from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BOX, ROUND_INPUT
+from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BOX, ROUND_INPUT, SECONDARY_GRAY, SECONDARY_GRAY_HOVER, TEXT_COLOR
 import database_operations.repos.location_repository as location_repo
+import pages.components.ui_utilities as ui_utils
 
 
 def function_card(parent, title, side="left", anchor="nw", pady=10, padx=10):
@@ -184,8 +185,9 @@ def popup_card(parent, title, small=False, button_text="Open", button_size="medi
             height=30,
             font=("Arial", 18),
             command=close_popup,
-            fg_color=("gray70", "gray25"),
-            hover_color=("gray60", "gray20")
+            fg_color=SECONDARY_GRAY,
+            hover_color=SECONDARY_GRAY_HOVER,
+            text_color=TEXT_COLOR
         )
         close_btn.pack(side="right")
         
@@ -254,7 +256,7 @@ def location_dropdown_with_label(parent, initial_value="All Locations", side="le
         location_wrap,
         text="Location",
         font=("Arial", 13, "bold"),
-        text_color=("gray35", "gray75"),
+        text_color=TEXT_COLOR,
     ).pack(side="left", padx=(0, 10))
 
     try:
@@ -266,7 +268,8 @@ def location_dropdown_with_label(parent, initial_value="All Locations", side="le
     location_dropdown = ctk.CTkComboBox(location_wrap, values=cities, width=240, font=("Arial", 13))
     location_dropdown.set(initial_value)
     location_dropdown.pack(side="left")
-    
+    ui_utils.style_secondary_dropdown(location_dropdown)
+
     return location_dropdown
 
 
@@ -289,7 +292,7 @@ def stat_card(parent, title: str, default_value: str = "0"):
         corner_radius=ROUND_BOX,
         fg_color=("gray92", "gray17"),
         border_width=1,
-        border_color=("gray80", "gray28"),
+        border_color=SECONDARY_GRAY,
     )
     card.pack(side="left", expand=True, fill="both", padx=6, ipadx=8, ipady=10)
 

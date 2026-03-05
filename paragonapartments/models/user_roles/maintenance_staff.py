@@ -166,83 +166,58 @@ class MaintenanceStaff(User):
         self.load_complete_request_content(row2)
         self.load_schedule_request_content(row2)
 
-        # Row 3: Create Request (left) & Scheduled Maintenance + Manage All Requests (right column)
+        # Row 3: Create Request
         row3 = pe.row_container(parent=container)
         self.load_create_request_content(row3)
         
-        # Right column container for scheduled and manage
-        right_column = ctk.CTkFrame(row3, fg_color="transparent")
-        right_column.pack(side="left", fill="both", expand=True, padx=10, pady=10)
-        
-        self.load_scheduled_maintenance_content(right_column)
-        self.load_all_requests_content(right_column)
 
     def load_summary_content(self, row):
         """Load maintenance statistics summary card."""
-        summary_card = pe.function_card(row, "Maintenance Dashboard", side="left")
+        summary_card = pe.function_card(row, "Maintenance Summary", side="left")
 
-        try:
-            cities = ["All Locations"] + location_repo.get_all_cities()
-        except Exception as e:
-            print(f"Error loading cities: {e}")
-            cities = ["All Locations"]
-            
-        location_dropdown = ctk.CTkComboBox(
-            summary_card,
-            values=cities,
-            width=200,
-            font=("Arial", 14)
-        )
+        # Top info row: high priority badge (left) + location selector (right)
+        info_row = ctk.CTkFrame(summary_card, fg_color="transparent")
+        info_row.pack(fill="x", pady=(0, 6))
+
+        priority_badge = pe.info_badge(info_row, "High Priority: 0")
+
+        location_dropdown = pe.location_dropdown_with_label(info_row)
         location_dropdown.set(self.location if self.location else "All Locations")
-        location_dropdown.pack(pady=10, padx=20)
 
-        result_label = ctk.CTkLabel(
-            summary_card,
-            text="",
-            font=("Arial", 15, "bold"),
-            text_color="#3B8ED0"
-        )
-        result_label.pack(pady=10, padx=20)
+        # Stat grid - match Performance Reports layout
+        stats = pe.stats_grid(summary_card)
 
-        def update_summary():
+        total_value = pe.stat_card(stats, "Total Requests", "0")
+        pending_value = pe.stat_card(stats, "Pending", "0")
+        completed_value = pe.stat_card(stats, "Completed", "0")
+        cost_value = pe.stat_card(stats, "Avg Cost", "£0.00")
+
+        def update_summary(choice=None):
             try:
                 location = self._selected_location(location_dropdown.get())
-                stats = self.get_maintenance_stats(location)
+                stats_data = self.get_maintenance_stats(location)
                 
-                total = stats.get('total_requests', 0) or 0
-                pending = stats.get('pending_requests', 0) or 0
-                completed = stats.get('completed_requests', 0) or 0
-                high_priority = stats.get('high_priority_pending', 0) or 0
-                avg_cost = stats.get('avg_cost', 0) or 0
+                total = stats_data.get('total_requests', 0) or 0
+                pending = stats_data.get('pending_requests', 0) or 0
+                completed = stats_data.get('completed_requests', 0) or 0
+                high_priority = stats_data.get('high_priority_pending', 0) or 0
+                avg_cost = stats_data.get('avg_cost', 0) or 0
                 
-                result_label.configure(
-                    text=(
-                        f"Total Requests: {total} | "
-                        f"Pending: {pending} | "
-                        f"Completed: {completed}\n"
-                        f"High Priority Pending: {high_priority} | "
-                        f"Avg Cost: £{avg_cost:.2f}"
-                    )
-                )
+                total_value.configure(text=str(total))
+                pending_value.configure(text=str(pending))
+                completed_value.configure(text=str(completed))
+                cost_value.configure(text=f"£{avg_cost:.2f}")
+                priority_badge.configure(text=f"High Priority: {high_priority}")
             except Exception as e:
-                result_label.configure(text=f"Error loading stats: {str(e)}", text_color="red")
+                print(f"Error loading maintenance stats: {e}")
 
-        # Auto-refresh summary on location change
-        refresh_timer = {"id": None}
-        def schedule_refresh(_choice=None):
-            if refresh_timer["id"] is not None:
-                try:
-                    summary_card.after_cancel(refresh_timer["id"])
-                except Exception:
-                    pass
-            refresh_timer["id"] = summary_card.after(150, update_summary)
-
-        location_dropdown.configure(command=schedule_refresh)
         update_summary()
+        refresh_timer, schedule_refresh = pe.create_debounced_refresh(summary_card, update_summary)
+        location_dropdown.configure(command=schedule_refresh)
 
     def load_pending_requests_content(self, row):
         """Load pending maintenance requests card with priority filtering."""
-        pending_card = pe.function_card(row, "Pending Requests", side="left")
+        pending_card = pe.function_card(row, "View Requests", side="left")
 
         button, open_popup = pe.popup_card(
             pending_card,
@@ -251,6 +226,8 @@ class MaintenanceStaff(User):
             small=False,
             button_size="medium"
         )
+        pe.style_accent_secondary_button(button)
+        button.pack(pady=(0, 14))
 
         def setup_popup():
             content = open_popup()
@@ -283,14 +260,14 @@ class MaintenanceStaff(User):
             priority_dropdown.pack(side="left")
 
             columns = [
-                {"name": "ID", "key": "request_ID", "width": 70, "editable": False},
-                {"name": "Tenant", "key": "tenant_name", "width": 160, "editable": False},
-                {"name": "Apartment", "key": "apartment_address", "width": 120, "editable": False},
-                {"name": "City", "key": "city", "width": 120, "editable": False},
-                {"name": "Issue", "key": "issue_description", "width": 280},
-                {"name": "Priority", "key": "priority_level", "width": 90, "format": "number"},
-                {"name": "Reported", "key": "reported_date", "width": 110, "editable": False},
-                {"name": "Scheduled", "key": "scheduled_date", "width": 110, "format": "date"},
+                {"name": "ID", "key": "request_ID", "width": 40, "editable": False},
+                {"name": "Tenant", "key": "tenant_name", "width": 140, "editable": False},
+                {"name": "Apartment", "key": "apartment_address", "width": 100, "editable": False},
+                {"name": "City", "key": "city", "width": 70, "editable": False},
+                {"name": "Issue", "key": "issue_description", "width": 250},
+                {"name": "Priority", "key": "priority_level", "width": 65, "format": "dropdown", "options": [1, 2, 3, 4, 5]},
+                {"name": "Reported", "key": "reported_date", "width": 80, "editable": False, "format": "date"},
+                {"name": "Scheduled", "key": "scheduled_date", "width": 80, "format": "date"},
             ]
 
             def get_data():
@@ -313,8 +290,7 @@ class MaintenanceStaff(User):
                 refresh_data=get_data,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=10,
-                scrollable=False
+                page_size=10
             )
 
             # Refresh button
@@ -345,437 +321,233 @@ class MaintenanceStaff(User):
 
         button.configure(command=setup_popup)
 
+        self.load_scheduled_maintenance_button(pending_card)
+
+        self.load_all_requests_button(pending_card)
+
     def load_complete_request_content(self, row):
         """Load complete maintenance request card with dropdown."""
         complete_card = pe.function_card(row, "Complete Request", side="left")
 
-        # Form container
-        form_container = ctk.CTkFrame(complete_card, fg_color="transparent")
-        form_container.pack(fill="both", expand=True, padx=15, pady=10)
-
-        # Request selection
-        ctk.CTkLabel(
-            form_container,
-            text="Select Request:",
-            font=("Arial", 13, "bold")
-        ).pack(pady=(5, 2))
-
-        request_dropdown = ctk.CTkComboBox(
-            form_container,
-            values=["Loading..."],
-            width=400,
-            font=("Arial", 11),
-            state="readonly"
-        )
-        request_dropdown.pack(pady=(0, 5))
-
-        # Refresh button
-        def refresh_requests():
-            pending_requests = maintenance_repo.get_maintenance_requests(
+        # Define data fetcher and formatter for request dropdown
+        def fetch_requests():
+            return maintenance_repo.get_maintenance_requests(
                 location=self.location if self.location else "all",
                 completed=0
             )
 
-            if not pending_requests:
-                request_dropdown.configure(values=["No pending requests"])
-                request_dropdown.set("No pending requests")
-                request_map.clear()
-                return
+        def format_request(req):
+            issue_short = req['issue_description'][:40] + "..." if len(req['issue_description']) > 40 else req['issue_description']
+            display = f"ID {req['request_ID']}: {issue_short} - {req['tenant_name']} (P{req['priority_level']})"
+            return (display, req['request_ID'])
 
-            request_options = []
-            request_map.clear()
-            for req in pending_requests:
-                issue_short = req['issue_description'][:40] + "..." if len(req['issue_description']) > 40 else req['issue_description']
-                display = f"ID {req['request_ID']}: {issue_short} - {req['tenant_name']} (P{req['priority_level']})"
-                request_options.append(display)
-                request_map[display] = req['request_ID']
+        # Form submission handler
+        def handle_submit(values):
+            request_id = values.get("Select Request")
+            
+            if not request_id:
+                return "Please select a request"
 
-            request_dropdown.configure(values=request_options)
-            request_dropdown.set(request_options[0])
-
-        request_map = {}
-
-        ctk.CTkButton(
-            form_container,
-            text="⟳ Refresh",
-            command=refresh_requests,
-            font=("Arial", 11),
-            height=28,
-            width=100,
-            fg_color=("gray70", "gray30"),
-            hover_color=("gray60", "gray25")
-        ).pack(pady=(0, 10))
-
-        # Final Cost
-        ctk.CTkLabel(
-            form_container,
-            text="Final Cost (Optional):",
-            font=("Arial", 13, "bold")
-        ).pack(pady=(5, 2))
-
-        cost_entry = ctk.CTkEntry(
-            form_container,
-            width=200,
-            font=("Arial", 12),
-            placeholder_text="£0.00"
-        )
-        cost_entry.pack(pady=(0, 10))
-
-        # Status label
-        status_label = ctk.CTkLabel(
-            form_container,
-            text="",
-            font=("Arial", 12)
-        )
-        status_label.pack(pady=(5, 0))
-
-        # Submit button
-        def submit_form():
-            selected = request_dropdown.get()
-            if not selected or selected not in request_map:
-                status_label.configure(text="Please select a request", text_color="red")
-                return
-
-            request_id = request_map[selected]
-            cost = cost_entry.get().strip()
-
-            values = {
+            submit_values = {
                 "Request ID": request_id,
-                "Final Cost": cost
+                "Final Cost": values.get("Final Cost", "")
             }
 
-            result = self.complete_maintenance_request(values)
-            
-            if result is True:
-                status_label.configure(text="✓ Request marked as completed!", text_color="green")
-                cost_entry.delete(0, 'end')
-                refresh_requests()
-            else:
-                status_label.configure(text=f"✗ {result}", text_color="red")
+            return self.complete_maintenance_request(submit_values)
 
-        ctk.CTkButton(
-            form_container,
-            text="Mark Complete",
-            command=submit_form,
-            font=("Arial", 13, "bold"),
-            height=35,
-            width=200
-        ).pack(pady=(10, 5))
+        # Use styled form with dynamic dropdown
+        fields = [
+            {
+                'name': 'Select Request',
+                'type': 'dropdown',
+                'subtype': 'dynamic',
+                'required': True,
+                'options': {
+                    'data_fetcher': fetch_requests,
+                    'display_formatter': format_request,
+                    'empty_message': 'No pending requests'
+                }
+            },
+            {
+                'name': 'Final Cost',
+                'type': 'text',
+                'subtype': 'currency',
+                'required': False,
+                'placeholder': '£0.00'
+            }
+        ]
 
-        # Initial load
-        refresh_requests()
+        pe.form_element(
+            complete_card,
+            fields,
+            name="",
+            submit_text="Mark Complete",
+            on_submit=handle_submit,
+            field_per_row=1
+        )
 
     def load_schedule_request_content(self, row):
         """Load schedule maintenance request card with dropdown."""
         schedule_card = pe.function_card(row, "Schedule Request", side="left")
 
-        # Form container
-        form_container = ctk.CTkFrame(schedule_card, fg_color="transparent")
-        form_container.pack(fill="both", expand=True, padx=15, pady=10)
-
-        # Request selection
-        ctk.CTkLabel(
-            form_container,
-            text="Select Request:",
-            font=("Arial", 13, "bold")
-        ).pack(pady=(5, 2))
-
-        request_dropdown = ctk.CTkComboBox(
-            form_container,
-            values=["Loading..."],
-            width=450,
-            font=("Arial", 11),
-            state="readonly"
-        )
-        request_dropdown.pack(pady=(0, 5))
-
-        # Refresh button
-        def refresh_requests():
-            all_pending = maintenance_repo.get_maintenance_requests(
+        # Define data fetcher and formatter for request dropdown
+        def fetch_requests():
+            return maintenance_repo.get_maintenance_requests(
                 location=self.location if self.location else "all",
                 completed=0
             )
 
-            if not all_pending:
-                request_dropdown.configure(values=["No pending requests"])
-                request_dropdown.set("No pending requests")
-                request_map.clear()
-                return
+        def format_request(req):
+            issue_short = req['issue_description'][:30] + "..." if len(req['issue_description']) > 30 else req['issue_description']
+            scheduled_status = f"[Scheduled: {req['scheduled_date']}]" if req['scheduled_date'] else "[Not Scheduled]"
+            display = f"ID {req['request_ID']}: {issue_short} - {req['tenant_name']} (P{req['priority_level']}) {scheduled_status}"
+            return (display, req['request_ID'])
 
-            request_options = []
-            request_map.clear()
-            for req in all_pending:
-                issue_short = req['issue_description'][:30] + "..." if len(req['issue_description']) > 30 else req['issue_description']
-                scheduled_status = f"[Scheduled: {req['scheduled_date']}]" if req['scheduled_date'] else "[Not Scheduled]"
-                display = f"ID {req['request_ID']}: {issue_short} - {req['tenant_name']} (P{req['priority_level']}) {scheduled_status}"
-                request_options.append(display)
-                request_map[display] = req['request_ID']
+        # Form submission handler
+        def handle_submit(values):
+            request_id = values.get("Select Request")
+            
+            if not request_id:
+                return "Please select a request"
 
-            request_dropdown.configure(values=request_options)
-            request_dropdown.set(request_options[0])
-
-        request_map = {}
-
-        ctk.CTkButton(
-            form_container,
-            text="⟳ Refresh",
-            command=refresh_requests,
-            font=("Arial", 11),
-            height=28,
-            width=100,
-            fg_color=("gray70", "gray30"),
-            hover_color=("gray60", "gray25")
-        ).pack(pady=(0, 10))
-
-        # Scheduled Date
-        ctk.CTkLabel(
-            form_container,
-            text="Scheduled Date:",
-            font=("Arial", 13, "bold")
-        ).pack(pady=(5, 2))
-
-        date_entry = ctk.CTkEntry(
-            form_container,
-            width=200,
-            font=("Arial", 12),
-            placeholder_text="YYYY-MM-DD"
-        )
-        date_entry.pack(pady=(0, 10))
-
-        # Status label
-        status_label = ctk.CTkLabel(
-            form_container,
-            text="",
-            font=("Arial", 12)
-        )
-        status_label.pack(pady=(5, 0))
-
-        # Submit button
-        def submit_form():
-            selected = request_dropdown.get()
-            if not selected or selected not in request_map:
-                status_label.configure(text="Please select a request", text_color="red")
-                return
-
-            request_id = request_map[selected]
-            scheduled_date = date_entry.get().strip()
-
-            values = {
+            submit_values = {
                 "Request ID": request_id,
-                "Scheduled Date": scheduled_date
+                "Scheduled Date": values.get("Scheduled Date", "")
             }
 
-            result = self.schedule_maintenance(values)
-            
-            if result is True:
-                status_label.configure(text="✓ Request scheduled successfully!", text_color="green")
-                date_entry.delete(0, 'end')
-                refresh_requests()
-            else:
-                status_label.configure(text=f"✗ {result}", text_color="red")
+            return self.schedule_maintenance(submit_values)
 
-        ctk.CTkButton(
-            form_container,
-            text="Schedule Request",
-            command=submit_form,
-            font=("Arial", 13, "bold"),
-            height=35,
-            width=200
-        ).pack(pady=(10, 5))
+        # Use styled form with dynamic dropdown
+        fields = [
+            {
+                'name': 'Select Request',
+                'type': 'dropdown',
+                'subtype': 'dynamic',
+                'required': True,
+                'options': {
+                    'data_fetcher': fetch_requests,
+                    'display_formatter': format_request,
+                    'empty_message': 'No pending requests'
+                }
+            },
+            {
+                'name': 'Scheduled Date',
+                'type': 'text',
+                'subtype': 'date',
+                'required': True,
+                'placeholder': 'YYYY-MM-DD'
+            }
+        ]
 
-        # Initial load
-        refresh_requests()
+        pe.form_element(
+            schedule_card,
+            fields,
+            name="",
+            submit_text="Schedule Request",
+            on_submit=handle_submit,
+            field_per_row=1
+        )
 
     def load_create_request_content(self, row):
         """Load create new maintenance request card with apartment dropdown."""
         create_card = pe.function_card(row, "Create Request", side="left")
 
-        # Form container
-        form_container = ctk.CTkFrame(create_card, fg_color="transparent")
-        form_container.pack(fill="both", expand=True, padx=15, pady=10)
+        # Define data fetcher and formatter for apartment dropdown
+        def fetch_apartments():
+            return maintenance_repo.get_apartments_with_tenants(self.location)
 
-        # Apartment selection
-        ctk.CTkLabel(
-            form_container,
-            text="Select Apartment:",
-            font=("Arial", 13, "bold")
-        ).pack(pady=(5, 2))
+        def format_apartment(apt):
+            display = f"{apt['apartment_address']} - {apt['tenant_name']} ({apt['city']})"
+            value = {
+                'apartment_id': apt['apartment_ID'],
+                'tenant_id': apt['tenant_ID']
+            }
+            return (display, value)
 
-        apartment_dropdown = ctk.CTkComboBox(
-            form_container,
-            values=["Loading..."],
-            width=400,
-            font=("Arial", 12),
-            state="readonly"
-        )
-        apartment_dropdown.pack(pady=(0, 5))
-
-        # Refresh button
-        def refresh_apartments():
-            apartments = maintenance_repo.get_apartments_with_tenants(self.location)
+        # Form submission handler
+        def handle_submit(values):
+            apt_info = values.get("Select Apartment")
             
-            if not apartments:
-                apartment_dropdown.configure(values=["No apartments with active leases"])
-                apartment_dropdown.set("No apartments with active leases")
-                apartment_map.clear()
-                return
+            if not apt_info or not isinstance(apt_info, dict):
+                return "Please select an apartment"
 
-            apartment_options = []
-            apartment_map.clear()
-            for apt in apartments:
-                display = f"{apt['apartment_address']} - {apt['tenant_name']} ({apt['city']})"
-                apartment_options.append(display)
-                apartment_map[display] = {
-                    'apartment_id': apt['apartment_ID'],
-                    'tenant_id': apt['tenant_ID']
-                }
-
-            apartment_dropdown.configure(values=apartment_options)
-            apartment_dropdown.set(apartment_options[0])
-
-        apartment_map = {}
-
-        ctk.CTkButton(
-            form_container,
-            text="⟳ Refresh",
-            command=refresh_apartments,
-            font=("Arial", 11),
-            height=28,
-            width=100,
-            fg_color=("gray70", "gray30"),
-            hover_color=("gray60", "gray25")
-        ).pack(pady=(0, 10))
-
-        # Issue Description
-        ctk.CTkLabel(
-            form_container,
-            text="Issue Description:",
-            font=("Arial", 13, "bold")
-        ).pack(pady=(5, 2))
-
-        issue_entry = ctk.CTkEntry(
-            form_container,
-            width=400,
-            font=("Arial", 12),
-            placeholder_text="Describe the maintenance issue"
-        )
-        issue_entry.pack(pady=(0, 10))
-
-        # Priority Level
-        ctk.CTkLabel(
-            form_container,
-            text="Priority Level:",
-            font=("Arial", 13, "bold")
-        ).pack(pady=(5, 2))
-
-        priority_dropdown = ctk.CTkComboBox(
-            form_container,
-            values=["1 - Low", "2", "3 - Medium", "4", "5 - Urgent"],
-            width=200,
-            font=("Arial", 12),
-            state="readonly"
-        )
-        priority_dropdown.set("3 - Medium")
-        priority_dropdown.pack(pady=(0, 10))
-
-        # Scheduled Date (optional)
-        ctk.CTkLabel(
-            form_container,
-            text="Scheduled Date (Optional):",
-            font=("Arial", 13, "bold")
-        ).pack(pady=(5, 2))
-
-        scheduled_entry = ctk.CTkEntry(
-            form_container,
-            width=200,
-            font=("Arial", 12),
-            placeholder_text="YYYY-MM-DD"
-        )
-        scheduled_entry.pack(pady=(0, 10))
-
-        # Cost Estimate (optional)
-        ctk.CTkLabel(
-            form_container,
-            text="Cost Estimate (Optional):",
-            font=("Arial", 13, "bold")
-        ).pack(pady=(5, 2))
-
-        cost_entry = ctk.CTkEntry(
-            form_container,
-            width=200,
-            font=("Arial", 12),
-            placeholder_text="£0.00"
-        )
-        cost_entry.pack(pady=(0, 10))
-
-        # Status label
-        status_label = ctk.CTkLabel(
-            form_container,
-            text="",
-            font=("Arial", 12)
-        )
-        status_label.pack(pady=(5, 0))
-
-        # Submit button
-        def submit_form():
-            selected_apt = apartment_dropdown.get()
-            if not selected_apt or selected_apt not in apartment_map:
-                status_label.configure(text="Please select an apartment", text_color="red")
-                return
-
-            apt_info = apartment_map[selected_apt]
-            issue = issue_entry.get().strip()
-            priority_str = priority_dropdown.get()
-            scheduled = scheduled_entry.get().strip()
-            cost = cost_entry.get().strip()
-
+            priority_str = values.get("Priority Level", "3 - Medium")
+            
             # Extract priority number
             priority = int(priority_str.split(" ")[0])
 
-            values = {
+            submit_values = {
                 "Apartment ID": apt_info['apartment_id'],
                 "Tenant ID": apt_info['tenant_id'],
-                "Issue Description": issue,
+                "Issue Description": values.get("Issue Description", ""),
                 "Priority Level": priority,
-                "Scheduled Date": scheduled,
-                "Cost Estimate": cost
+                "Scheduled Date": values.get("Scheduled Date", ""),
+                "Cost Estimate": values.get("Cost Estimate", "")
             }
 
-            result = self.create_maintenance_request(values)
-            
-            if result is True:
-                status_label.configure(text="✓ Request created successfully!", text_color="green")
-                # Clear form
-                issue_entry.delete(0, 'end')
-                scheduled_entry.delete(0, 'end')
-                cost_entry.delete(0, 'end')
-                priority_dropdown.set("3 - Medium")
-            else:
-                status_label.configure(text=f"✗ {result}", text_color="red")
+            return self.create_maintenance_request(submit_values)
 
-        ctk.CTkButton(
-            form_container,
-            text="Create Request",
-            command=submit_form,
-            font=("Arial", 13, "bold"),
-            height=35,
-            width=200
-        ).pack(pady=(10, 5))
+        # Use styled form with dynamic dropdown
+        fields = [
+            {
+                'name': 'Select Apartment',
+                'type': 'dropdown',
+                'subtype': 'dynamic',
+                'required': True,
+                'options': {
+                    'data_fetcher': fetch_apartments,
+                    'display_formatter': format_apartment,
+                    'empty_message': 'No apartments with active leases'
+                }
+            },
+            {
+                'name': 'Issue Description',
+                'type': 'text',
+                'required': True,
+                'placeholder': 'Describe the maintenance issue'
+            },
+            {
+                'name': 'Priority Level',
+                'type': 'dropdown',
+                'options': ["1 - Low", "2", "3 - Medium", "4", "5 - Urgent"],
+                'default': "3 - Medium",
+                'required': True
+            },
+            {
+                'name': 'Cost Estimate',
+                'type': 'text',
+                'subtype': 'currency',
+                'required': False,
+                'placeholder': '£0.00'
+            },
+            {
+                'name': 'Scheduled Date',
+                'type': 'text',
+                'subtype': 'date',
+                'required': False,
+                'placeholder': 'YYYY-MM-DD'
+            }
+        ]
 
-        # Initial load
-        refresh_apartments()
+        pe.form_element(
+            create_card,
+            fields,
+            name="",
+            submit_text="Create Request",
+            on_submit=handle_submit,
+            field_per_row=2
+        )
 
-    def load_scheduled_maintenance_content(self, row):
+    def load_scheduled_maintenance_button(self, parent):
         """Load upcoming scheduled maintenance card."""
-        scheduled_card = pe.function_card(row, "Scheduled Maintenance", side="top", pady=0, padx=0)
-
         button, open_popup = pe.popup_card(
-            scheduled_card,
+            parent,
             title="Upcoming Scheduled Maintenance",
-            button_text="View Schedule",
-            small=False,
+            button_text="View Upcoming Schedule",
             button_size="medium"
         )
+        pe.style_accent_secondary_button(button)
+        button.pack(pady=(0, 10))
 
         def setup_popup():
             content = open_popup()
@@ -797,13 +569,13 @@ class MaintenanceStaff(User):
             location_dropdown.pack(side="left")
 
             columns = [
-                {"name": "ID", "key": "request_ID", "width": 70, "editable": False},
-                {"name": "Scheduled", "key": "scheduled_date", "width": 110, "editable": False},
-                {"name": "Priority", "key": "priority_level", "width": 80, "editable": False},
-                {"name": "Tenant", "key": "tenant_name", "width": 160, "editable": False},
-                {"name": "Apartment", "key": "apartment_address", "width": 120, "editable": False},
-                {"name": "City", "key": "city", "width": 120, "editable": False},
-                {"name": "Issue", "key": "issue_description", "width": 300, "editable": False},
+                {"name": "ID", "key": "request_ID", "width": 40, "editable": False},
+                {"name": "Scheduled", "key": "scheduled_date", "width": 80, "editable": False, "format": "date"},
+                {"name": "Priority", "key": "priority_level", "width": 65, "editable": False},
+                {"name": "Tenant", "key": "tenant_name", "width": 140, "editable": False},
+                {"name": "Apartment", "key": "apartment_address", "width": 100, "editable": False},
+                {"name": "City", "key": "city", "width": 70, "editable": False},
+                {"name": "Issue", "key": "issue_description", "width": 250, "editable": False},
                 {"name": "Est. Cost", "key": "cost", "width": 100, "format": "currency", "editable": False},
             ]
 
@@ -823,20 +595,11 @@ class MaintenanceStaff(User):
                 refresh_data=get_data,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=10,
-                scrollable=False
+                page_size=10
             )
 
             # Refresh button
-            ctk.CTkButton(
-                header,
-                text="⟳ Refresh",
-                command=refresh_table,
-                height=32,
-                width=120,
-                fg_color=("gray70", "gray30"),
-                hover_color=("gray60", "gray25")
-            ).pack(side="left", padx=(12, 0))
+            pe.create_refresh_button(header, refresh_table, side="left", padx=(12, 0))
 
             # Auto-refresh on location change
             refresh_timer = {"id": None}
@@ -854,17 +617,16 @@ class MaintenanceStaff(User):
 
         button.configure(command=setup_popup)
 
-    def load_all_requests_content(self, row):
+    def load_all_requests_button(self, parent):
         """Load view/edit all maintenance requests card."""
-        all_requests_card = pe.function_card(row, "Manage All Requests", side="top", pady=0, padx=0)
-
         button, open_popup = pe.popup_card(
-            all_requests_card,
-            title="All Maintenance Requests",
+            parent,
+            title="Maintenance Requests",
             button_text="View / Edit All Requests",
             small=False,
-            button_size="large"
+            button_size="medium"
         )
+        pe.style_secondary_button(button)
 
         def setup_popup():
             content = open_popup()
@@ -897,16 +659,16 @@ class MaintenanceStaff(User):
             status_dropdown.pack(side="left")
 
             columns = [
-                {"name": "ID", "key": "request_ID", "width": 70, "editable": False},
-                {"name": "Tenant", "key": "tenant_name", "width": 150, "editable": False},
-                {"name": "Apartment", "key": "apartment_address", "width": 120, "editable": False},
-                {"name": "City", "key": "city", "width": 110, "editable": False},
-                {"name": "Issue", "key": "issue_description", "width": 260},
-                {"name": "Priority", "key": "priority_level", "width": 80, "format": "number"},
-                {"name": "Reported", "key": "reported_date", "width": 105, "editable": False},
-                {"name": "Scheduled", "key": "scheduled_date", "width": 105, "format": "date"},
-                {"name": "Done (0/1)", "key": "completed", "width": 95},
-                {"name": "Cost", "key": "cost", "width": 100, "format": "currency"},
+                {"name": "ID", "key": "request_ID", "width": 20, "editable": False},
+                {"name": "Tenant", "key": "tenant_name", "width": 90, "editable": False},
+                {"name": "Apartment", "key": "apartment_address", "width": 90, "editable": False},
+                {"name": "City", "key": "city", "width": 50, "editable": False},
+                {"name": "Issue", "key": "issue_description", "width": 190},
+                {"name": "Priority", "key": "priority_level", "width": 60, "format": "dropdown", "options": ["1", "2", "3", "4", "5"]},
+                {"name": "Reported", "key": "reported_date", "width": 70, "editable": False, "format": "date"},
+                {"name": "Scheduled", "key": "scheduled_date", "width": 80, "format": "date"},
+                {"name": "Done", "key": "completed", "width": 45, "format": "boolean"},
+                {"name": "Cost", "key": "cost", "width": 40, "format": "currency"},
             ]
 
             def get_data():
@@ -933,20 +695,11 @@ class MaintenanceStaff(User):
                 on_update=self.update_maintenance_request_row,
                 show_refresh_button=False,
                 render_batch_size=20,
-                page_size=10,
-                scrollable=False
+                page_size=10
             )
 
             # Refresh button
-            ctk.CTkButton(
-                header,
-                text="⟳ Refresh",
-                command=refresh_table,
-                height=32,
-                width=120,
-                fg_color=("gray70", "gray30"),
-                hover_color=("gray60", "gray25")
-            ).pack(side="left", padx=(12, 0))
+            pe.create_refresh_button(header, refresh_table, side="left", padx=(12, 0))
 
             # Auto-refresh on filter change
             refresh_timer = {"id": None}

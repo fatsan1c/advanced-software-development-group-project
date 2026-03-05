@@ -24,15 +24,16 @@ class AutoHideScrollableFrame(CTkScrollableFrame):
                  scrollbar_button_color: Optional[Union[str, Tuple[str, str]]] = None,
                  scrollbar_button_hover_color: Optional[Union[str, Tuple[str, str]]] = None,
                  scroll_speed: int = 1,
+                 hide_scrollbar_when_loading: bool = False,
                  **kwargs):
         """
         Args:
             scroll_speed: Scroll increment multiplier (default: 1). Higher = faster scrolling.
+            hide_scrollbar_when_loading: If True, hide scrollbar during initial content loading.
+                    Use when loading content that is expected to fit within the container to prevent scrollbar flicker during load.
             **kwargs: Additional arguments passed to CTkScrollableFrame
         """
         self._scroll_speed = scroll_speed
-        self._pending_update = None
-        self._is_loading = True  # Track initial load state
         
         # Initialize parent
         super().__init__(
@@ -50,12 +51,10 @@ class AutoHideScrollableFrame(CTkScrollableFrame):
             **kwargs
         )
         
-        # Hide scrollbar initially to prevent flickering during load
-        self._scrollbar.grid_remove()
-        
-        # Override the scroll command to add auto-hide functionality
-        self._parent_canvas.configure(yscrollcommand=self._on_canvas_scroll_autohide)
-        
+        # Hide scrollbar initially to prevent flicker during load
+        if hide_scrollbar_when_loading:
+            self._scrollbar.grid_remove()
+
         # Apply custom scroll speed
         self._set_scroll_increments()
         
@@ -66,30 +65,14 @@ class AutoHideScrollableFrame(CTkScrollableFrame):
         # Wait for all content to load before showing scrollbar
         self.after_idle(self._finish_loading)
     
-    def destroy(self):
-        """Cleanup before destroying the widget."""
-        if self._pending_update:
-            self.after_cancel(self._pending_update)
-            self._pending_update = None
-        
-        # Mark as destroyed to prevent further operations
-        self._is_loading = True  # Prevent any pending visibility updates
-        
-        super().destroy()
-    
     def _finish_loading(self):
         """Called after initial content load to check scrollbar visibility."""
-        self._is_loading = False
         self.update_idletasks()
-        self._update_scrollbar_visibility()
+        self._parent_canvas.configure(yscrollcommand=self._on_canvas_scroll_autohide)
     
     def _on_canvas_scroll_autohide(self, *args):
         """Handle scrollbar visibility based on scroll position."""
         self._scrollbar.set(*args)
-        
-        # Don't show scrollbar during initial loading
-        if self._is_loading:
-            return
         
         # Auto-hide scrollbar when all content is visible
         top, bottom = args
@@ -107,40 +90,6 @@ class AutoHideScrollableFrame(CTkScrollableFrame):
         # Update scroll region immediately
         self._parent_canvas.configure(scrollregion=self._parent_canvas.bbox("all"))
         
-        # Skip visibility updates during initial load
-        if self._is_loading:
-            return
-        
-        # Cancel pending visibility update
-        if self._pending_update:
-            self.after_cancel(self._pending_update)
-        
-        # Wait for event loop to settle, then check visibility
-        self._pending_update = self.after_idle(self._schedule_visibility_check)
-    
-    def _schedule_visibility_check(self):
-        """Schedule visibility check after a short delay to ensure layout is complete."""
-        self._pending_update = self.after(30, self._update_scrollbar_visibility)
-    
-    def _update_scrollbar_visibility(self):
-        """Check if scrollbar should be visible after layout settles."""
-        self._pending_update = None
-        
-        # Ensure layout is up to date
-        self.update_idletasks()
-        
-        # Check if content fits in canvas
-        if self._parent_canvas.yview() == (0.0, 1.0):
-            self._scrollbar.grid_remove()
-            self._parent_canvas.yview_moveto(0)
-        else:
-            # Only show scrollbar if not loading
-            if not self._is_loading:
-                border_spacing = self._apply_widget_scaling(
-                    self._parent_frame.cget("corner_radius") + self._parent_frame.cget("border_width")
-                )
-                self._scrollbar.grid(row=1, column=1, sticky="ns", pady=border_spacing)
-    
     def _set_scroll_increments(self):
         """Set scroll speed based on platform and user preference."""
         if sys.platform.startswith("win"):

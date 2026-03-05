@@ -188,7 +188,7 @@ class FrontDeskStaff(User):
         # Get available apartments for this location (vacant only)
         all_apartments = apt_repo.get_all_apartments()
         location_apartments_list = [apt for apt in all_apartments 
-                              if apt['city'] == self.location and apt['status'] == 'Vacant']
+                              if apt['city'] == self.location and apt['occupied'] == 0]
         
         # Format apartment options with more details
         apartment_options = [
