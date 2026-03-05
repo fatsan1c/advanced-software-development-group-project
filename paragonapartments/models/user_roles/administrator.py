@@ -373,7 +373,37 @@ class Administrator(User):
         update_lease_display()
         refresh_timer, schedule_refresh = pe.create_debounced_refresh(lease_card, update_lease_display)
 
-        # Graph popup button
+        # Stats generator for lease export
+        def generate_lease_stats():
+            stats = lease_repo.get_lease_statistics(self.location)
+            active = stats.get('active_leases', 0)
+            expired = stats.get('expired_leases', 0)
+            total = stats.get('total_leases', 0)
+            expiring = stats.get('expiring_soon', 0)
+            return (
+                f"Location: {self.location}\n\n"
+                f"Total Leases: {total}\n\n"
+                f"Active: {active} ({(active/total*100):.1f}% of total)\n\n"
+                f"Expired: {expired} ({(expired/total*100):.1f}% of total)\n\n"
+                f"Expiring Soon (30 days): {expiring}"
+            )
+        
+        def generate_lease_analysis():
+            stats = lease_repo.get_lease_statistics(self.location)
+            active = stats.get('active_leases', 0)
+            expired = stats.get('expired_leases', 0)
+            expiring = stats.get('expiring_soon', 0)
+            total = stats.get('total_leases', 0)
+            return (
+                f"Location: {self.location}\n\n"
+                f"Active Leases: {active}\n\n"
+                f"Expired Leases: {expired}\n\n"
+                f"Expiring Soon: {expiring}\n\n"
+                f"Total Leases: {total}\n\n"
+                f"Renewal Rate Needed: {(expiring/active*100):.1f}% of active leases" if active > 0 else "N/A"
+            )
+
+        # Graph popup button with comprehensive export
         pe.open_graph_popup(
             lease_card,
             popup_title=f"Lease Trends Graph - {self.location}",
@@ -383,8 +413,12 @@ class Administrator(User):
             get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
             date_range_params=self.location,
             fixed_location=self.location,
-            export_title="Lease Trends Report",
-            export_filename="lease_trends_report",
+            stats_generator=generate_lease_stats,
+            export_title=f"Lease Analysis - {self.location}",
+            export_filename=f"lease_analysis_{self.location.lower().replace(' ', '_')}",
+            pie_chart_generator=lambda: lease_repo.create_lease_status_pie_chart(self.location),
+            bar_chart_generator=lambda: lease_repo.create_lease_comparison_bar_chart(self.location),
+            bar_text_generator=generate_lease_analysis
         )
 
         # View Data button for lease agreements table
@@ -466,6 +500,36 @@ class Administrator(User):
         update_performance_display()
         refresh_timer, schedule_refresh = pe.create_debounced_refresh(reports_card, update_performance_display)
 
+        # Stats and analysis generators for performance export
+        def generate_performance_stats():
+            actual = apartment_repo.get_monthly_revenue(self.location)
+            potential = apartment_repo.get_potential_revenue(self.location)
+            total = apartment_repo.get_total_apartments(self.location)
+            occupied = apartment_repo.get_all_occupancy(self.location)
+            vacant = total - occupied
+            return (
+                f"Location: {self.location}\n\n"
+                f"Total Apartments: {total}\n\n"
+                f"Occupied: {occupied} ({(occupied/total*100):.1f}%)\n\n"
+                f"Vacant: {vacant} ({(vacant/total*100):.1f}%)\n\n"
+                f"Actual Revenue: £{actual:,.2f}\n\n"
+                f"Potential Revenue: £{potential:,.2f}"
+            )
+        
+        def generate_performance_analysis():
+            actual = apartment_repo.get_monthly_revenue(self.location)
+            potential = apartment_repo.get_potential_revenue(self.location)
+            lost = potential - actual
+            efficiency = (actual / potential * 100) if potential > 0 else 0
+            return (
+                f"Location: {self.location}\n\n"
+                f"Actual Revenue: £{actual:,.2f}\n\n"
+                f"Potential Revenue: £{potential:,.2f}\n\n"
+                f"Lost Revenue: £{lost:,.2f}\n\n"
+                f"Revenue Efficiency: {efficiency:.1f}%\n\n"
+                f"Performance Rating: {'Excellent' if efficiency >= 90 else 'Good' if efficiency >= 75 else 'Fair' if efficiency >= 60 else 'Needs Improvement'}"
+            )
+
         pe.open_graph_popup(
             reports_card,
             popup_title=f"Performance Report Graph - {self.location}",
@@ -475,8 +539,12 @@ class Administrator(User):
             get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
             date_range_params=self.location,
             fixed_location=self.location,
-            export_title="Performance Report",
-            export_filename=f"performance_report_{self.location}"
+            stats_generator=generate_performance_stats,
+            export_title=f"Performance Report - {self.location}",
+            export_filename=f"performance_report_{self.location.lower().replace(' ', '_')}",
+            pie_chart_generator=lambda: apartment_repo.create_occupancy_pie_chart(self.location),
+            bar_chart_generator=lambda: apartment_repo.create_revenue_bar_chart(self.location),
+            bar_text_generator=generate_performance_analysis
         )
 
     def load_apartment_content(self, row):

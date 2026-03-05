@@ -244,7 +244,46 @@ class Manager(User):
         def _selected_location(val):
             return "all" if (val or "") == "All Locations" else (val or "all")
 
-        # Graph popup button - using unified system like performance report
+        # Stats and analysis generators for occupancy export
+        def generate_occupancy_stats(location=None):
+            loc = _selected_location(location) if location else "all"
+            occupied = apartment_repo.get_all_occupancy(loc)
+            total = apartment_repo.get_total_apartments(loc)
+            vacant = total - occupied
+            loc_label = location if location and location != "All Locations" else "All Locations"
+            return (
+                f"Location: {loc_label}\n\n"
+                f"Total Apartments: {total}\n\n"
+                f"Occupied: {occupied} ({(occupied/total*100):.1f}%)\n\n"
+                f"Vacant: {vacant} ({(vacant/total*100):.1f}%)"
+            )
+        
+        def generate_revenue_analysis(location=None):
+            loc = _selected_location(location) if location else "all"
+            actual = apartment_repo.get_monthly_revenue(loc)
+            potential = apartment_repo.get_potential_revenue(loc)
+            lost = potential - actual
+            efficiency = (actual / potential * 100) if potential > 0 else 0
+            lost_pct = (lost / potential * 100) if potential > 0 else 0
+            loc_label = location if location and location != "All Locations" else "All Locations"
+            return (
+                f"Location: {loc_label}\n\n"
+                f"Actual Revenue: £{actual:,.2f}\n\n"
+                f"Potential Revenue: £{potential:,.2f}\n\n"
+                f"Lost Revenue: £{lost:,.2f}\n\n"
+                f"Revenue Efficiency: {efficiency:.1f}%\n\n"
+                f"Revenue Gap: {lost_pct:.1f}% of potential"
+            )
+
+        def create_occupancy_pie(location=None):
+            loc = _selected_location(location) if location else "all"
+            return apartment_repo.create_occupancy_pie_chart(loc)
+        
+        def create_revenue_bar(location=None):
+            loc = _selected_location(location) if location else "all"
+            return apartment_repo.create_revenue_bar_chart(loc)
+
+        # Graph popup button with comprehensive export
         pe.open_graph_popup(
             occupancy_card,
             popup_title="Apartment Occupancy Graph",
@@ -253,8 +292,12 @@ class Manager(User):
             default_location=lambda: location_dropdown.get() or "All Locations",
             get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
             location_mapper=_selected_location,
-            export_title="Occupancy Report",
-            export_filename="occupancy_report",
+            stats_generator=generate_occupancy_stats,
+            export_title="Occupancy Analysis Report",
+            export_filename="occupancy_analysis_report",
+            pie_chart_generator=create_occupancy_pie,
+            bar_chart_generator=create_revenue_bar,
+            bar_text_generator=generate_revenue_analysis
         )
 
     def load_account_content(self, row):
@@ -351,6 +394,48 @@ class Manager(User):
         def _sel(val):
             return "all" if (val or "") == "All Locations" else (val or "all")
 
+        # Stats and analysis generators for performance export
+        def generate_performance_stats(location=None):
+            loc = _sel(location) if location else "all"
+            actual = apartment_repo.get_monthly_revenue(loc)
+            potential = apartment_repo.get_potential_revenue(loc)
+            total = apartment_repo.get_total_apartments(loc)
+            occupied = apartment_repo.get_all_occupancy(loc)
+            vacant = total - occupied
+            loc_label = location if location and location != "All Locations" else "All Locations"
+            return (
+                f"Location: {loc_label}\n\n"
+                f"Total Apartments: {total}\n\n"
+                f"Occupied: {occupied} ({(occupied/total*100):.1f}%)\n\n"
+                f"Vacant: {vacant} ({(vacant/total*100):.1f}%)\n\n"
+                f"Actual Revenue: £{actual:,.2f}\n\n"
+                f"Potential Revenue: £{potential:,.2f}"
+            )
+        
+        def generate_performance_analysis(location=None):
+            loc = _sel(location) if location else "all"
+            actual = apartment_repo.get_monthly_revenue(loc)
+            potential = apartment_repo.get_potential_revenue(loc)
+            lost = potential - actual
+            efficiency = (actual / potential * 100) if potential > 0 else 0
+            loc_label = location if location and location != "All Locations" else "All Locations"
+            return (
+                f"Location: {loc_label}\n\n"
+                f"Actual Revenue: £{actual:,.2f}\n\n"
+                f"Potential Revenue: £{potential:,.2f}\n\n"
+                f"Lost Revenue: £{lost:,.2f}\n\n"
+                f"Revenue Efficiency: {efficiency:.1f}%\n\n"
+                f"Performance Rating: {'Excellent' if efficiency >= 90 else 'Good' if efficiency >= 75 else 'Fair' if efficiency >= 60 else 'Needs Improvement'}"
+            )
+
+        def create_occupancy_pie_report(location=None):
+            loc = _sel(location) if location else "all"
+            return apartment_repo.create_occupancy_pie_chart(loc)
+        
+        def create_revenue_bar_report(location=None):
+            loc = _sel(location) if location else "all"
+            return apartment_repo.create_revenue_bar_chart(loc)
+
         pe.open_graph_popup(
             reports_card,
             popup_title="Performance Report Graph",
@@ -359,8 +444,12 @@ class Manager(User):
             default_location=lambda: location_dropdown.get() or "All Locations",
             get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
             location_mapper=_sel,
-            export_title="Performance Report",
-            export_filename="performance_report",
+            stats_generator=generate_performance_stats,
+            export_title="Performance Analysis Report",
+            export_filename="performance_analysis_report",
+            pie_chart_generator=create_occupancy_pie_report,
+            bar_chart_generator=create_revenue_bar_report,
+            bar_text_generator=generate_performance_analysis
         )
 
     def load_business_expansion_content(self, row):

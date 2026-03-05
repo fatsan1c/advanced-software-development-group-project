@@ -181,7 +181,47 @@ class FinanceManager(User):
             except Exception as e:
                 late_badge.configure(text=f"Error: {str(e)}", text_color="red")
 
-        # Graph popup with inline export button
+        # Enhanced stats and analysis generators for comprehensive export
+        def generate_detailed_stats(location=None):
+            loc = self._selected_location(location) if location else "all"
+            summary = finance_repo.get_financial_summary(loc)
+            loc_label = location if location and location != "All Locations" else "All Locations"
+            collection_rate = (summary['total_collected'] / summary['total_invoiced'] * 100) if summary['total_invoiced'] > 0 else 0
+            return (
+                f"Location: {loc_label}\n\n"
+                f"Total Invoiced: £{summary['total_invoiced']:,.2f}\n\n"
+                f"Total Collected: £{summary['total_collected']:,.2f}\n\n"
+                f"Outstanding: £{summary['outstanding']:,.2f}\n\n"
+                f"Late Invoices: {summary['late_invoice_count']}\n\n"
+                f"Collection Rate: {collection_rate:.1f}%"
+            )
+        
+        def generate_financial_analysis(location=None):
+            loc = self._selected_location(location) if location else "all"
+            summary = finance_repo.get_financial_summary(loc)
+            loc_label = location if location and location != "All Locations" else "All Locations"
+            collection_rate = (summary['total_collected'] / summary['total_invoiced'] * 100) if summary['total_invoiced'] > 0 else 0
+            outstanding_rate = (summary['outstanding'] / summary['total_invoiced'] * 100) if summary['total_invoiced'] > 0 else 0
+            return (
+                f"Location: {loc_label}\n\n"
+                f"Total Invoiced: £{summary['total_invoiced']:,.2f}\n\n"
+                f"Collected: £{summary['total_collected']:,.2f}\n\n"
+                f"Outstanding: £{summary['outstanding']:,.2f}\n\n"
+                f"Collection Rate: {collection_rate:.1f}%\n\n"
+                f"Outstanding Rate: {outstanding_rate:.1f}%\n\n"
+                f"Late Invoices: {summary['late_invoice_count']}\n\n"
+                f"Financial Health: {'Excellent' if collection_rate >= 90 else 'Good' if collection_rate >= 75 else 'Fair' if collection_rate >= 60 else 'Needs Attention'}"
+            )
+
+        def create_financial_pie(location=None):
+            loc = self._selected_location(location) if location else "all"
+            return finance_repo.create_financial_status_pie_chart(loc)
+        
+        def create_financial_bar(location=None):
+            loc = self._selected_location(location) if location else "all"
+            return finance_repo.create_financial_comparison_bar_chart(loc)
+
+        # Graph popup with comprehensive export enabled
         button, export_btn = pe.open_graph_popup(
             summary_card,
             popup_title="Finance Trends Graph",
@@ -192,9 +232,12 @@ class FinanceManager(User):
                 self._selected_location(location_str), grouping=grouping
             ),
             location_mapper=self._selected_location,
-            stats_generator=self.format_financial_stats,
-            export_title="Finance Trends Report",
-            export_filename="finance_trends"
+            stats_generator=generate_detailed_stats,
+            export_title="Financial Analysis Report",
+            export_filename="financial_analysis_report",
+            pie_chart_generator=create_financial_pie,
+            bar_chart_generator=create_financial_bar,
+            bar_text_generator=generate_financial_analysis
         )
 
         # Auto-refresh summary on location change (debounced)

@@ -9,8 +9,11 @@ from pages.components.chart_utils import (
     ACCENT_GREEN,
     ACCENT_ORANGE,
     ACCENT_RED,
+    ACCENT_BLUE,
     create_bar_chart,
     create_trend_chart,
+    create_pie_chart,
+    create_comparison_bar_chart,
 )
 
 
@@ -508,3 +511,57 @@ def get_revenue_timeseries(location=None, start_date=None, end_date=None, groupi
         })
     return {"start_date": start_d.strftime("%Y-%m-%d"), "end_date": end_d.strftime("%Y-%m-%d"),
             "grouping": grouping_norm, "series": series}
+
+
+def create_lease_status_pie_chart(location=None):
+    """Create a pie chart showing lease status distribution.
+    
+    Returns matplotlib Figure (not canvas) for PDF export.
+    """
+    stats = get_lease_statistics(location)
+    active = stats.get('active_leases', 0)
+    expired = stats.get('expired_leases', 0)
+    
+    title_loc = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
+    
+    labels = [f'Active\n{active} leases', f'Expired\n{expired} leases']
+    values = [active, expired]
+    colors = [ACCENT_GREEN, ACCENT_RED]
+    
+    return create_pie_chart(
+        parent=None,
+        labels=labels,
+        values=values,
+        colors=colors,
+        title=f"Lease Status Distribution - {title_loc}",
+        explode=(0.05, 0),
+        return_figure=True
+    )
+
+
+def create_lease_comparison_bar_chart(location=None):
+    """Create a bar chart comparing lease statistics.
+    
+    Returns matplotlib Figure (not canvas) for PDF export.
+    """
+    stats = get_lease_statistics(location)
+    active = stats.get('active_leases', 0)
+    expired = stats.get('expired_leases', 0)
+    expiring = stats.get('expiring_soon', 0)
+    
+    title_loc = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
+    
+    categories = ['Active', 'Expired', 'Expiring Soon']
+    values = [active, expired, expiring]
+    colors = [ACCENT_GREEN, ACCENT_RED, ACCENT_ORANGE]
+    
+    return create_comparison_bar_chart(
+        parent=None,
+        categories=categories,
+        values=values,
+        colors=colors,
+        title=f"Lease Status Comparison - {title_loc}",
+        y_label='Number of Leases',
+        value_formatter='integer',
+        return_figure=True
+    )

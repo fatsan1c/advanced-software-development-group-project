@@ -9,7 +9,16 @@ from database_operations.db_execute import execute_query
 import numpy as np
 import pages.components.input_validation as input_validation
 from database_operations.repos.repo_utils import normalize_location, get_tenant_name_select_sql, parse_date as _parse_date
-from pages.components.chart_utils import create_bar_chart, create_trend_chart, ACCENT_GREEN, ACCENT_ORANGE, ACCENT_BLUE
+from pages.components.chart_utils import (
+    create_bar_chart,
+    create_trend_chart,
+    create_pie_chart,
+    create_comparison_bar_chart,
+    ACCENT_GREEN,
+    ACCENT_ORANGE,
+    ACCENT_BLUE,
+    ACCENT_RED
+)
 from datetime import date as _date, datetime as _datetime, timedelta as _timedelta
 
 
@@ -850,4 +859,58 @@ def create_collected_trend_graph(
         kpi_style="circle",
         show_toolbar=True,
         y_lim_dynamic=True,
+    )
+
+
+def create_financial_status_pie_chart(location: str | None = None):
+    """Create a pie chart showing financial status breakdown.
+    
+    Returns matplotlib Figure (not canvas) for PDF export.
+    """
+    summary = get_financial_summary(location)
+    collected = summary['total_collected']
+    outstanding = summary['outstanding']
+    
+    title_loc = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
+    
+    labels = [f'Collected\n£{collected:,.2f}', f'Outstanding\n£{outstanding:,.2f}']
+    values = [collected, outstanding]
+    colors = [ACCENT_GREEN, ACCENT_ORANGE]
+    
+    return create_pie_chart(
+        parent=None,
+        labels=labels,
+        values=values,
+        colors=colors,
+        title=f"Financial Status - {title_loc}",
+        explode=(0.05, 0),
+        return_figure=True
+    )
+
+
+def create_financial_comparison_bar_chart(location: str | None = None):
+    """Create a bar chart comparing invoiced, collected, and outstanding amounts.
+    
+    Returns matplotlib Figure (not canvas) for PDF export.
+    """
+    summary = get_financial_summary(location)
+    invoiced = summary['total_invoiced']
+    collected = summary['total_collected']
+    outstanding = summary['outstanding']
+    
+    title_loc = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
+    
+    categories = ['Total Invoiced', 'Collected', 'Outstanding']
+    values = [invoiced, collected, outstanding]
+    colors = [ACCENT_BLUE, ACCENT_GREEN, ACCENT_RED]
+    
+    return create_comparison_bar_chart(
+        parent=None,
+        categories=categories,
+        values=values,
+        colors=colors,
+        title=f"Financial Comparison - {title_loc}",
+        y_label='Amount (£)',
+        value_formatter='currency_decimal',
+        return_figure=True
     )
