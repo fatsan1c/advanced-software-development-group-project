@@ -114,11 +114,9 @@ def create_database():
     CREATE TABLE payments (
         payment_ID INTEGER PRIMARY KEY AUTOINCREMENT,
         invoice_ID INTEGER,
-        tenant_ID INTEGER,
         payment_date TEXT,
         amount REAL,
-        FOREIGN KEY (invoice_ID) REFERENCES invoices(invoice_ID),
-        FOREIGN KEY (tenant_ID) REFERENCES tenants(tenant_ID)
+        FOREIGN KEY (invoice_ID) REFERENCES invoices(invoice_ID)
     )
     """)
 

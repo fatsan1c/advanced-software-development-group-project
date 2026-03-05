@@ -10,7 +10,7 @@ This module provides comprehensive form building functionality including:
 
 import customtkinter as ctk
 from datetime import datetime
-from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER
+from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BTN, ROUND_INPUT, SECONDARY_GRAY, SECONDARY_GRAY_HOVER, TEXT_COLOR
 import pages.components.input_validation as input_validation
 import pages.components.ui_utilities as ui_utils
 
@@ -18,45 +18,37 @@ import pages.components.ui_utilities as ui_utils
 def form_element(
     parent,
     fields,
-    name,
+    name="",
     submit_text="Submit",
     on_submit=None,
-    pady=5,
-    field_per_row=2,
-    small=False,
-    expand: bool = True,
-    fill: str = "both",
-    submit_button_height: int | None = None,
-    submit_button_font_size: int | None = None,
-    submit_fg_color=None,
-    submit_hover_color=None,
-    submit_text_color=None,
-    input_corner_radius: int | None = None,
-    submit_corner_radius: int | None = None,
+    field_per_row=2
 ):
-    """Create a form with customizable fields and a submit button.
+    """Create a form with customizable fields and a submit button with theme styling.
     
     Args:
         parent: The parent container
         fields: List of field dictionaries with keys:
             - 'name': Field name/label (required)
             - 'type': Input type - 'text', 'dropdown', 'checkbox' (default: 'text')
-            - 'subtype': Subtype for text fields - 'text', 'number', 'password', 'currency', 'date' (default: 'text')
+            - 'subtype': Subtype for text fields - 'text', 'number', 'password', 'currency', 'date', 'dynamic' - only for dropdown (default: 'text')
             - 'options': List of options for dropdown (required if type='dropdown')
             - 'default': Default value
             - 'required': Whether field is required (default: False)
             - 'small': Use smaller sizing for compact forms (default: False)
+            - 'placeholder': Placeholder text for text inputs
+            - 'show_label': Whether to show the field label (default: True)
+        name: Form name/identifier (optional)
         submit_text: Text for the submit button
-        on_submit: Callback function that receives dict of {field_name: value} and error_label.
+        on_submit: Callback function that receives dict of {field_name: value}.
                    Callback should return True for success, or error message string for failure.
-        pady: Vertical padding between fields
         field_per_row: Number of fields per row (default: 2)
-        small: Use smaller sizing for compact forms (default: False)
+        submit_button_font_size: Font size for submit button (default: 13)
+        
     Returns:
         Tuple of (form_container, error_label) - use error_label to show custom errors
         
     Example:
-        def handle_submit(values, error_label):
+        def handle_submit(values):
             # Validation or processing
             if not values['Username']:
                 return "Username cannot be empty"
@@ -71,26 +63,29 @@ def form_element(
         ]
         form, error_label = form_element(parent, fields, submit_text="Create Account", on_submit=handle_submit)
     """
+    
     # Size settings based on small parameter
-    input_height = 28 if small else 35
-    input_font_size = 11 if small else 13
-    button_height = 32 if small else 40
-    button_font_size = 13 if small else 16
-    row_pady = 3 if small else 5
+    input_height = 28
+    input_font_size = 11
+    button_height = 40
+    button_font_size = 15
+    row_pady = 3
     
     form = ctk.CTkFrame(parent, fg_color="transparent")
-    form.pack(fill=fill, expand=expand, pady=pady)
+    form.pack(fill="x", expand=False, pady=5)
 
     if name:
         ctk.CTkLabel(
             form,
             text=name,
-            font=("Arial", 13),
+            font=("Arial", 13, "bold"),
             anchor="w"
         ).pack(padx=5, pady=0)
     
     # Store field widgets for retrieval
     field_widgets = {}
+    dynamic_dropdown_refreshers = {}  # Store refresh functions for dynamic dropdowns
+    dynamic_dropdown_maps = {}  # Store value maps for dynamic dropdowns
 
     fields_count = 0
     current_row = None
@@ -111,28 +106,50 @@ def form_element(
         field_frame = ctk.CTkFrame(current_row, fg_color="transparent")
         field_frame.pack(fill="x" if not small_field else None, padx=5, side="left", expand=not small_field)
         
+        if field.get('show_label', True):
+            ctk.CTkLabel(
+                field_frame,
+                text=field_name + ("*" if field_required else ""),
+                font=("Arial", input_font_size),
+                height=1
+                ).pack(anchor="w", pady=(0, 2), padx=(3,0))
+
         # Create appropriate input widget
         if field_type == 'text':
-            final_input_corner_radius = int(input_corner_radius) if input_corner_radius else None
             entry_kwargs = {
-                "placeholder_text": field.get("placeholder", field_name),
+                "placeholder_text": field.get("placeholder", None),
                 "height": input_height,
                 "font": ("Arial", input_font_size),
+                "corner_radius": ROUND_INPUT,
             }
-            if final_input_corner_radius:
-                entry_kwargs["corner_radius"] = final_input_corner_radius
             widget = ctk.CTkEntry(field_frame, **entry_kwargs)
 
             if field_subtype == 'password':
                 widget.configure(show="•")
             elif field_subtype == 'number':
                 vcmd = (widget.register(input_validation.validate_number_input), '%P')
-                widget.configure(validate="key", validatecommand=vcmd)
+                widget.configure(validate="key", validatecommand=vcmd, require_redraw=True)
+                
+                # Force placeholder to show on focus out when empty
+                def on_focusout(event, w=widget):
+                    if not w.get():
+                        w.configure(validate="none")
+                        w.delete(0, 'end')
+                        w.configure(validate="key")
+                widget.bind("<FocusOut>", on_focusout)
 
             elif field_subtype == 'currency':
                 # Currency validation: allows numbers with optional decimal and max 2 decimal places
                 vcmd = (widget.register(input_validation.validate_currency_input), '%P')
                 widget.configure(validate="key", validatecommand=vcmd)
+                
+                # Force placeholder to show on focus out when empty
+                def on_focusout(event, w=widget):
+                    if not w.get():
+                        w.configure(validate="none")
+                        w.delete(0, 'end')
+                        w.configure(validate="key")
+                widget.bind("<FocusOut>", on_focusout)
 
             elif field_subtype == 'date':
                 # Date validation: allows YYYY-MM-DD format with required hyphens.
@@ -143,47 +160,80 @@ def form_element(
                 # Recreate inside date_row instead of re-packing into a different parent.
                 # This avoids layout collapse where only the calendar icon appears.
                 widget.destroy()
-                entry_kwargs["width"] = 140 if small else 180
+                entry_kwargs["width"] = 140
                 widget = ctk.CTkEntry(date_row, **entry_kwargs)
                 vcmd = (widget.register(input_validation.validate_date_input), '%P')
                 widget.configure(validate="key", validatecommand=vcmd)
                 widget.pack(side="left", fill="x", expand=True)
 
                 # Use centralized date picker from ui_utilities
-                def open_calendar():
-                    ui_utils.open_date_picker(widget, parent.winfo_toplevel())
+                # Capture widget by value using default argument to avoid closure issue
+                def open_calendar(target_widget=widget):
+                    ui_utils.open_date_picker(target_widget, parent.winfo_toplevel())
 
                 ctk.CTkButton(
                     date_row,
                     text="📅",
-                    width=34,
-                    height=input_height,
+                    width=30,
+                    height=30,
                     font=("Arial", 13),
                     command=open_calendar,
-                    fg_color=("gray80", "gray25"),
-                    hover_color=("gray70", "gray30"),
+                    fg_color=SECONDARY_GRAY,
+                    hover_color=SECONDARY_GRAY_HOVER,
+                    text_color=TEXT_COLOR,
                 ).pack(side="left", padx=(6, 0))
+                
+                # Force placeholder to show on focus out when empty
+                def on_focusout(event, w=widget):
+                    if not w.get():
+                        w.configure(validate="none")
+                        w.delete(0, 'end')
+                        w.configure(validate="key")
+                widget.bind("<FocusOut>", on_focusout)
 
             if field_default:
                 widget.insert(0, str(field_default))
             if field_subtype != 'date':
                 widget.pack(fill="x")
             
-        elif field_type == 'dropdown':
-            options = field.get('options', [])
-            
-            widget = ctk.CTkOptionMenu(
-                field_frame,
-                values=options,
-                height=input_height,
-                font=("Arial", input_font_size)
-            )
-            
-            if field_default and field_default in options:
-                widget.set(field_default)
-            elif options:
-                widget.set(options[0])
-            widget.pack(fill="x")
+        elif field_type == 'dropdown':            
+            if field_subtype == 'dynamic':
+                # Dynamic dropdown expects 'options' to be a dict with:
+                # - 'data_fetcher': Function that returns list of data
+                # - 'display_formatter': Function that transforms item to (display, value)
+                # - 'empty_message': Optional message when no data (default: "No items available")
+                options_config = field.get('options', {})
+                data_fetcher = options_config.get('data_fetcher')
+                display_formatter = options_config.get('display_formatter', lambda x: (str(x), x))
+                empty_message = options_config.get('empty_message', "No items available")
+
+                widget, data_map, refresh_func = ui_utils.create_dynamic_dropdown_with_refresh(
+                    parent=field_frame,
+                    data_fetcher=data_fetcher,
+                    display_formatter=display_formatter,
+                    empty_message=empty_message
+                )
+                
+                # Store the data map and refresh function for this field
+                dynamic_dropdown_maps[field_name] = data_map
+                dynamic_dropdown_refreshers[field_name] = refresh_func
+            else:
+                options = field.get('options', [])
+
+                widget = ctk.CTkOptionMenu(
+                    field_frame,
+                    values=options,
+                    height=input_height,
+                    font=("Arial", input_font_size)
+                )
+                ui_utils.style_primary_dropdown(widget)
+                
+                # Set default value for non-dynamic dropdowns
+                if field_default and field_default in options:
+                    widget.set(field_default)
+                elif options:
+                    widget.set(options[0])
+                widget.pack(fill="x")
             
         elif field_type == 'checkbox':
             widget = ctk.CTkCheckBox(
@@ -195,7 +245,7 @@ def form_element(
                 widget.select()
             widget.pack(anchor="w")
         
-        field_widgets[field_name] = {'widget': widget, 'type': field_type, 'required': field_required}
+        field_widgets[field_name] = {'widget': widget, 'type': field_type, 'subtype': field_subtype, 'required': field_required}
         fields_count += 1
     
     # Error message label (initially hidden)
@@ -235,7 +285,12 @@ def form_element(
             if field_type == 'text':
                 value = widget.get().strip()
             elif field_type == 'dropdown':
-                value = widget.get()
+                display_value = widget.get()
+                # For dynamic dropdowns, map display text to actual value
+                if field_name in dynamic_dropdown_maps:
+                    value = dynamic_dropdown_maps[field_name].get(display_value, display_value)
+                else:
+                    value = display_value
             elif field_type == 'checkbox':
                 value = widget.get() == 1
             else:
@@ -252,46 +307,53 @@ def form_element(
         
         # Call the callback if validation passes
         if all_valid and on_submit:
+            # Refresh all dynamic dropdowns to show new data (delayed)
+            def refresh_dropdowns():
+                for refresh_func in dynamic_dropdown_refreshers.values():
+                    refresh_func()
+
             result = on_submit(values)
             # If callback returns a string, it's an error message
             if isinstance(result, str):
                 error_label.configure(text=result)
                 error_label.pack(pady=0, padx=10)
+                
+                form.after(50, refresh_dropdowns)
             elif result is True:
                 # Success - show success message
                 success_label.configure(text="Operation completed successfully.")
                 success_label.pack(pady=0, padx=10)
+                
+                form.after(50, refresh_dropdowns)
+                
                 # Clear all input fields after successful submission
                 for field_name, field_info in field_widgets.items():
                     widget = field_info['widget']
                     field_type = field_info['type']
+                    sub_type = field_info.get('subtype', None)
                     
                     if field_type == 'text':
                         widget.delete(0, 'end')
                     elif field_type == 'checkbox':
                         widget.deselect()
-                    elif field_type == 'dropdown':
+                    elif field_type == 'dropdown' and sub_type != 'dynamic':
                         # Find the original field definition to get options
                         field_def = next((f for f in fields if f['name'] == field_name), None)
                         if field_def:
                             options = field_def.get('options', [])
-                            if options:
+                            if options and isinstance(options, list):
                                 widget.set(options[0])
     
-    final_button_height = int(submit_button_height) if submit_button_height else button_height
-    final_button_font_size = int(submit_button_font_size) if submit_button_font_size else button_font_size
-    final_submit_corner_radius = int(submit_corner_radius) if submit_corner_radius else 8
-
     submit_button = ctk.CTkButton(
         form,
         text=submit_text,
         command=handle_submit,
-        height=final_button_height,
-        font=("Arial", final_button_font_size, "bold"),
-        corner_radius=final_submit_corner_radius,
-        fg_color=submit_fg_color,
-        hover_color=submit_hover_color,
-        text_color=submit_text_color,
+        height=button_height,
+        font=("Arial", button_font_size, "bold"),
+        corner_radius=ROUND_BTN,
+        fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
+        hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
+        text_color=("white", "white"),
     )
     submit_button.pack(pady=(10, 5), padx=10, fill="x")
     

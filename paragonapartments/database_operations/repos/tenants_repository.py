@@ -25,6 +25,11 @@ def create_tenant(first_name, last_name, date_of_birth, NI_number, email, phone,
     params = (first_name, last_name, date_of_birth, NI_number, email, phone, occupation, annual_salary, pets, right_to_rent, credit_check)
     return execute_query(query, params, commit=True)
 
+def get_all_tenant_names():
+    """Retrieve all tenant names from the database."""
+    query = "SELECT first_name, last_name, tenant_ID FROM tenants"
+    return execute_query(query, fetch_all=True)
+
 def update_tenant(tenant_id, **kwargs):
     """Update tenant information in the database.
     

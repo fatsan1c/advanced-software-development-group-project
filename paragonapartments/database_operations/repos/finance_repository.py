@@ -8,54 +8,18 @@ from __future__ import annotations
 from database_operations.db_execute import execute_query
 import numpy as np
 import pages.components.input_validation as input_validation
-from pages.components.chart_utils import create_bar_chart, create_trend_chart, ACCENT_GREEN, ACCENT_ORANGE, ACCENT_BLUE
+from database_operations.repos.repo_utils import normalize_location, get_tenant_name_select_sql, parse_date as _parse_date
+from pages.components.chart_utils import (
+    create_bar_chart,
+    create_trend_chart,
+    create_pie_chart,
+    create_comparison_bar_chart,
+    ACCENT_GREEN,
+    ACCENT_ORANGE,
+    ACCENT_BLUE,
+    ACCENT_RED
+)
 from datetime import date as _date, datetime as _datetime, timedelta as _timedelta
-
-
-_TENANT_NAME_SELECT_SQL: str | None = None
-
-
-def _tenant_name_select_sql() -> str:
-    """
-    Return a SQL snippet selecting a displayable tenant name, compatible with
-    both schemas used in this project:
-    - tenants(name, ...)
-    - tenants(first_name, last_name, ...)
-    """
-    global _TENANT_NAME_SELECT_SQL
-    if _TENANT_NAME_SELECT_SQL is not None:
-        return _TENANT_NAME_SELECT_SQL
-
-    cols = execute_query("PRAGMA table_info(tenants)", fetch_all=True) or []
-    col_names = {c.get("name") for c in cols}
-
-    if "name" in col_names:
-        _TENANT_NAME_SELECT_SQL = "t.name AS tenant_name"
-    elif "first_name" in col_names and "last_name" in col_names:
-        _TENANT_NAME_SELECT_SQL = "(t.first_name || ' ' || t.last_name) AS tenant_name"
-    else:
-        # Fallback: always returns something without referencing unknown columns
-        _TENANT_NAME_SELECT_SQL = "CAST(t.tenant_ID AS TEXT) AS tenant_name"
-
-    return _TENANT_NAME_SELECT_SQL
-
-
-def _normalize_location(location: str | None) -> str | None:
-    """
-    Normalize location input used across the app.
-
-    Accepts None, 'all', 'All Locations', etc. Returns:
-    - None when no filtering should be applied
-    - city string when filtering by a specific city
-    """
-    if not location:
-        return None
-    loc = str(location).strip()
-    if not loc:
-        return None
-    if loc.lower() in {"all", "all locations", "alllocation", "alllocations"}:
-        return None
-    return loc
 
 
 def _invoice_base_join_sql() -> str:
@@ -79,12 +43,12 @@ def _payment_base_join_sql() -> str:
     """
     return """
         FROM payments p
-        JOIN tenants t ON p.tenant_ID = t.tenant_ID
+        JOIN invoices i ON p.invoice_ID = i.invoice_ID
+        JOIN tenants t ON i.tenant_ID = t.tenant_ID
         LEFT JOIN lease_agreements la
                ON la.tenant_ID = t.tenant_ID AND la.active = 1
         LEFT JOIN apartments a ON la.apartment_ID = a.apartment_ID
         LEFT JOIN locations l ON a.location_ID = l.location_ID
-        LEFT JOIN invoices i ON p.invoice_ID = i.invoice_ID
     """
 
 
@@ -99,13 +63,13 @@ def get_invoices(location: str | None = None, paid: int | None = None):
     Returns:
         list: List of invoice dictionaries.
     """
-    city = _normalize_location(location)
+    city = normalize_location(location)
 
     query = f"""
         SELECT
             i.invoice_ID,
             i.tenant_ID,
-            {_tenant_name_select_sql()},
+            {get_tenant_name_select_sql()},
             l.city,
             i.amount_due,
             i.due_date,
@@ -137,19 +101,20 @@ def get_late_invoices(location: str | None = None, as_of: str | None = None):
     Returns:
         list: List of late invoice dictionaries.
     """
-    city = _normalize_location(location)
+    city = normalize_location(location)
     as_of_expr = "date(?)" if as_of else "date('now')"
 
     query = f"""
         SELECT
             i.invoice_ID,
             i.tenant_ID,
-            {_tenant_name_select_sql()},
+            {get_tenant_name_select_sql()},
             l.city,
             i.amount_due,
             i.due_date,
             i.issue_date,
-            i.paid
+            i.paid,
+            CAST((julianday({as_of_expr}) - julianday(i.due_date)) AS INTEGER) AS days_late
         {_invoice_base_join_sql()}
         WHERE i.paid = 0
           AND date(i.due_date) < {as_of_expr}
@@ -159,7 +124,8 @@ def get_late_invoices(location: str | None = None, as_of: str | None = None):
 
     params = []
     if as_of:
-        params.append(as_of)
+        params.append(as_of)  # First occurrence in SELECT (days_late calculation)
+        params.append(as_of)  # Second occurrence in WHERE clause
     if city:
         params.append(city)
     return execute_query(query, tuple(params), fetch_all=True)
@@ -251,14 +217,13 @@ def get_payments(location: str | None = None):
     Returns:
         list: List of payment dictionaries.
     """
-    city = _normalize_location(location)
+    city = normalize_location(location)
 
     query = f"""
         SELECT
             p.payment_ID,
             p.invoice_ID,
-            p.tenant_ID,
-            {_tenant_name_select_sql()},
+            {get_tenant_name_select_sql()},
             l.city,
             p.payment_date,
             p.amount
@@ -271,13 +236,12 @@ def get_payments(location: str | None = None):
     return execute_query(query, params, fetch_all=True)
 
 
-def record_payment(invoice_id: int, tenant_id: int, amount: float, payment_date: str | None = None, mark_invoice_paid: bool = True):
+def record_payment(invoice_id: int, amount: float, payment_date: str | None = None, mark_invoice_paid: bool = True):
     """
     Record a payment, optionally marking the invoice as paid.
 
     Args:
         invoice_id (int): Invoice ID being paid
-        tenant_id (int): Tenant ID making the payment
         amount (float): Payment amount
         payment_date (str, optional): 'YYYY-MM-DD'. Defaults to today.
         mark_invoice_paid (bool): If True, set invoices.paid=1 for the given invoice.
@@ -293,8 +257,6 @@ def record_payment(invoice_id: int, tenant_id: int, amount: float, payment_date:
     )
     if not inv:
         raise ValueError(f"Invoice ID {invoice_id} does not exist.")
-    if int(inv.get("tenant_ID")) != int(tenant_id):
-        raise ValueError(f"Invoice {invoice_id} belongs to tenant ID {inv.get('tenant_ID')}, not {tenant_id}.")
     if int(inv.get("paid") or 0) == 1:
         raise ValueError(f"Invoice {invoice_id} is already marked as paid.")
 
@@ -308,12 +270,12 @@ def record_payment(invoice_id: int, tenant_id: int, amount: float, payment_date:
 
     payment_date_expr = payment_date if payment_date else None
     insert_query = """
-        INSERT INTO payments (invoice_ID, tenant_ID, payment_date, amount)
-        VALUES (?, ?, COALESCE(?, date('now')), ?)
+        INSERT INTO payments (invoice_ID, payment_date, amount)
+        VALUES (?, COALESCE(?, date('now')), ?)
     """
     payment_id = execute_query(
         insert_query,
-        (int(invoice_id), int(tenant_id), payment_date_expr, float(amount)),
+        (int(invoice_id), payment_date_expr, float(amount)),
         commit=True
     )
 
@@ -346,7 +308,7 @@ def get_financial_summary(location: str | None = None, as_of: str | None = None)
             'late_invoice_count': int
         }
     """
-    city = _normalize_location(location)
+    city = normalize_location(location)
     as_of_expr = "date(?)" if as_of else "date('now')"
 
     # Total invoiced
@@ -427,25 +389,7 @@ def create_financial_summary_graph(parent, location: str | None = None):
     )
 
 
-def _parse_date(date_str: str | None) -> _date | None:
-    """
-    Parse a date string into a date, or return None for blank.
-    Supports YYYY-MM-DD format. Uses centralized input_validation module.
-    
-    Raises:
-        ValueError: If date is provided but invalid
-    """
-    if date_str is None:
-        return None
-    s = str(date_str).strip()
-    if not s:
-        return None
-    
-    # Use centralized validation - only accept YYYY-MM-DD format
-    parsed = input_validation.parse_date(s, formats=["%Y-%m-%d"])
-    if parsed is None:
-        raise ValueError(f"Invalid date '{date_str}'. Expected YYYY-MM-DD.")
-    return parsed
+
 
 
 def _month_key(d: _date) -> str:
@@ -496,7 +440,7 @@ def _get_earliest_finance_date(location: str | None = None) -> _date | None:
     - invoices.issue_date
     - invoices.due_date
     """
-    city = _normalize_location(location)
+    city = normalize_location(location)
 
     def _fetch_min_date(query: str, params: tuple | None = None) -> _date | None:
         row = execute_query(query, params, fetch_one=True) or {}
@@ -546,7 +490,7 @@ def _get_latest_finance_date(location: str | None = None) -> _date | None:
     - invoices.issue_date
     - invoices.due_date
     """
-    city = _normalize_location(location)
+    city = normalize_location(location)
 
     def _fetch_max_date(query: str, params: tuple | None = None) -> _date | None:
         row = execute_query(query, params, fetch_one=True) or {}
@@ -711,7 +655,7 @@ def get_collected_amount_timeseries(
     if start_d > end_d:
         raise ValueError("Start date must be on/before end date.")
 
-    city = _normalize_location(location)
+    city = normalize_location(location)
 
     def _period_expr_for(column_sql: str) -> str:
         if grouping_norm == "week":
@@ -915,4 +859,58 @@ def create_collected_trend_graph(
         kpi_style="circle",
         show_toolbar=True,
         y_lim_dynamic=True,
+    )
+
+
+def create_financial_status_pie_chart(location: str | None = None):
+    """Create a pie chart showing financial status breakdown.
+    
+    Returns matplotlib Figure (not canvas) for PDF export.
+    """
+    summary = get_financial_summary(location)
+    collected = summary['total_collected']
+    outstanding = summary['outstanding']
+    
+    title_loc = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
+    
+    labels = [f'Collected\n£{collected:,.2f}', f'Outstanding\n£{outstanding:,.2f}']
+    values = [collected, outstanding]
+    colors = [ACCENT_GREEN, ACCENT_ORANGE]
+    
+    return create_pie_chart(
+        parent=None,
+        labels=labels,
+        values=values,
+        colors=colors,
+        title=f"Financial Status - {title_loc}",
+        explode=(0.05, 0),
+        return_figure=True
+    )
+
+
+def create_financial_comparison_bar_chart(location: str | None = None):
+    """Create a bar chart comparing invoiced, collected, and outstanding amounts.
+    
+    Returns matplotlib Figure (not canvas) for PDF export.
+    """
+    summary = get_financial_summary(location)
+    invoiced = summary['total_invoiced']
+    collected = summary['total_collected']
+    outstanding = summary['outstanding']
+    
+    title_loc = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
+    
+    categories = ['Total Invoiced', 'Collected', 'Outstanding']
+    values = [invoiced, collected, outstanding]
+    colors = [ACCENT_BLUE, ACCENT_GREEN, ACCENT_RED]
+    
+    return create_comparison_bar_chart(
+        parent=None,
+        categories=categories,
+        values=values,
+        colors=colors,
+        title=f"Financial Comparison - {title_loc}",
+        y_label='Amount (£)',
+        value_formatter='currency_decimal',
+        return_figure=True
     )

@@ -3,17 +3,18 @@ Apartment Repository - All apartment-related database operations.
 Handles apartment queries, occupancy tracking, and apartment management.
 """
 
-import calendar as _calendar
 from database_operations.db_execute import execute_query
-from datetime import date as _date, datetime as _datetime, timedelta as _timedelta
+from database_operations.repos.repo_utils import normalize_location
 import numpy as np
-import pages.components.input_validation as input_validation
 from pages.components.chart_utils import (
     ACCENT_GREEN,
     ACCENT_ORANGE,
     ACCENT_RED,
+    ACCENT_BLUE,
     create_bar_chart,
     create_trend_chart,
+    create_pie_chart,
+    create_comparison_bar_chart,
 )
 
 
@@ -71,229 +72,6 @@ def get_total_apartments(location=None):
     return len(results) if results else 0
 
 
-def _normalize_location(location):
-    """Normalize location: None/'all' -> None, else city string."""
-    if not location:
-        return None
-    loc = str(location).strip()
-    if not loc or loc.lower() in {"all", "all locations"}:
-        return None
-    return loc
-
-
-def _parse_date(date_str):
-    """
-    Parse date string with multiple format support (YYYY-MM-DD or DD/MM/YYYY).
-    Returns None if invalid. Uses centralized input_validation module.
-    """
-    return input_validation.parse_date(date_str)
-
-
-def _get_earliest_lease_date(location=None):
-    """Earliest lease start_date for location."""
-    city = _normalize_location(location)
-    query = """
-        SELECT MIN(date(la.start_date)) AS min_date
-        FROM lease_agreements la
-        JOIN apartments a ON la.apartment_ID = a.apartment_ID
-        JOIN locations l ON a.location_ID = l.location_ID
-        WHERE la.start_date IS NOT NULL
-    """ + (" AND l.city = ?" if city else "")
-    params = (city,) if city else None
-    row = execute_query(query, params, fetch_one=True) or {}
-    raw = row.get("min_date")
-    if not raw:
-        return None
-    try:
-        return _datetime.strptime(str(raw), "%Y-%m-%d").date()
-    except Exception:
-        return None
-
-
-def _get_latest_lease_date(location=None):
-    """Latest lease end_date for location."""
-    city = _normalize_location(location)
-    query = """
-        SELECT MAX(date(la.end_date)) AS max_date
-        FROM lease_agreements la
-        JOIN apartments a ON la.apartment_ID = a.apartment_ID
-        JOIN locations l ON a.location_ID = l.location_ID
-        WHERE la.end_date IS NOT NULL
-    """ + (" AND l.city = ?" if city else "")
-    params = (city,) if city else None
-    row = execute_query(query, params, fetch_one=True) or {}
-    raw = row.get("max_date")
-    if not raw:
-        return None
-    try:
-        return _datetime.strptime(str(raw), "%Y-%m-%d").date()
-    except Exception:
-        return None
-
-
-def get_lease_date_range(location=None, grouping="month"):
-    """Return default start/end dates for lease-based timeseries."""
-    grouping_norm = (grouping or "").strip().lower()
-    grouping_norm = "year" if grouping_norm in {"year", "yearly"} else "month"
-    earliest = _get_earliest_lease_date(location)
-    latest = _get_latest_lease_date(location)
-    today = _date.today()
-    if not earliest or not latest:
-        start = _date(today.year, 1, 1)
-        end = today
-    else:
-        if grouping_norm == "month":
-            start = _date(earliest.year, earliest.month, 1)
-        else:
-            start = _date(earliest.year, 1, 1)
-        end = latest
-    if start > end:
-        start = end
-    return {"start_date": start.strftime("%Y-%m-%d"), "end_date": end.strftime("%Y-%m-%d")}
-
-
-def get_occupancy_timeseries(location=None, start_date=None, end_date=None, grouping="month"):
-    """
-    Occupancy over time from lease overlaps. Returns series with occupied, vacant, total per period.
-    """
-    grouping_norm = "year" if (grouping or "").strip().lower() in {"year", "yearly"} else "month"
-    start_d = _parse_date(start_date)
-    end_d = _parse_date(end_date)
-    if end_d is None:
-        end_d = _date.today()
-    if start_d is None:
-        rng = get_lease_date_range(location, grouping_norm)
-        start_d = _parse_date(rng.get("start_date")) or _date(end_d.year, 1, 1)
-    if start_d > end_d:
-        start_d = end_d
-    city = _normalize_location(location)
-    loc_filter = " AND l.city = ?" if city else ""
-
-    if grouping_norm == "month":
-        cursor = _date(start_d.year, start_d.month, 1)
-        end_bucket = _date(end_d.year, end_d.month, 1)
-        buckets = []
-        while cursor <= end_bucket:
-            buckets.append(cursor)
-            if cursor.month == 12:
-                cursor = _date(cursor.year + 1, 1, 1)
-            else:
-                cursor = _date(cursor.year, cursor.month + 1, 1)
-    else:
-        cursor = _date(start_d.year, 1, 1)
-        end_bucket = _date(end_d.year, 1, 1)
-        buckets = []
-        while cursor <= end_bucket:
-            buckets.append(cursor)
-            cursor = _date(cursor.year + 1, 1, 1)
-
-    total_apartments = get_total_apartments(location or "all")
-    series = []
-    for bucket in buckets:
-        if grouping_norm == "month":
-            period_start = bucket
-            period_end = _date(bucket.year, bucket.month, _calendar.monthrange(bucket.year, bucket.month)[1])
-            period_label = bucket.strftime("%b %Y")
-        else:
-            period_start = bucket
-            period_end = _date(bucket.year, 12, 31)
-            period_label = str(bucket.year)
-        ps, pe = period_start.isoformat(), period_end.isoformat()
-        query = f"""
-            SELECT COUNT(DISTINCT la.apartment_ID) AS occupied
-            FROM lease_agreements la
-            JOIN apartments a ON la.apartment_ID = a.apartment_ID
-            JOIN locations l ON a.location_ID = l.location_ID
-            WHERE date(la.start_date) <= date(?)
-              AND date(la.end_date) >= date(?)
-              {loc_filter}
-        """
-        params = [pe, ps]
-        if city:
-            params.append(city)
-        row = execute_query(query, tuple(params), fetch_one=True) or {}
-        occupied = int(row.get("occupied") or 0)
-        vacant = max(0, total_apartments - occupied)
-        series.append({
-            "period": period_label,
-            "occupied": occupied,
-            "vacant": vacant,
-            "total": total_apartments,
-        })
-    return {"start_date": start_d.strftime("%Y-%m-%d"), "end_date": end_d.strftime("%Y-%m-%d"),
-            "grouping": grouping_norm, "series": series}
-
-
-def get_revenue_timeseries(location=None, start_date=None, end_date=None, grouping="month"):
-    """
-    Revenue over time from lease overlaps. Returns actual_revenue, lost_revenue, potential_revenue per period.
-    """
-    grouping_norm = "year" if (grouping or "").strip().lower() in {"year", "yearly"} else "month"
-    start_d = _parse_date(start_date)
-    end_d = _parse_date(end_date)
-    if end_d is None:
-        end_d = _date.today()
-    if start_d is None:
-        rng = get_lease_date_range(location, grouping_norm)
-        start_d = _parse_date(rng.get("start_date")) or _date(end_d.year, 1, 1)
-    if start_d > end_d:
-        start_d = end_d
-    city = _normalize_location(location)
-    loc_filter = " AND l.city = ?" if city else ""
-    potential = get_potential_revenue(location or "all")
-
-    if grouping_norm == "month":
-        cursor = _date(start_d.year, start_d.month, 1)
-        end_bucket = _date(end_d.year, end_d.month, 1)
-        buckets = []
-        while cursor <= end_bucket:
-            buckets.append(cursor)
-            if cursor.month == 12:
-                cursor = _date(cursor.year + 1, 1, 1)
-            else:
-                cursor = _date(cursor.year, cursor.month + 1, 1)
-    else:
-        cursor = _date(start_d.year, 1, 1)
-        end_bucket = _date(end_d.year, 1, 1)
-        buckets = []
-        while cursor <= end_bucket:
-            buckets.append(cursor)
-            cursor = _date(cursor.year + 1, 1, 1)
-
-    series = []
-    for bucket in buckets:
-        if grouping_norm == "month":
-            period_end = _date(bucket.year, bucket.month, _calendar.monthrange(bucket.year, bucket.month)[1])
-            period_label = bucket.strftime("%b %Y")
-        else:
-            period_end = _date(bucket.year, 12, 31)
-            period_label = str(bucket.year)
-        ps, pe = bucket.isoformat(), period_end.isoformat()
-        query = f"""
-            SELECT COALESCE(SUM(la.monthly_rent), 0) AS actual
-            FROM lease_agreements la
-            JOIN apartments a ON la.apartment_ID = a.apartment_ID
-            JOIN locations l ON a.location_ID = l.location_ID
-            WHERE date(la.start_date) <= date(?)
-              AND date(la.end_date) >= date(?)
-              {loc_filter}
-        """
-        params = [pe, ps]
-        if city:
-            params.append(city)
-        row = execute_query(query, tuple(params), fetch_one=True) or {}
-        actual = float(row.get("actual") or 0)
-        lost = max(0.0, potential - actual)
-        series.append({
-            "period": period_label,
-            "actual_revenue": actual,
-            "lost_revenue": lost,
-            "potential_revenue": potential,
-        })
-    return {"start_date": start_d.strftime("%Y-%m-%d"), "end_date": end_d.strftime("%Y-%m-%d"),
-            "grouping": grouping_norm, "series": series}
-
-
 def create_occupancy_graph(parent, location=None):
     """
     Create and embed a bar graph of occupied vs total apartments in a tkinter widget.
@@ -326,7 +104,7 @@ def get_monthly_revenue(location=None):
     Returns:
         float: Total monthly revenue from active leases
     """
-    city = _normalize_location(location)
+    city = normalize_location(location)
     loc_filter = " AND l.city = ?" if city else ""
     query = f"""
         SELECT COALESCE(SUM(la.monthly_rent), 0) AS total_revenue
@@ -351,7 +129,7 @@ def get_potential_revenue(location=None):
     Returns:
         float: Potential monthly revenue from all apartments
     """
-    city = _normalize_location(location)
+    city = normalize_location(location)
     loc_filter = " AND l.city = ?" if city else ""
     query = f"""
         SELECT COALESCE(SUM(a.monthly_rent), 0) AS potential_revenue
@@ -387,12 +165,14 @@ def create_performance_graph(parent, location=None):
 
 
 def create_occupancy_trend_graph(parent, location=None, start_date=None, end_date=None, grouping="month"):
-    """Line chart of occupancy over time (Occupied, Vacant). Uses shared chart_utils."""
+    """Line chart of occupancy over time (Occupied, Total Apartments). Uses shared chart_utils."""
+    # Lazy import to avoid circular dependency
+    from database_operations.repos.lease_repository import get_occupancy_timeseries
     data = get_occupancy_timeseries(location=location, start_date=start_date, end_date=end_date, grouping=grouping)
     series_data = data.get("series") or []
     periods = [r.get("period", "") for r in series_data]
     occupied = np.array([float(r.get("occupied") or 0) for r in series_data], dtype=float)
-    vacant = np.array([float(r.get("vacant") or 0) for r in series_data], dtype=float)
+    total = np.array([float(r.get("total") or 0) for r in series_data], dtype=float)
     title_loc = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
     if not series_data:
         return create_trend_chart(parent, periods=[], series=[], title=f"Occupancy Trends - {title_loc}",
@@ -402,7 +182,7 @@ def create_occupancy_trend_graph(parent, location=None, start_date=None, end_dat
         periods=periods,
         series=[
             ("Occupied", occupied, ACCENT_GREEN),
-            ("Vacant", vacant, ACCENT_RED),
+            ("Total Apartments", total, ACCENT_BLUE),
         ],
         title=f"Occupancy Trends - {title_loc}",
         y_label="Number of Apartments",
@@ -410,7 +190,6 @@ def create_occupancy_trend_graph(parent, location=None, start_date=None, end_dat
         fill_primary=True,
         fill_secondary=True,
         primary_color=ACCENT_GREEN,
-        kpi_style="text",
         show_kpi=False,
         show_toolbar=True,
         y_lim_dynamic=True,
@@ -419,11 +198,13 @@ def create_occupancy_trend_graph(parent, location=None, start_date=None, end_dat
 
 def create_revenue_trend_graph(parent, location=None, start_date=None, end_date=None, grouping="month"):
     """Line chart of revenue over time (Actual, Lost). Uses shared chart_utils."""
+    # Lazy import to avoid circular dependency
+    from database_operations.repos.lease_repository import get_revenue_timeseries
     data = get_revenue_timeseries(location=location, start_date=start_date, end_date=end_date, grouping=grouping)
     series_data = data.get("series") or []
     periods = [r.get("period", "") for r in series_data]
     actual = np.array([float(r.get("actual_revenue") or 0) for r in series_data], dtype=float)
-    lost = np.array([float(r.get("lost_revenue") or 0) for r in series_data], dtype=float)
+    potential = np.array([float(r.get("potential_revenue") or 0) for r in series_data], dtype=float)
     title_loc = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
     if not series_data:
         return create_trend_chart(parent, periods=[], series=[], title=f"Revenue Trends - {title_loc}",
@@ -433,7 +214,7 @@ def create_revenue_trend_graph(parent, location=None, start_date=None, end_date=
         periods=periods,
         series=[
             ("Actual Revenue", actual, ACCENT_GREEN),
-            ("Lost Revenue", lost, ACCENT_ORANGE),
+            ("Potential Revenue", potential, ACCENT_ORANGE),
         ],
         title=f"Revenue Trends - {title_loc}",
         y_label="Revenue (£)",
@@ -441,15 +222,11 @@ def create_revenue_trend_graph(parent, location=None, start_date=None, end_date=
         fill_primary=True,
         fill_secondary=True,
         primary_color=ACCENT_GREEN,
-        kpi_style="text",
         show_kpi=False,
         show_toolbar=True,
         y_lim_dynamic=True,
     )
 
-
-def generate_performance_report():
-     pass
     
 def get_all_apartments(location="all"):
     """
@@ -463,8 +240,7 @@ def get_all_apartments(location="all"):
     """
     if location and location.lower() not in ["all locations", "all"]:
         query = """
-            SELECT a.apartment_ID, l.city, a.apartment_address, a.number_of_beds, a.monthly_rent, 
-                   CASE WHEN a.occupied = 1 THEN 'Occupied' ELSE 'Vacant' END AS status
+            SELECT a.apartment_ID, l.city, a.apartment_address, a.number_of_beds, a.monthly_rent, a.occupied
             FROM apartments a
             JOIN locations l ON a.location_ID = l.location_ID
             WHERE l.city = ?
@@ -473,8 +249,7 @@ def get_all_apartments(location="all"):
         return execute_query(query, (location,), fetch_all=True)
     else:
         query = """
-            SELECT a.apartment_ID, l.city, a.apartment_address, a.number_of_beds, a.monthly_rent, 
-                   CASE WHEN a.occupied = 1 THEN 'Occupied' ELSE 'Vacant' END AS status
+            SELECT a.apartment_ID, l.city, a.apartment_address, a.number_of_beds, a.monthly_rent, a.occupied
             FROM apartments a
             JOIN locations l ON a.location_ID = l.location_ID
             ORDER BY l.city, a.apartment_address
@@ -548,3 +323,56 @@ def delete_apartment(apartment_id):
     """
     result = execute_query(query, (apartment_id,), commit=True)
     return result is not None
+
+
+def create_occupancy_pie_chart(location=None):
+    """Create a pie chart showing current occupancy distribution.
+    
+    Returns matplotlib Figure (not canvas) for PDF export.
+    """
+    occupied = get_all_occupancy(location)
+    total = get_total_apartments(location)
+    vacant = total - occupied
+    
+    title_loc = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
+    
+    labels = [f'Occupied\n{occupied} units', f'Vacant\n{vacant} units']
+    values = [occupied, vacant]
+    colors = [ACCENT_GREEN, ACCENT_ORANGE]
+    
+    return create_pie_chart(
+        parent=None,
+        labels=labels,
+        values=values,
+        colors=colors,
+        title=f"Occupancy Distribution - {title_loc}",
+        explode=(0.05, 0),
+        return_figure=True
+    )
+
+
+def create_revenue_bar_chart(location=None):
+    """Create a bar chart comparing actual vs potential revenue.
+    
+    Returns matplotlib Figure (not canvas) for PDF export.
+    """
+    actual = get_monthly_revenue(location)
+    potential = get_potential_revenue(location)
+    lost = potential - actual
+    
+    title_loc = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
+    
+    categories = ['Actual Revenue', 'Potential Revenue', 'Lost Revenue']
+    values = [actual, potential, lost]
+    colors = [ACCENT_GREEN, ACCENT_BLUE, ACCENT_RED]
+    
+    return create_comparison_bar_chart(
+        parent=None,
+        categories=categories,
+        values=values,
+        colors=colors,
+        title=f"Revenue Comparison - {title_loc}",
+        y_label='Revenue (£)',
+        value_formatter='currency_decimal',
+        return_figure=True
+    )
