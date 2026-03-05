@@ -331,11 +331,9 @@ CREATE TABLE invoices (
 CREATE TABLE payments (
     payment_ID   INTEGER PRIMARY KEY AUTOINCREMENT,
     invoice_ID   INTEGER,
-    tenant_ID    INTEGER,
     payment_date TEXT,
     amount       REAL,
-    FOREIGN KEY (invoice_ID) REFERENCES invoices(invoice_ID),
-    FOREIGN KEY (tenant_ID)  REFERENCES tenants(tenant_ID)
+    FOREIGN KEY (invoice_ID) REFERENCES invoices(invoice_ID)
 );
 
 CREATE TABLE complaint (
@@ -699,7 +697,6 @@ def create_database() -> None:  # noqa: PLR0912, PLR0915
                 payment_rows.append((
                     pay_id,
                     inv_id,
-                    t_id,
                     pay_date.isoformat(),
                     float(rent),
                 ))
@@ -714,7 +711,7 @@ def create_database() -> None:  # noqa: PLR0912, PLR0915
     _bulk_insert("INSERT INTO invoices VALUES (?,?,?,?,?,?)", invoice_rows)
 
     print(f"  -> {len(payment_rows):,} payments …")
-    _bulk_insert("INSERT INTO payments VALUES (?,?,?,?,?)", payment_rows)
+    _bulk_insert("INSERT INTO payments VALUES (?,?,?,?)", payment_rows)
 
     # ---------------------------------------------------------------
     # 7. MAINTENANCE REQUESTS
