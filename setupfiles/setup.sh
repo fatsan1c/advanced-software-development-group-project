@@ -28,10 +28,10 @@ echo ""
 DB_PATH="paragonapartments/database/paragonapartments.db"
 if [ -f "$DB_PATH" ]; then
     echo -e "\033[0;36mDatabase already exists, skipping creation...\033[0m"
-    echo -e "\033[0;90mTo recreate the database, run: python setupfiles/tools/create_sqlite_db.py\033[0m"
+    echo -e "\033[0;90mTo recreate the database, run: python setupfiles/tools/create_sqlite_testdata.py\033[0m"
 else
     echo -e "\033[0;33mCreating SQLite database...\033[0m"
-    python setupfiles/tools/create_sqlite_db.py
+    python setupfiles/tools/create_sqlite_testdata.py
 fi
 
 echo -e "\n\033[0;32m✓ Setup complete!\033[0m"

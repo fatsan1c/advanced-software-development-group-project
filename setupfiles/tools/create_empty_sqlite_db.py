@@ -1,5 +1,6 @@
 """
-Creates SQLite database with test data.
+Creates empty SQLite database with seed data (locations and manager user only).
+For comprehensive test data, use create_sqlite_testdata.py instead.
 """
 
 import sqlite3
@@ -10,7 +11,7 @@ from passlib.hash import sha256_crypt
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'paragonapartments', 'database', 'paragonapartments.db')
 
 def create_database():
-    """Create SQLite database with schema and data."""
+    """Create empty SQLite database with schema and minimal seed data (locations + manager user)."""
     
     # Create database directory if it doesn't exist
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
@@ -119,12 +120,6 @@ def create_database():
         FOREIGN KEY (invoice_ID) REFERENCES invoices(invoice_ID)
     )
     """)
-
-    # Performance indexes
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_invoices_tenant ON invoices(tenant_ID)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_invoices_paid_due ON invoices(paid, due_date)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_payments_invoice ON payments(invoice_ID)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_lease_tenant_active ON lease_agreements(tenant_ID, active)")
     
     # Create complaint table
     cursor.execute("""
@@ -155,7 +150,16 @@ def create_database():
     )
     """)
 
-    print("Inserting data...")
+    # Performance indexes (matches testdata schema)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_invoices_tenant ON invoices(tenant_ID)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_invoices_paid_due ON invoices(paid, due_date)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_payments_invoice ON payments(invoice_ID)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_lease_tenant_active ON lease_agreements(tenant_ID, active)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_lease_apt_active ON lease_agreements(apartment_ID, active)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_maint_apt ON maintenance_requests(apartment_ID)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_complaint_tenant ON complaint(tenant_ID)")
+
+    print("Inserting seed data...")
     
     # Insert locations
     cursor.executemany("INSERT INTO locations (location_ID, city, address) VALUES (?, ?, ?)", [
@@ -174,8 +178,17 @@ def create_database():
     conn.commit()
     conn.close()
     
-    print(f"\nSQLite database created successfully at: {DB_PATH}")
-    print(f"Database size: {os.path.getsize(DB_PATH) / 1024:.2f} KB")
+    print(f"\n{'=' * 62}")
+    print(f"  Empty SQLite database created successfully")
+    print(f"{'=' * 62}")
+    print(f"  Path: {DB_PATH}")
+    print(f"  Size: {os.path.getsize(DB_PATH) / 1024:.2f} KB")
+    print(f"  Seed data: 4 locations, 1 manager user")
+    print(f"{'=' * 62}")
+    print("\nLogin credentials:")
+    print("  Username: manager")
+    print("  Password: paragon1")
+    print("\nNote: For comprehensive test data, run create_sqlite_testdata.py")
 
 if __name__ == "__main__":
     create_database()
