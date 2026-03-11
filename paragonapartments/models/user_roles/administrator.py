@@ -438,11 +438,11 @@ class Administrator(User):
             # Define columns for lease agreements data table
             columns = [
                 {'name': 'ID', 'key': 'lease_ID', 'width': 50, 'editable': False},
-                {'name': 'Tenant', 'key': 'tenant_name', 'width': 120, 'editable': False},
-                {'name': 'Apartment', 'key': 'apartment_address', 'width': 120, 'editable': False},
-                {'name': 'Location', 'key': 'city', 'width': 100, 'editable': False},
-                {'name': 'Start Date', 'key': 'start_date', 'width': 110, 'editable': False},
-                {'name': 'End Date', 'key': 'end_date', 'width': 110, 'editable': False},
+                {'name': 'Tenant', 'key': 'tenant_name', 'width': 110, 'editable': False},
+                {'name': 'Apartment', 'key': 'apartment_address', 'width': 170, 'editable': False},
+                {'name': 'Location', 'key': 'city', 'width': 80, 'editable': False},
+                {'name': 'Start Date', 'key': 'start_date', 'width': 100, 'editable': False},
+                {'name': 'End Date', 'key': 'end_date', 'width': 100, 'editable': False},
                 {'name': 'Monthly Rent', 'key': 'monthly_rent', 'format': 'currency', 'width': 120, 'editable': False},
                 {'name': 'Status', 'key': 'active', 'width': 100, 'format': 'boolean', 'options': ["Active", "Inactive"], 'editable': False},
                 {'name': 'Expired', 'key': 'expired', 'width': 80, 'format': 'boolean', 'options': ["Yes", "No"], 'editable': False}

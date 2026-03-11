@@ -9,7 +9,7 @@ from database_operations.db_execute import execute_query
 from database_operations.repos.repo_utils import normalize_location, get_tenant_name_select_sql
 
 
-def get_maintenance_requests(location: str | None = None, completed: int | None = None, priority: int | None = None):
+def get_maintenance_requests(location: str | None = None, completed: int | None = None, priority: int | None = None, compact: bool = False):
     """
     Get maintenance requests enriched with tenant and apartment information.
 
@@ -23,13 +23,15 @@ def get_maintenance_requests(location: str | None = None, completed: int | None 
     """
     city = normalize_location(location)
 
+    apartment_address_sql = "SUBSTR(a.apartment_address, 1, 11) || '...' AS apartment_address" if compact else "a.apartment_address"
+    
     query = f"""
         SELECT
             mr.request_ID,
             mr.apartment_ID,
             mr.tenant_ID,
-            {get_tenant_name_select_sql()},
-            a.apartment_address,
+            {get_tenant_name_select_sql(short=compact)},
+            {apartment_address_sql},
             l.city,
             mr.issue_description,
             mr.priority_level,

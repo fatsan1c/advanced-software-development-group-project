@@ -146,6 +146,16 @@ def data_table(parent, columns, data=None, editable=False, deletable=False,
                 font=("Arial", 13, "bold"),
                 anchor="center"
             ).pack(side="right", padx=5, pady=8)
+
+        if total_rows == 0:
+            empty_label = ctk.CTkLabel(
+                content,
+                text="No data available",
+                font=("Arial", 14),
+                text_color=DISABLED_TEXT_COLOR
+            )
+            empty_label.pack(pady=20)
+            return
         
         # Pagination math (in-memory pagination; keeps UI responsive and avoids rendering all rows)
         ps = int(page_size or 0)

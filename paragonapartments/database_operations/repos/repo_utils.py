@@ -7,10 +7,6 @@ import pages.components.input_validation as input_validation
 from datetime import date as _date
 
 
-# Global cache for tenant name SQL snippet
-_TENANT_NAME_SELECT_SQL: str | None = None
-
-
 def normalize_location(location):
     """
     Normalize location input across all repositories.
@@ -29,7 +25,7 @@ def normalize_location(location):
     return loc
 
 
-def get_tenant_name_select_sql() -> str:
+def get_tenant_name_select_sql(short: bool = False) -> str:
     """
     Return a SQL snippet selecting a displayable tenant name, compatible with
     both schemas used in this project:
@@ -41,9 +37,6 @@ def get_tenant_name_select_sql() -> str:
     Returns:
         str: SQL snippet for selecting tenant name
     """
-    global _TENANT_NAME_SELECT_SQL
-    if _TENANT_NAME_SELECT_SQL is not None:
-        return _TENANT_NAME_SELECT_SQL
 
     cols = execute_query("PRAGMA table_info(tenants)", fetch_all=True) or []
     col_names = {c.get("name") for c in cols}
@@ -51,7 +44,10 @@ def get_tenant_name_select_sql() -> str:
     if "name" in col_names:
         _TENANT_NAME_SELECT_SQL = "t.name AS tenant_name"
     elif "first_name" in col_names and "last_name" in col_names:
-        _TENANT_NAME_SELECT_SQL = "(t.first_name || ' ' || t.last_name) AS tenant_name"
+        if short:
+            _TENANT_NAME_SELECT_SQL = "(SUBSTR(t.first_name, 1, 1) || '. ' || t.last_name) AS tenant_name"
+        else:
+            _TENANT_NAME_SELECT_SQL = "(t.first_name || ' ' || t.last_name) AS tenant_name"
     else:
         # Fallback: always returns something without referencing unknown columns
         _TENANT_NAME_SELECT_SQL = "CAST(t.tenant_ID AS TEXT) AS tenant_name"

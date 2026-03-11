@@ -261,8 +261,8 @@ class MaintenanceStaff(User):
 
             columns = [
                 {"name": "ID", "key": "request_ID", "width": 40, "editable": False},
-                {"name": "Tenant", "key": "tenant_name", "width": 140, "editable": False},
-                {"name": "Apartment", "key": "apartment_address", "width": 100, "editable": False},
+                {"name": "Tenant", "key": "tenant_name", "width": 120, "editable": False},
+                {"name": "Apartment", "key": "apartment_address", "width": 180, "editable": False},
                 {"name": "City", "key": "city", "width": 70, "editable": False},
                 {"name": "Issue", "key": "issue_description", "width": 250},
                 {"name": "Priority", "key": "priority_level", "width": 65, "format": "dropdown", "options": [1, 2, 3, 4, 5]},
@@ -570,10 +570,10 @@ class MaintenanceStaff(User):
 
             columns = [
                 {"name": "ID", "key": "request_ID", "width": 40, "editable": False},
-                {"name": "Scheduled", "key": "scheduled_date", "width": 80, "editable": False, "format": "date"},
+                {"name": "Scheduled", "key": "scheduled_date", "width": 85, "editable": False, "format": "date"},
                 {"name": "Priority", "key": "priority_level", "width": 65, "editable": False},
-                {"name": "Tenant", "key": "tenant_name", "width": 140, "editable": False},
-                {"name": "Apartment", "key": "apartment_address", "width": 100, "editable": False},
+                {"name": "Tenant", "key": "tenant_name", "width": 120, "editable": False},
+                {"name": "Apartment", "key": "apartment_address", "width": 180, "editable": False},
                 {"name": "City", "key": "city", "width": 70, "editable": False},
                 {"name": "Issue", "key": "issue_description", "width": 250, "editable": False},
                 {"name": "Est. Cost", "key": "cost", "width": 100, "format": "currency", "editable": False},
@@ -659,16 +659,16 @@ class MaintenanceStaff(User):
             status_dropdown.pack(side="left")
 
             columns = [
-                {"name": "ID", "key": "request_ID", "width": 20, "editable": False},
-                {"name": "Tenant", "key": "tenant_name", "width": 90, "editable": False},
-                {"name": "Apartment", "key": "apartment_address", "width": 90, "editable": False},
+                {"name": "ID", "key": "request_ID", "width": 35, "editable": False},
+                {"name": "Tenant", "key": "tenant_name", "width": 70, "editable": False},
+                {"name": "Apartment", "key": "apartment_address", "width": 80, "editable": False},
                 {"name": "City", "key": "city", "width": 50, "editable": False},
-                {"name": "Issue", "key": "issue_description", "width": 190},
-                {"name": "Priority", "key": "priority_level", "width": 60, "format": "dropdown", "options": ["1", "2", "3", "4", "5"]},
+                {"name": "Issue", "key": "issue_description", "width": 250},
+                {"name": "P.", "key": "priority_level", "width": 25, "format": "dropdown", "options": ["1", "2", "3", "4", "5"]},
                 {"name": "Reported", "key": "reported_date", "width": 70, "editable": False, "format": "date"},
-                {"name": "Scheduled", "key": "scheduled_date", "width": 80, "format": "date"},
+                {"name": "Scheduled", "key": "scheduled_date", "width": 70, "format": "date"},
                 {"name": "Done", "key": "completed", "width": 45, "format": "boolean"},
-                {"name": "Cost", "key": "cost", "width": 40, "format": "currency"},
+                {"name": "Cost", "key": "cost", "width": 55, "format": "currency"},
             ]
 
             def get_data():
@@ -680,7 +680,7 @@ class MaintenanceStaff(User):
                         completed = 0
                     elif status_val == "Completed":
                         completed = 1
-                    return maintenance_repo.get_maintenance_requests(location, completed=completed)
+                    return maintenance_repo.get_maintenance_requests(location, completed=completed, compact=True)
                 except Exception as e:
                     print(f"Error loading maintenance requests: {e}")
                     return []
