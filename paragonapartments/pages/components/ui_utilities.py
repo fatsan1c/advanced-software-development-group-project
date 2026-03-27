@@ -6,6 +6,7 @@ from PIL import Image, ImageDraw
 from datetime import datetime
 import os
 from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER, ROUND_BTN, TEXT_COLOR, SECONDARY_GRAY, SECONDARY_GRAY_HOVER
+from pages.components.scrollable_option_menu import ScrollableCTkOptionMenu
 import pages.components.pdf_export as pdf_export
 
 try:
@@ -445,12 +446,14 @@ def create_dynamic_dropdown_with_refresh(parent, data_fetcher, display_formatter
     container.pack(fill="x", padx=0, pady=0)
     
     # Dropdown
-    dropdown = ctk.CTkOptionMenu(
+    dropdown = ScrollableCTkOptionMenu(
         container,
         values=["Loading..."],
+        dropdown_max_visible_rows=10,
         font=("Arial", 12)
     )
     dropdown.pack(side="left", expand=True, fill="x", pady=0)
+    dropdown.set("Loading...")
     style_secondary_dropdown(dropdown)
     
     # Data map storage
