@@ -193,41 +193,41 @@ class Manager(User):
         # Load base content first
         super().load_homepage_content(home_page)
 
-        container = pe.scrollable_container(parent=home_page)
+        container = pe.ScrollableContainer(parent=home_page)
 
         # First row - Performance Reports at top (full width, finance-style)
-        row1 = pe.row_container(parent=container)
+        row1 = pe.RowContainer(parent=container)
         self.load_report_content(row1)
 
         # Second row - Occupancy + Accounts
-        row2 = pe.row_container(parent=container)
+        row2 = pe.RowContainer(parent=container)
         self.load_occupancy_content(row2)
         self.load_account_content(row2)
 
         # Third row - Expand Business
-        row3 = pe.row_container(parent=container)
+        row3 = pe.RowContainer(parent=container)
         self.load_business_expansion_content(row3)
 
     def load_occupancy_content(self, row):
-        occupancy_card = pe.function_card(row, "Apartment Occupancy", side="left", pady=6, padx=8)
+        occupancy_card = pe.FunctionCard(row, "Apartment Occupancy", side="left", pady=6, padx=8)
 
         # Top info row: occupancy badge (left) + location selector (right) - match Performance Reports
         info_row = ctk.CTkFrame(occupancy_card, fg_color="transparent")
         info_row.pack(fill="x", pady=(0, 6))
 
-        occupancy_badge = pe.info_badge(info_row, "Total units: 0")
+        occupancy_badge = pe.InfoBadge(info_row, "Total units: 0")
 
-        location_dropdown = pe.location_dropdown_with_label(info_row)
+        location_dropdown = pe.LocationDropdownWithLabel(info_row)
 
         # Stat grid - match Performance Reports layout
-        stats = pe.stats_grid(occupancy_card)
+        stats = pe.StatsGrid(occupancy_card)
 
-        occupied_value = pe.stat_card(stats, "Occupied")
-        available_value = pe.stat_card(stats, "Available")
-        total_value = pe.stat_card(stats, "Total")
+        occupied_value = pe.StatCard(stats, "Occupied")
+        available_value = pe.StatCard(stats, "Available")
+        total_value = pe.StatCard(stats, "Total")
 
         def update_occupancy_display(choice=None):
-            location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
+            location = pe.normalize_location_value(location_dropdown.get())
             occupied_count = self.view_apartment_occupancy(location)
             total_count = apartment_repo.get_total_apartments(location)
             available_count = total_count - occupied_count
@@ -241,12 +241,9 @@ class Manager(User):
         refresh_timer, schedule_refresh = pe.create_debounced_refresh(occupancy_card, update_occupancy_display)
         location_dropdown.configure(command=schedule_refresh)
 
-        def _selected_location(val):
-            return "all" if (val or "") == "All Locations" else (val or "all")
-
         # Stats and analysis generators for occupancy export
         def generate_occupancy_stats(location=None):
-            loc = _selected_location(location) if location else "all"
+            loc = pe.normalize_location_value(location) if location else "all"
             occupied = apartment_repo.get_all_occupancy(loc)
             total = apartment_repo.get_total_apartments(loc)
             vacant = total - occupied
@@ -259,7 +256,7 @@ class Manager(User):
             )
         
         def generate_revenue_analysis(location=None):
-            loc = _selected_location(location) if location else "all"
+            loc = pe.normalize_location_value(location) if location else "all"
             actual = apartment_repo.get_monthly_revenue(loc)
             potential = apartment_repo.get_potential_revenue(loc)
             lost = potential - actual
@@ -276,22 +273,22 @@ class Manager(User):
             )
 
         def create_occupancy_pie(location=None):
-            loc = _selected_location(location) if location else "all"
+            loc = pe.normalize_location_value(location) if location else "all"
             return apartment_repo.create_occupancy_pie_chart(loc)
         
         def create_revenue_bar(location=None):
-            loc = _selected_location(location) if location else "all"
+            loc = pe.normalize_location_value(location) if location else "all"
             return apartment_repo.create_revenue_bar_chart(loc)
 
         # Graph popup button with comprehensive export
-        pe.open_graph_popup(
+        pe.GraphPopup().open_graph_popup(
             occupancy_card,
             popup_title="Apartment Occupancy Graph",
             button_text="View Graphs",
             graph_function=apartment_repo.create_occupancy_trend_graph,
             default_location=lambda: location_dropdown.get() or "All Locations",
             get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
-            location_mapper=_selected_location,
+            location_mapper=pe.normalize_location_value,
             stats_generator=generate_occupancy_stats,
             export_title="Occupancy Analysis Report",
             export_filename="occupancy_analysis_report",
@@ -301,7 +298,7 @@ class Manager(User):
         )
 
     def load_account_content(self, row):
-        accounts_card = pe.function_card(row, "Manage Accounts", side="left", pady=6, padx=8)
+        accounts_card = pe.FunctionCard(row, "Manage Accounts", side="left", pady=6, padx=8)
 
         try:
             location_options = ['None'] + location_repo.get_all_cities()
@@ -316,7 +313,7 @@ class Manager(User):
             {'name': 'Location', 'type': 'dropdown', 'options': location_options, 'required': False}
         ]
 
-        pe.form_element(
+        pe.Form(
             accounts_card,
             fields,
             name="Create Account",
@@ -324,7 +321,7 @@ class Manager(User):
             on_submit=self.create_account,
         )
 
-        button, open_popup_func = pe.popup_card(
+        button, open_popup_func = pe.PopupCard(
             accounts_card,
             button_text="Edit Accounts",
             title="Edit Accounts",
@@ -350,7 +347,7 @@ class Manager(User):
                     print(f"Error loading users: {e}")
                     return []
 
-            pe.create_edit_popup_with_table(
+            pe.EditableTablePopup(
                 content,
                 columns,
                 get_data_func=get_data,
@@ -361,22 +358,22 @@ class Manager(User):
         button.configure(command=setup_popup)
 
     def load_report_content(self, row):
-        reports_card = pe.function_card(row, "Performance Report", side="top", pady=6, padx=8)
+        reports_card = pe.FunctionCard(row, "Performance Report", side="top", pady=6, padx=8)
 
         # Top info row: vacant badge (left) + location selector (right) - match finance layout
         info_row = ctk.CTkFrame(reports_card, fg_color="transparent")
         info_row.pack(fill="x", pady=(0, 6))
 
-        vacant_badge = pe.info_badge(info_row, "Vacant units: 0")
-        location_dropdown = pe.location_dropdown_with_label(info_row)
+        vacant_badge = pe.InfoBadge(info_row, "Vacant units: 0")
+        location_dropdown = pe.LocationDropdownWithLabel(info_row)
 
         # Stat grid
-        stats = pe.stats_grid(reports_card)
-        actual_value = pe.stat_card(stats, "Actual Revenue", "£0.00")
-        potential_value = pe.stat_card(stats, "Potential Revenue", "£0.00")
+        stats = pe.StatsGrid(reports_card)
+        actual_value = pe.StatCard(stats, "Actual Revenue", "£0.00")
+        potential_value = pe.StatCard(stats, "Potential Revenue", "£0.00")
 
         def update_performance_display(choice=None):
-            location = "all" if location_dropdown.get() == "All Locations" else location_dropdown.get()
+            location = pe.normalize_location_value(location_dropdown.get())
             actual_revenue = apartment_repo.get_monthly_revenue(location)
             potential_revenue = apartment_repo.get_potential_revenue(location)
             total = apartment_repo.get_total_apartments(location)
@@ -391,12 +388,9 @@ class Manager(User):
         refresh_timer, schedule_refresh = pe.create_debounced_refresh(reports_card, update_performance_display)
         location_dropdown.configure(command=schedule_refresh)
 
-        def _sel(val):
-            return "all" if (val or "") == "All Locations" else (val or "all")
-
         # Stats and analysis generators for performance export
         def generate_performance_stats(location=None):
-            loc = _sel(location) if location else "all"
+            loc = pe.normalize_location_value(location) if location else "all"
             actual = apartment_repo.get_monthly_revenue(loc)
             potential = apartment_repo.get_potential_revenue(loc)
             total = apartment_repo.get_total_apartments(loc)
@@ -413,7 +407,7 @@ class Manager(User):
             )
         
         def generate_performance_analysis(location=None):
-            loc = _sel(location) if location else "all"
+            loc = pe.normalize_location_value(location) if location else "all"
             actual = apartment_repo.get_monthly_revenue(loc)
             potential = apartment_repo.get_potential_revenue(loc)
             lost = potential - actual
@@ -429,21 +423,21 @@ class Manager(User):
             )
 
         def create_occupancy_pie_report(location=None):
-            loc = _sel(location) if location else "all"
+            loc = pe.normalize_location_value(location) if location else "all"
             return apartment_repo.create_occupancy_pie_chart(loc)
         
         def create_revenue_bar_report(location=None):
-            loc = _sel(location) if location else "all"
+            loc = pe.normalize_location_value(location) if location else "all"
             return apartment_repo.create_revenue_bar_chart(loc)
 
-        pe.open_graph_popup(
+        pe.GraphPopup().open_graph_popup(
             reports_card,
             popup_title="Performance Report Graph",
             button_text="View Graphs",
             graph_function=apartment_repo.create_revenue_trend_graph,
             default_location=lambda: location_dropdown.get() or "All Locations",
             get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
-            location_mapper=_sel,
+            location_mapper=pe.normalize_location_value,
             stats_generator=generate_performance_stats,
             export_title="Performance Analysis Report",
             export_filename="performance_analysis_report",
@@ -453,7 +447,7 @@ class Manager(User):
         )
 
     def load_business_expansion_content(self, row):
-        expand_card = pe.function_card(row, "Expand Business", side="top", pady=6, padx=8)
+        expand_card = pe.FunctionCard(row, "Expand Business", side="top", pady=6, padx=8)
 
         # Two-column layout: Locations (left) | Apartments (right)
         main_row = ctk.CTkFrame(expand_card, fg_color="transparent")
@@ -470,7 +464,7 @@ class Manager(User):
             {'name': 'City', 'type': 'text', 'required': True, 'placeholder': 'New city name'},
             {'name': 'Address', 'type': 'text', 'required': True, 'placeholder': 'Full address'},
         ]
-        pe.form_element(
+        pe.Form(
             left_col,
             location_fields,
             name="Add Location",
@@ -478,7 +472,7 @@ class Manager(User):
             on_submit=self.expand_business,
         )
 
-        loc_btn, open_loc_popup = pe.popup_card(
+        loc_btn, open_loc_popup = pe.PopupCard(
             left_col,
             button_text="Edit Locations",
             title="Edit Locations",
@@ -503,7 +497,7 @@ class Manager(User):
                     print(f"Error loading locations: {e}")
                     return []
 
-            pe.create_edit_popup_with_table(
+            pe.EditableTablePopup(
                 content,
                 columns,
                 get_data_func=get_data,
@@ -526,7 +520,7 @@ class Manager(User):
             {'name': 'Monthly Rent', 'type': 'text', 'subtype': 'currency', 'required': True, 'placeholder': '£0.00'},
             {'name': 'Status', 'type': 'dropdown', 'options': ["Vacant", "Occupied"], 'required': True},
         ]
-        pe.form_element(
+        pe.Form(
             right_col,
             apartment_fields,
             name="Add Apartment",
@@ -535,7 +529,7 @@ class Manager(User):
             field_per_row=2,
         )
 
-        apt_btn, open_apt_popup = pe.popup_card(
+        apt_btn, open_apt_popup = pe.PopupCard(
             right_col,
             button_text="Edit Apartments",
             title="Edit Apartments",
@@ -547,8 +541,6 @@ class Manager(User):
         def setup_apt_popup():
             content = open_apt_popup()
 
-            header, location_dropdown = pe.create_popup_header_with_location(content)
-
             columns = [
                 {'name': 'ID', 'key': 'apartment_ID', 'width': 80, 'editable': False},
                 {'name': 'Location', 'key': 'city', 'width': 150, 'format': 'dropdown', 'options': location_options},
@@ -558,34 +550,22 @@ class Manager(User):
                 {'name': 'Status', 'key': 'occupied', 'width': 100, "format": "boolean", 'options': ["Occupied", "Vacant"]},
             ]
 
-            def get_data():
+            def get_data(location):
                 try:
-                    loc = location_dropdown.get()
-                    return apartment_repo.get_all_apartments(location=loc)
+                    return apartment_repo.get_all_apartments(location=location)
                 except Exception as e:
                     print(f"Error loading apartments: {e}")
                     return []
 
-            _, refresh_table = pe.data_table(
+            pe.EditableTablePopup(
                 content,
                 columns,
-                editable=True,
-                deletable=True,
-                refresh_data=get_data,
-                on_delete=self.delete_apartment,
-                on_update=self.edit_apartment,
-                show_refresh_button=False,
-                render_batch_size=20,
-                page_size=10,
+                get_data_func=get_data,
+                on_delete_func=self.delete_apartment,
+                on_update_func=self.edit_apartment,
+                include_location_filter=True,
+                location_mapper=pe.normalize_location_value,
             )
-
-            pe.create_refresh_button(header, refresh_table)
-
-            def refresh_with_reset():
-                refresh_table()
-            
-            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, refresh_with_reset)
-            location_dropdown.configure(command=schedule_refresh)
 
         apt_btn.configure(command=setup_apt_popup)
 # ============================= ^ Homepage UI Content ^ =====================================

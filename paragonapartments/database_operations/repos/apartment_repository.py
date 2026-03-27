@@ -7,15 +7,12 @@ from database_operations.db_execute import execute_query
 from database_operations.repos.repo_utils import normalize_location
 import numpy as np
 from pages.components.chart_utils import (
-    ACCENT_GREEN,
-    ACCENT_ORANGE,
-    ACCENT_RED,
-    ACCENT_BLUE,
-    create_bar_chart,
-    create_trend_chart,
-    create_pie_chart,
-    create_comparison_bar_chart,
+    BarChart,
+    TrendChart,
+    PieChart,
+    ComparisonBarChart,
 )
+from pages.components.config.theme import THEME
 
 
 def get_all_occupancy(location=None):
@@ -81,11 +78,11 @@ def create_occupancy_graph(parent, location=None):
     total_count = get_total_apartments(location)
     vacant_count = total_count - occupied_count
     title_location = location if location and str(location).lower() != "all" else "All Locations"
-    return create_bar_chart(
+    return BarChart.create(
         parent,
         labels=["Occupied", "Vacant"],
         values=[occupied_count, vacant_count],
-        colors=[ACCENT_GREEN, ACCENT_RED],
+        colors=[THEME.charts.accent_green, THEME.charts.accent_red],
         title=f"Apartment Occupancy in {title_location}",
         y_label="Number of Apartments",
         value_formatter="count",
@@ -152,11 +149,11 @@ def create_performance_graph(parent, location=None):
     potential_revenue = get_potential_revenue(location)
     lost_revenue = potential_revenue - actual_revenue
     title_location = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
-    return create_bar_chart(
+    return BarChart.create(
         parent,
         labels=["Actual Revenue", "Lost Revenue"],
         values=[actual_revenue, lost_revenue],
-        colors=[ACCENT_GREEN, ACCENT_ORANGE],
+        colors=[THEME.charts.accent_green, THEME.charts.accent_orange],
         title=f"Monthly Revenue Performance in {title_location}",
         y_label="Revenue (£)",
         value_formatter="currency",
@@ -175,21 +172,21 @@ def create_occupancy_trend_graph(parent, location=None, start_date=None, end_dat
     total = np.array([float(r.get("total") or 0) for r in series_data], dtype=float)
     title_loc = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
     if not series_data:
-        return create_trend_chart(parent, periods=[], series=[], title=f"Occupancy Trends - {title_loc}",
-                                  y_label="Number of Apartments", y_formatter="count")
-    return create_trend_chart(
+        return TrendChart.create(parent, periods=[], series=[], title=f"Occupancy Trends - {title_loc}",
+                                 y_label="Number of Apartments", y_formatter="count")
+    return TrendChart.create(
         parent,
         periods=periods,
         series=[
-            ("Occupied", occupied, ACCENT_GREEN),
-            ("Total Apartments", total, ACCENT_BLUE),
+            ("Occupied", occupied, THEME.charts.accent_green),
+            ("Total Apartments", total, THEME.charts.accent_blue),
         ],
         title=f"Occupancy Trends - {title_loc}",
         y_label="Number of Apartments",
         y_formatter="count",
         fill_primary=True,
         fill_secondary=True,
-        primary_color=ACCENT_GREEN,
+        primary_color=THEME.charts.accent_green,
         show_kpi=False,
         show_toolbar=True,
         y_lim_dynamic=True,
@@ -207,21 +204,21 @@ def create_revenue_trend_graph(parent, location=None, start_date=None, end_date=
     potential = np.array([float(r.get("potential_revenue") or 0) for r in series_data], dtype=float)
     title_loc = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
     if not series_data:
-        return create_trend_chart(parent, periods=[], series=[], title=f"Revenue Trends - {title_loc}",
-                                  y_label="Revenue (£)", y_formatter="currency")
-    return create_trend_chart(
+        return TrendChart.create(parent, periods=[], series=[], title=f"Revenue Trends - {title_loc}",
+                                 y_label="Revenue (£)", y_formatter="currency")
+    return TrendChart.create(
         parent,
         periods=periods,
         series=[
-            ("Actual Revenue", actual, ACCENT_GREEN),
-            ("Potential Revenue", potential, ACCENT_ORANGE),
+            ("Actual Revenue", actual, THEME.charts.accent_green),
+            ("Potential Revenue", potential, THEME.charts.accent_orange),
         ],
         title=f"Revenue Trends - {title_loc}",
         y_label="Revenue (£)",
         y_formatter="currency",
         fill_primary=True,
         fill_secondary=True,
-        primary_color=ACCENT_GREEN,
+        primary_color=THEME.charts.accent_green,
         show_kpi=False,
         show_toolbar=True,
         y_lim_dynamic=True,
@@ -338,9 +335,9 @@ def create_occupancy_pie_chart(location=None):
     
     labels = [f'Occupied\n{occupied} units', f'Vacant\n{vacant} units']
     values = [occupied, vacant]
-    colors = [ACCENT_GREEN, ACCENT_ORANGE]
+    colors = [THEME.charts.accent_green, THEME.charts.accent_orange]
     
-    return create_pie_chart(
+    return PieChart.create(
         parent=None,
         labels=labels,
         values=values,
@@ -364,9 +361,9 @@ def create_revenue_bar_chart(location=None):
     
     categories = ['Actual Revenue', 'Potential Revenue', 'Lost Revenue']
     values = [actual, potential, lost]
-    colors = [ACCENT_GREEN, ACCENT_BLUE, ACCENT_RED]
+    colors = [THEME.charts.accent_green, THEME.charts.accent_blue, THEME.charts.accent_red]
     
-    return create_comparison_bar_chart(
+    return ComparisonBarChart.create(
         parent=None,
         categories=categories,
         values=values,

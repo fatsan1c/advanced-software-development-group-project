@@ -9,7 +9,7 @@ from typing import Callable, Optional
 
 import customtkinter as ctk
 from customtkinter import ThemeManager
-from pages.components.config.theme import ROUND_INPUT
+from pages.components.config.theme import THEME
 
 
 class _ScrollableDropdownPopup:
@@ -353,7 +353,7 @@ class _ScrollableDropdownPopup:
         return "break"
 
 
-class ScrollableCTkOptionMenu(ctk.CTkOptionMenu):
+class ScrollableDropdown(ctk.CTkOptionMenu):
     """CTkOptionMenu drop-in replacement with scrollable popup list."""
 
     def __init__(
@@ -376,7 +376,7 @@ class ScrollableCTkOptionMenu(ctk.CTkOptionMenu):
             show_scrollbar=dropdown_show_scrollbar,
         )
 
-        self.configure(corner_radius=ROUND_INPUT)
+        self.configure(corner_radius=THEME.radii.input)
 
     def _open_dropdown_menu(self) -> None:
         if self._state is tk.DISABLED:

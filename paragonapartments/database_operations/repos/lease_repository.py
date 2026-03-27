@@ -6,15 +6,12 @@ import numpy as np
 from database_operations.repos.apartment_repository import get_total_apartments, get_potential_revenue
 import pages.components.input_validation as input_validation
 from pages.components.chart_utils import (
-    ACCENT_GREEN,
-    ACCENT_ORANGE,
-    ACCENT_RED,
-    ACCENT_BLUE,
-    create_bar_chart,
-    create_trend_chart,
-    create_pie_chart,
-    create_comparison_bar_chart,
+    BarChart,
+    TrendChart,
+    PieChart,
+    ComparisonBarChart,
 )
+from pages.components.config.theme import THEME
 
 
 def get_all_leases(location=None):
@@ -288,11 +285,11 @@ def create_lease_trend_graph(parent, location=None, start_date=None, end_date=No
     expired_values = np.array([int(row.get("expired_leases") or 0) for row in series_data], dtype=float)
     
     title_location = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
-    return create_trend_chart(
+    return TrendChart.create(
         parent,
         periods=periods,
         series=[
-            ("Active Leases", active_values, ACCENT_GREEN),
+            ("Active Leases", active_values, THEME.charts.accent_green),
             ("New Leases", new_values, "#4A90E2"),
         ],
         title=f"Lease Trends - {title_location}",
@@ -300,8 +297,8 @@ def create_lease_trend_graph(parent, location=None, start_date=None, end_date=No
         y_formatter="number",
         fill_primary=True,
         fill_secondary=False,
-        primary_color=ACCENT_GREEN,
-        secondary_axis=("Expired", expired_values, ACCENT_ORANGE),
+        primary_color=THEME.charts.accent_green,
+        secondary_axis=("Expired", expired_values, THEME.charts.accent_orange),
         show_kpi=False,
         show_toolbar=True,
         y_lim_dynamic=True,
@@ -526,9 +523,9 @@ def create_lease_status_pie_chart(location=None):
     
     labels = [f'Active\n{active} leases', f'Expired\n{expired} leases']
     values = [active, expired]
-    colors = [ACCENT_GREEN, ACCENT_RED]
+    colors = [THEME.charts.accent_green, THEME.charts.accent_red]
     
-    return create_pie_chart(
+    return PieChart.create(
         parent=None,
         labels=labels,
         values=values,
@@ -553,9 +550,9 @@ def create_lease_comparison_bar_chart(location=None):
     
     categories = ['Active', 'Expired', 'Expiring Soon']
     values = [active, expired, expiring]
-    colors = [ACCENT_GREEN, ACCENT_RED, ACCENT_ORANGE]
+    colors = [THEME.charts.accent_green, THEME.charts.accent_red, THEME.charts.accent_orange]
     
-    return create_comparison_bar_chart(
+    return ComparisonBarChart.create(
         parent=None,
         categories=categories,
         values=values,

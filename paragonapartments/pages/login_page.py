@@ -33,7 +33,7 @@ class LoginPage(ctk.CTkToplevel):
 
     def loginpage_content(self, container):
         # Create inner frame for centered content
-        inner_frame = pe.content_container(parent=container)
+        inner_frame = pe.ContentContainer(parent=container)
         inner_frame.place(relx=0.5, rely=0.5, anchor="center")
         
         # Title label

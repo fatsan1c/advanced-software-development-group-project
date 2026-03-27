@@ -1,10 +1,10 @@
-﻿"""Page elements aggregator module.
+"""Page elements aggregator module.
 
 This module re-exports all UI components from specialized submodules for backward compatibility.
 All files that import `pages.components.page_elements` will continue to work without changes.
 
 Submodules:
-- ui_utilities: Date utilities, button styling, UI patterns, visual elements
+- popup_utils/date_utils/style_utils/ui_controls_utils/image_utils/pdf_export_utils: Utility helpers
 - ui_containers: Layout containers (content, scrollable, row)
 - ui_cards: Card components (function card, popup, badges, stats)
 - ui_forms: Form builder with validation and field types
@@ -14,74 +14,88 @@ Usage:
     import pages.components.page_elements as pe
     
     # All functions from submodules are available directly:
-    content = pe.content_container(parent)
-    button = pe.action_button(content, "Click Me", handle_click)
-    table, refresh = pe.data_table(content, columns, data)
+    content = pe.ContentContainer(parent)
+    button = pe.ActionButton(content, "Click Me", handle_click)
+    table_builder = pe.DataTable(content, columns, data)
+    table, refresh = table_builder.table_container, table_builder.refresh_table
 """
 
 # Re-export all functions from specialized modules
 # This maintains backward compatibility for existing imports
 
 # Utilities: dates, buttons, patterns, visual elements
-from .ui_utilities import (
+from .popup_utils import (
+    center_popup,
+    enable_click_outside_to_close,
+)
+from .date_utils import (
     parse_date_string,
     open_date_picker,
+)
+from .style_utils import (
     style_primary_button,
     style_accent_secondary_button,
     style_secondary_button,
+    style_primary_dropdown,
+    style_secondary_dropdown,
+)
+from .ui_controls_utils import (
     create_refresh_button,
     create_debounced_refresh,
     create_popup_header_with_location,
-    round_image_corners,
+    normalize_location_value,
     content_separator,
     vertical_divider,
     create_dynamic_dropdown_with_refresh,
-    style_primary_dropdown,
-    style_secondary_dropdown,
-    show_pdf_export_success_popup,
-    show_pdf_export_error_popup,
-    create_export_pdf_button,
+)
+from .image_utils import (
+    round_image_corners,
+)
+from .pdf_export_utils import (
+    PDFReportExporter,
+    PDFExportUI,
 )
 
 # Graph popup utilities: specialized functions for graph popups
 from .graph_popup_utilities import (
-    create_graph_popup_controls,
-    setup_complete_graph_popup,
-    open_graph_popup,
+    GraphPopup,
 )
 
 # Containers: layout and scrolling
 from .ui_containers import (
-    content_container,
-    scrollable_container,
-    row_container,
+    ContentContainer,
+    ScrollableContainer,
+    RowContainer,
 )
 
 # Cards: function cards, popups, badges, stats
 from .ui_cards import (
-    function_card,
-    action_button,
-    popup_card,
-    info_badge,
-    location_dropdown_with_label,
-    stat_card,
-    stats_grid,
+    FunctionCard,
+    ActionButton,
+    PopupCard,
+    InfoBadge,
+    LocationDropdownWithLabel,
+    StatCard,
+    StatsGrid,
 )
 
 # Forms: form builder with validation
 from .ui_forms import (
-    form_element,
+    Form
 )
 
 # Tables: data tables with CRUD
 from .ui_tables import (
-    data_table,
-    create_edit_popup_with_table,
+    DataTable,
+    EditableTablePopup,
+    ViewableTablePopup,
 )
 
 # Export all for 'from page_elements import *'
 __all__ = [
-    # Utilities
+    # Utility functions
+    'enable_click_outside_to_close',
+    'center_popup',
     'parse_date_string',
     'open_date_picker',
     'style_primary_button',
@@ -92,31 +106,30 @@ __all__ = [
     'create_refresh_button',
     'create_debounced_refresh',
     'create_popup_header_with_location',
-    'round_image_corners',
+    'normalize_location_value',
     'content_separator',
     'vertical_divider',
-    'create_graph_popup_controls',
-    'setup_complete_graph_popup',
     'create_dynamic_dropdown_with_refresh',
-    'show_pdf_export_success_popup',
-    'show_pdf_export_error_popup',
-    'create_export_pdf_button',
-    'open_graph_popup',
+    'round_image_corners',
+    'PDFReportExporter',
+    'PDFExportUI',
+    'GraphPopup',
     # Containers
-    'content_container',
-    'scrollable_container',
-    'row_container',
+    'ContentContainer',
+    'ScrollableContainer',
+    'RowContainer',
     # Cards
-    'function_card',
-    'action_button',
-    'popup_card',
-    'info_badge',
-    'location_dropdown_with_label',
-    'stat_card',
-    'stats_grid',
+    'FunctionCard',
+    'ActionButton',
+    'PopupCard',
+    'InfoBadge',
+    'LocationDropdownWithLabel',
+    'StatCard',
+    'StatsGrid',
     # Forms
-    'form_element',
+    'Form',
     # Tables
-    'data_table',
-    'create_edit_popup_with_table',
+    'DataTable',
+    'EditableTablePopup',
+    'ViewableTablePopup',
 ]

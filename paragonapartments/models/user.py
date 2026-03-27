@@ -1,7 +1,7 @@
 import customtkinter as ctk
 import pages.components.page_elements as pe
 import database_operations.repos.user_repository as user_repo
-from pages.components.config.theme import PRIMARY_BLUE, PRIMARY_BLUE_HOVER
+from pages.components.config.theme import THEME
 
 
 def create_user(username: str, user_type: str, location: str = ""):
@@ -66,7 +66,7 @@ class User:
     def load_homepage_content(self, home_page):
         """Initialize and display home page content."""
         # Centered content wrapper
-        top_content = pe.content_container(parent=home_page, anchor="nw", fill="x", marginy=(10, 0))
+        top_content = pe.ContentContainer(parent=home_page, anchor="nw", fill="x", marginy=(10, 0))
 
         # Display role and "Dashboard" in the center
         ctk.CTkLabel(
@@ -76,7 +76,7 @@ class User:
         ).place(relx=0.5, rely=0.5, anchor="center")
 
         # Change password popup trigger in the top right corner, next to logout
-        _, open_popup = pe.popup_card(home_page, title="Change Password", small=True, generate_button=False)
+        _, open_popup = pe.PopupCard(home_page, title="Change Password", small=True, generate_button=False)
 
         def setup_popup():
             content = open_popup()
@@ -86,7 +86,7 @@ class User:
                 {'name': 'Current Password', 'type': 'text', 'subtype': 'password', 'required': True, 'placeholder': '• • • • • • • •'},
                 {'name': 'New Password', 'type': 'text', 'subtype': 'password', 'required': True, 'placeholder': '• • • • • • • •'},
             ]
-            pe.form_element(content, fields, name="Change Password", submit_text="Change Password", on_submit=self.change_password)
+            pe.Form(content, fields, name="Change Password", submit_text="Change Password", on_submit=self.change_password)
 
         # Top-right account actions
         actions = ctk.CTkFrame(top_content, fg_color="transparent")
@@ -99,8 +99,8 @@ class User:
             height=36,
             font=("Arial", 14, "bold"),
             command=lambda: self.logout(home_page),
-            fg_color=(PRIMARY_BLUE, PRIMARY_BLUE),
-            hover_color=(PRIMARY_BLUE_HOVER, PRIMARY_BLUE_HOVER),
+            fg_color=(THEME.colors.primary_blue, THEME.colors.primary_blue),
+            hover_color=(THEME.colors.primary_blue_hover, THEME.colors.primary_blue_hover),
         ).pack(anchor="e")
 
         ctk.CTkButton(

@@ -10,15 +10,12 @@ import numpy as np
 import pages.components.input_validation as input_validation
 from database_operations.repos.repo_utils import normalize_location, get_tenant_name_select_sql, parse_date as _parse_date
 from pages.components.chart_utils import (
-    create_bar_chart,
-    create_trend_chart,
-    create_pie_chart,
-    create_comparison_bar_chart,
-    ACCENT_GREEN,
-    ACCENT_ORANGE,
-    ACCENT_BLUE,
-    ACCENT_RED
+    BarChart,
+    TrendChart,
+    PieChart,
+    ComparisonBarChart,
 )
+from pages.components.config.theme import THEME
 from datetime import date as _date, datetime as _datetime, timedelta as _timedelta
 
 
@@ -376,11 +373,11 @@ def create_financial_summary_graph(parent, location: str | None = None):
     late_count = int(summary.get("late_invoice_count", 0) or 0)
 
     title_location = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
-    return create_bar_chart(
+    return BarChart.create(
         parent,
         labels=["Invoiced", "Collected", "Outstanding"],
         values=[total_invoiced, total_collected, outstanding],
-        colors=[ACCENT_BLUE, ACCENT_GREEN, ACCENT_ORANGE],
+        colors=[THEME.charts.accent_blue, THEME.charts.accent_green, THEME.charts.accent_orange],
         title=f"Financial Summary - {title_location}",
         y_label="Amount (£)",
         value_formatter="currency_decimal",
@@ -827,7 +824,7 @@ def create_collected_trend_graph(
 ):
     """
     Create and embed a multi-series finance trend chart.
-    Uses shared chart_utils.create_trend_chart for consistent styling across dashboards.
+    Uses shared chart_utils TrendChart class for consistent styling across dashboards.
     """
     data = get_collected_amount_timeseries(
         location=location,
@@ -842,11 +839,11 @@ def create_collected_trend_graph(
     late_values = np.array([float(row.get("late_count") or 0) for row in series_data], dtype=float)
 
     title_location = location if location and str(location).lower() not in {"all", "all locations"} else "All Locations"
-    return create_trend_chart(
+    return TrendChart.create(
         parent,
         periods=periods,
         series=[
-            ("Invoiced", invoiced_values, ACCENT_GREEN),
+            ("Invoiced", invoiced_values, THEME.charts.accent_green),
             ("Payments", collected_values, "#6B7080"),
         ],
         title=f"Finance Trends - {title_location}",
@@ -854,7 +851,7 @@ def create_collected_trend_graph(
         y_formatter="currency",
         fill_primary=True,
         fill_secondary=True,
-        primary_color=ACCENT_GREEN,
+        primary_color=THEME.charts.accent_green,
         secondary_axis=("Late Invoices", late_values, "#8E929C"),
         kpi_style="circle",
         show_toolbar=True,
@@ -875,9 +872,9 @@ def create_financial_status_pie_chart(location: str | None = None):
     
     labels = [f'Collected\n£{collected:,.2f}', f'Outstanding\n£{outstanding:,.2f}']
     values = [collected, outstanding]
-    colors = [ACCENT_GREEN, ACCENT_ORANGE]
+    colors = [THEME.charts.accent_green, THEME.charts.accent_orange]
     
-    return create_pie_chart(
+    return PieChart.create(
         parent=None,
         labels=labels,
         values=values,
@@ -902,9 +899,9 @@ def create_financial_comparison_bar_chart(location: str | None = None):
     
     categories = ['Total Invoiced', 'Collected', 'Outstanding']
     values = [invoiced, collected, outstanding]
-    colors = [ACCENT_BLUE, ACCENT_GREEN, ACCENT_RED]
+    colors = [THEME.charts.accent_blue, THEME.charts.accent_green, THEME.charts.accent_red]
     
-    return create_comparison_bar_chart(
+    return ComparisonBarChart.create(
         parent=None,
         categories=categories,
         values=values,

@@ -11,12 +11,6 @@ class MaintenanceStaff(User):
     def __init__(self, username: str, location: str = None):
         super().__init__(username, role="Maintenance Staff", location=location)
 
-    def _selected_location(self, dropdown_value: str | None) -> str:
-        """Map UI dropdown value to repository location parameter."""
-        if dropdown_value == "All Locations":
-            return "all"
-        return dropdown_value or "all"
-
 # ============================= v Maintenance Staff functions v  =====================================
     
     def get_maintenance_stats(self, location: str = "all"):
@@ -154,47 +148,47 @@ class MaintenanceStaff(User):
         # Load base content first
         super().load_homepage_content(home_page)
 
-        container = pe.scrollable_container(parent=home_page)
+        container = pe.ScrollableContainer(parent=home_page)
 
         # Row 1: Dashboard Summary & Pending Requests
-        row1 = pe.row_container(parent=container)
+        row1 = pe.RowContainer(parent=container)
         self.load_summary_content(row1)
         self.load_pending_requests_content(row1)
 
         # Row 2: Complete Request & Schedule Request
-        row2 = pe.row_container(parent=container)
+        row2 = pe.RowContainer(parent=container)
         self.load_complete_request_content(row2)
         self.load_schedule_request_content(row2)
 
         # Row 3: Create Request
-        row3 = pe.row_container(parent=container)
+        row3 = pe.RowContainer(parent=container)
         self.load_create_request_content(row3)
         
 
     def load_summary_content(self, row):
         """Load maintenance statistics summary card."""
-        summary_card = pe.function_card(row, "Maintenance Summary", side="left")
+        summary_card = pe.FunctionCard(row, "Maintenance Summary", side="left")
 
         # Top info row: high priority badge (left) + location selector (right)
         info_row = ctk.CTkFrame(summary_card, fg_color="transparent")
         info_row.pack(fill="x", pady=(0, 6))
 
-        priority_badge = pe.info_badge(info_row, "High Priority: 0")
+        priority_badge = pe.InfoBadge(info_row, "High Priority: 0")
 
-        location_dropdown = pe.location_dropdown_with_label(info_row)
+        location_dropdown = pe.LocationDropdownWithLabel(info_row)
         location_dropdown.set(self.location if self.location else "All Locations")
 
         # Stat grid - match Performance Reports layout
-        stats = pe.stats_grid(summary_card)
+        stats = pe.StatsGrid(summary_card)
 
-        total_value = pe.stat_card(stats, "Total Requests", "0")
-        pending_value = pe.stat_card(stats, "Pending", "0")
-        completed_value = pe.stat_card(stats, "Completed", "0")
-        cost_value = pe.stat_card(stats, "Avg Cost", "£0.00")
+        total_value = pe.StatCard(stats, "Total Requests", "0")
+        pending_value = pe.StatCard(stats, "Pending", "0")
+        completed_value = pe.StatCard(stats, "Completed", "0")
+        cost_value = pe.StatCard(stats, "Avg Cost", "£0.00")
 
         def update_summary(choice=None):
             try:
-                location = self._selected_location(location_dropdown.get())
+                location = pe.normalize_location_value(location_dropdown.get())
                 stats_data = self.get_maintenance_stats(location)
                 
                 total = stats_data.get('total_requests', 0) or 0
@@ -217,9 +211,9 @@ class MaintenanceStaff(User):
 
     def load_pending_requests_content(self, row):
         """Load pending maintenance requests card with priority filtering."""
-        pending_card = pe.function_card(row, "View Requests", side="left")
+        pending_card = pe.FunctionCard(row, "View Requests", side="left")
 
-        button, open_popup = pe.popup_card(
+        button, open_popup = pe.PopupCard(
             pending_card,
             title="Pending Maintenance Requests",
             button_text="View Pending Requests",
@@ -272,7 +266,7 @@ class MaintenanceStaff(User):
 
             def get_data():
                 try:
-                    location = self._selected_location(location_dropdown.get())
+                    location = pe.normalize_location_value(location_dropdown.get())
                     priority_val = priority_dropdown.get()
                     priority = None
                     if priority_val != "All":
@@ -282,7 +276,7 @@ class MaintenanceStaff(User):
                     print(f"Error loading pending requests: {e}")
                     return []
 
-            _, refresh_table = pe.data_table(
+            table = pe.DataTable(
                 content,
                 columns,
                 editable=False,
@@ -292,6 +286,7 @@ class MaintenanceStaff(User):
                 render_batch_size=20,
                 page_size=10
             )
+            _, refresh_table = table.table_container, table.refresh_table
 
             # Refresh button
             ctk.CTkButton(
@@ -327,7 +322,7 @@ class MaintenanceStaff(User):
 
     def load_complete_request_content(self, row):
         """Load complete maintenance request card with dropdown."""
-        complete_card = pe.function_card(row, "Complete Request", side="left")
+        complete_card = pe.FunctionCard(row, "Complete Request", side="left")
 
         # Define data fetcher and formatter for request dropdown
         def fetch_requests():
@@ -377,7 +372,7 @@ class MaintenanceStaff(User):
             }
         ]
 
-        pe.form_element(
+        pe.Form(
             complete_card,
             fields,
             name="",
@@ -388,7 +383,7 @@ class MaintenanceStaff(User):
 
     def load_schedule_request_content(self, row):
         """Load schedule maintenance request card with dropdown."""
-        schedule_card = pe.function_card(row, "Schedule Request", side="left")
+        schedule_card = pe.FunctionCard(row, "Schedule Request", side="left")
 
         # Define data fetcher and formatter for request dropdown
         def fetch_requests():
@@ -439,7 +434,7 @@ class MaintenanceStaff(User):
             }
         ]
 
-        pe.form_element(
+        pe.Form(
             schedule_card,
             fields,
             name="",
@@ -450,7 +445,7 @@ class MaintenanceStaff(User):
 
     def load_create_request_content(self, row):
         """Load create new maintenance request card with apartment dropdown."""
-        create_card = pe.function_card(row, "Create Request", side="left")
+        create_card = pe.FunctionCard(row, "Create Request", side="left")
 
         # Define data fetcher and formatter for apartment dropdown
         def fetch_apartments():
@@ -529,7 +524,7 @@ class MaintenanceStaff(User):
             }
         ]
 
-        pe.form_element(
+        pe.Form(
             create_card,
             fields,
             name="",
@@ -540,7 +535,7 @@ class MaintenanceStaff(User):
 
     def load_scheduled_maintenance_button(self, parent):
         """Load upcoming scheduled maintenance card."""
-        button, open_popup = pe.popup_card(
+        button, open_popup = pe.PopupCard(
             parent,
             title="Upcoming Scheduled Maintenance",
             button_text="View Upcoming Schedule",
@@ -551,22 +546,6 @@ class MaintenanceStaff(User):
 
         def setup_popup():
             content = open_popup()
-
-            # Filter controls
-            header = ctk.CTkFrame(content, fg_color="transparent")
-            header.pack(fill="x", padx=10, pady=(5, 10))
-
-            ctk.CTkLabel(header, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
-
-            try:
-                cities = ["All Locations"] + location_repo.get_all_cities()
-            except Exception as e:
-                print(f"Error loading cities: {e}")
-                cities = ["All Locations"]
-                
-            location_dropdown = ctk.CTkComboBox(header, values=cities, width=220, font=("Arial", 13))
-            location_dropdown.set(self.location if self.location else "All Locations")
-            location_dropdown.pack(side="left")
 
             columns = [
                 {"name": "ID", "key": "request_ID", "width": 40, "editable": False},
@@ -579,47 +558,30 @@ class MaintenanceStaff(User):
                 {"name": "Est. Cost", "key": "cost", "width": 100, "format": "currency", "editable": False},
             ]
 
-            def get_data():
+            def get_data(location):
                 try:
-                    location = self._selected_location(location_dropdown.get())
                     return maintenance_repo.get_scheduled_maintenance(location)
                 except Exception as e:
                     print(f"Error loading scheduled maintenance: {e}")
                     return []
 
-            _, refresh_table = pe.data_table(
+            popup = pe.ViewableTablePopup(
                 content,
                 columns,
-                editable=False,
-                deletable=False,
-                refresh_data=get_data,
-                show_refresh_button=False,
-                render_batch_size=20,
-                page_size=10
+                get_data_func=get_data,
+                include_location_filter=True,
+                location_mapper=pe.normalize_location_value,
             )
 
-            # Refresh button
-            pe.create_refresh_button(header, refresh_table, side="left", padx=(12, 0))
-
-            # Auto-refresh on location change
-            refresh_timer = {"id": None}
-            def schedule_refresh(_choice=None):
-                if refresh_timer["id"] is not None:
-                    try:
-                        content.after_cancel(refresh_timer["id"])
-                    except Exception:
-                        pass
-                if hasattr(refresh_table, "reset_page"):
-                    refresh_table.reset_page()
-                refresh_timer["id"] = content.after(150, refresh_table)
-
-            location_dropdown.configure(command=schedule_refresh)
+            if popup.location_dropdown is not None:
+                popup.location_dropdown.set(self.location if self.location else "All Locations")
+                popup.table.refresh_table()
 
         button.configure(command=setup_popup)
 
     def load_all_requests_button(self, parent):
         """Load view/edit all maintenance requests card."""
-        button, open_popup = pe.popup_card(
+        button, open_popup = pe.PopupCard(
             parent,
             title="Maintenance Requests",
             button_text="View / Edit All Requests",
@@ -673,7 +635,7 @@ class MaintenanceStaff(User):
 
             def get_data():
                 try:
-                    location = self._selected_location(location_dropdown.get())
+                    location = pe.normalize_location_value(location_dropdown.get())
                     status_val = status_dropdown.get()
                     completed = None
                     if status_val == "Pending":
@@ -685,7 +647,7 @@ class MaintenanceStaff(User):
                     print(f"Error loading maintenance requests: {e}")
                     return []
 
-            _, refresh_table = pe.data_table(
+            table = pe.DataTable(
                 content,
                 columns,
                 editable=True,
@@ -697,6 +659,7 @@ class MaintenanceStaff(User):
                 render_batch_size=20,
                 page_size=10
             )
+            _, refresh_table = table.table_container, table.refresh_table
 
             # Refresh button
             pe.create_refresh_button(header, refresh_table, side="left", padx=(12, 0))

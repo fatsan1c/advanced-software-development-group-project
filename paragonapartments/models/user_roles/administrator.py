@@ -142,7 +142,7 @@ class Administrator(User):
                 self._current_container.destroy()
             
             # Create new container with updated location
-            self._current_container = pe.scrollable_container(parent=home_page)
+            self._current_container = pe.ScrollableContainer(parent=home_page)
             self._load_all_cards(self._current_container)
 
         if not self.location:
@@ -165,14 +165,14 @@ class Administrator(User):
             pe.style_secondary_dropdown(location_dropdown)
             self.location = location_dropdown.get()  # Set initial location from dropdown
 
-        container = pe.scrollable_container(parent=home_page)
+        container = pe.ScrollableContainer(parent=home_page)
         self._current_container = container
         self._load_all_cards(container)
 
     def _load_all_cards(self, container):
         """Load all content cards into the container."""
         # First row - 2 cards
-        row1 = pe.row_container(parent=container)
+        row1 = pe.RowContainer(parent=container)
         
         # Display apartment occupancy for this location
         self.load_occupancy_content(row1)
@@ -181,7 +181,7 @@ class Administrator(User):
         self.load_account_content(row1)
 
         # Second row - 2 cards
-        row2 = pe.row_container(parent=container)
+        row2 = pe.RowContainer(parent=container)
         
         # Display lease agreements tracking
         self.load_lease_content(row2)
@@ -190,26 +190,26 @@ class Administrator(User):
         self.load_reports_content(row2)
 
         # Third row - full width card
-        row3 = pe.row_container(parent=container)
+        row3 = pe.RowContainer(parent=container)
         
         # Manage apartments at this location
         self.load_apartment_content(row3)
 
     def load_occupancy_content(self, row):
-        occupancy_card = pe.function_card(row, f"Apartment Occupancy - {self.location}", side="left", pady=6, padx=8)
+        occupancy_card = pe.FunctionCard(row, f"Apartment Occupancy - {self.location}", side="left", pady=6, padx=8)
 
         # Top info row: occupancy badge
         info_row = ctk.CTkFrame(occupancy_card, fg_color="transparent")
         info_row.pack(fill="x", pady=(0, 6))
 
-        occupancy_badge = pe.info_badge(info_row, "Total units: 0")
+        occupancy_badge = pe.InfoBadge(info_row, "Total units: 0")
 
         # Stat grid
-        stats = pe.stats_grid(occupancy_card)
+        stats = pe.StatsGrid(occupancy_card)
 
-        occupied_value = pe.stat_card(stats, "Occupied")
-        available_value = pe.stat_card(stats, "Available")
-        total_value = pe.stat_card(stats, "Total")
+        occupied_value = pe.StatCard(stats, "Occupied")
+        available_value = pe.StatCard(stats, "Available")
+        total_value = pe.StatCard(stats, "Total")
 
         def update_occupancy_display():
             try:
@@ -259,7 +259,7 @@ class Administrator(User):
             )
 
         # Graph popup button with comprehensive export enabled
-        pe.open_graph_popup(
+        pe.GraphPopup().open_graph_popup(
             button_container,
             popup_title=f"Apartment Occupancy Graph - {self.location}",
             button_text="View Graphs",
@@ -277,7 +277,7 @@ class Administrator(User):
         )
         
     def load_account_content(self, row):
-        accounts_card = pe.function_card(row, f"Manage Accounts - {self.location}", side="left", pady=6, padx=8)
+        accounts_card = pe.FunctionCard(row, f"Manage Accounts - {self.location}", side="left", pady=6, padx=8)
 
         # Choose fields for creating new account form 
         # Only username, role, and password (location is fixed to administrator's location)
@@ -288,7 +288,7 @@ class Administrator(User):
         ]
 
         # create form for creating new accounts with above fields
-        pe.form_element(
+        pe.Form(
             accounts_card,
             fields,
             name="Create Account",
@@ -297,7 +297,7 @@ class Administrator(User):
         )
 
         # Create a popup with a button to edit existing accounts
-        button, open_popup_func = pe.popup_card(
+        button, open_popup_func = pe.PopupCard(
             accounts_card, 
             button_text="Edit Accounts", 
             title=f"Edit Accounts - {self.location}",
@@ -328,7 +328,7 @@ class Administrator(User):
                     return []
 
             # Create editable and deletable data table for user accounts
-            pe.create_edit_popup_with_table(
+            pe.EditableTablePopup(
                 content,
                 columns,
                 get_data_func=get_data,
@@ -340,20 +340,20 @@ class Administrator(User):
         button.configure(command=setup_popup)
 
     def load_lease_content(self, row):
-        lease_card = pe.function_card(row, f"Lease Agreements - {self.location}", side="left", pady=6, padx=8)
+        lease_card = pe.FunctionCard(row, f"Lease Agreements - {self.location}", side="left", pady=6, padx=8)
 
         # Top info row: expiring soon badge
         info_row = ctk.CTkFrame(lease_card, fg_color="transparent")
         info_row.pack(fill="x", pady=(0, 6))
 
-        expiring_badge = pe.info_badge(info_row, "Expiring soon: 0")
+        expiring_badge = pe.InfoBadge(info_row, "Expiring soon: 0")
 
         # Stat grid
-        stats = pe.stats_grid(lease_card)
+        stats = pe.StatsGrid(lease_card)
 
-        active_value = pe.stat_card(stats, "Active")
-        expired_value = pe.stat_card(stats, "Expired")
-        total_value = pe.stat_card(stats, "Total")
+        active_value = pe.StatCard(stats, "Active")
+        expired_value = pe.StatCard(stats, "Expired")
+        total_value = pe.StatCard(stats, "Total")
 
         def update_lease_display():
             try:
@@ -404,7 +404,7 @@ class Administrator(User):
             )
 
         # Graph popup button with comprehensive export
-        pe.open_graph_popup(
+        pe.GraphPopup().open_graph_popup(
             lease_card,
             popup_title=f"Lease Trends Graph - {self.location}",
             button_text="View Graphs",
@@ -422,7 +422,7 @@ class Administrator(User):
         )
 
         # View Data button for lease agreements table
-        data_button, open_data_popup_func = pe.popup_card(
+        data_button, open_data_popup_func = pe.PopupCard(
             lease_card,
             title=f"View Lease Agreements - {self.location}",
             button_text="View Leases",
@@ -455,33 +455,28 @@ class Administrator(User):
                 except Exception as e:
                     print(f"Error loading leases: {e}")
                     return []
-                
-            table, refresh_table = pe.data_table(
+
+            pe.ViewableTablePopup(
                 content,
                 columns,
-                editable=False,
-                deletable=False,
-                refresh_data=get_data,
-                show_refresh_button=True,
-                render_batch_size=20,
-                page_size=10,
+                get_data_func=get_data,
             )
 
         data_button.configure(command=setup_data_popup)
 
     def load_reports_content(self, row):
-        reports_card = pe.function_card(row, f"Performance Report - {self.location}", side="left", pady=6, padx=8)
+        reports_card = pe.FunctionCard(row, f"Performance Report - {self.location}", side="left", pady=6, padx=8)
 
         # Top info row: vacant badge
         info_row = ctk.CTkFrame(reports_card, fg_color="transparent")
         info_row.pack(fill="x", pady=(0, 6))
 
-        vacant_badge = pe.info_badge(info_row, "Vacant units: 0")
+        vacant_badge = pe.InfoBadge(info_row, "Vacant units: 0")
 
         # Stat grid
-        stats = pe.stats_grid(reports_card)
-        actual_value = pe.stat_card(stats, "Actual Revenue", "£0.00")
-        potential_value = pe.stat_card(stats, "Potential Revenue", "£0.00")
+        stats = pe.StatsGrid(reports_card)
+        actual_value = pe.StatCard(stats, "Actual Revenue", "£0.00")
+        potential_value = pe.StatCard(stats, "Potential Revenue", "£0.00")
 
         def update_performance_display():
             try:
@@ -530,7 +525,7 @@ class Administrator(User):
                 f"Performance Rating: {'Excellent' if efficiency >= 90 else 'Good' if efficiency >= 75 else 'Fair' if efficiency >= 60 else 'Needs Improvement'}"
             )
 
-        pe.open_graph_popup(
+        pe.GraphPopup().open_graph_popup(
             reports_card,
             popup_title=f"Performance Report Graph - {self.location}",
             button_text="View Graphs",
@@ -548,7 +543,7 @@ class Administrator(User):
         )
 
     def load_apartment_content(self, row):
-        apartment_card = pe.function_card(row, f"Manage Apartments - {self.location}", side="top", pady=6, padx=8)
+        apartment_card = pe.FunctionCard(row, f"Manage Apartments - {self.location}", side="top", pady=6, padx=8)
 
         # Define fields for adding a new apartment (location is fixed)
         fields = [
@@ -558,7 +553,7 @@ class Administrator(User):
             {'name': 'Status', 'type': 'dropdown', 'options': ["Vacant", "Occupied"], 'required': True},
         ]
 
-        pe.form_element(
+        pe.Form(
             apartment_card,
             fields,
             name="Add Apartment",
@@ -568,7 +563,7 @@ class Administrator(User):
         )
 
         # Create a popup to edit existing apartments with a data table
-        button, open_popup_func = pe.popup_card(
+        button, open_popup_func = pe.PopupCard(
             apartment_card, 
             button_text="Edit Apartments", 
             title=f"Edit Apartments - {self.location}",
@@ -599,7 +594,7 @@ class Administrator(User):
                     return []
 
             # Create editable and deletable data table for apartments
-            pe.create_edit_popup_with_table(
+            pe.EditableTablePopup(
                 content,
                 columns,
                 get_data_func=get_data,

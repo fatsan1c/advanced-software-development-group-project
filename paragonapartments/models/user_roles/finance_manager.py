@@ -12,12 +12,6 @@ class FinanceManager(User):
         super().__init__(username, role="Finance Manager", location=location)
 
 # ============================= v Finance Manager functions v  =====================================
-    def _selected_location(self, dropdown_value: str | None) -> str:
-        """Map UI dropdown value to repository location parameter."""
-        if dropdown_value == "All Locations":
-            return "all"
-        return dropdown_value or "all"
-
     def generate_financial_reports(self, location: str = "all"):
         """Return financial summary data (used by the dashboard)."""
         return finance_repo.get_financial_summary(location)
@@ -141,38 +135,38 @@ class FinanceManager(User):
         # Load base content first
         super().load_homepage_content(home_page)
 
-        container = pe.scrollable_container(parent=home_page, hide_scrollbar_when_loading=True)
+        container = pe.ScrollableContainer(parent=home_page, hide_scrollbar_when_loading=True)
 
         # Row 1: summary full-width
-        row1 = pe.row_container(parent=container)
+        row1 = pe.RowContainer(parent=container)
         self.load_summary_content(row1, side="top")
 
         # Row 2: payments (left) + invoices (right)
-        row2 = pe.row_container(parent=container)
+        row2 = pe.RowContainer(parent=container)
         self.load_payments_content(row2, side="left")
         self.load_invoice_content(row2, side="left")
 
     def load_summary_content(self, row, side="left"):
-        summary_card = pe.function_card(row, "Financial Summary", side=side, pady=6, padx=8)
+        summary_card = pe.FunctionCard(row, "Financial Summary", side=side, pady=6, padx=8)
 
         # Top info row: late-invoice badge (left) + location selector (right)
         info_row = ctk.CTkFrame(summary_card, fg_color="transparent")
         info_row.pack(fill="x", pady=(0, 6))
 
-        late_badge = pe.info_badge(info_row, "Late invoices: 0")
+        late_badge = pe.InfoBadge(info_row, "Late invoices: 0")
 
-        location_dropdown = pe.location_dropdown_with_label(info_row)
+        location_dropdown = pe.LocationDropdownWithLabel(info_row)
 
         # Stat grid
-        stats = pe.stats_grid(summary_card)
+        stats = pe.StatsGrid(summary_card)
 
-        invoiced_value = pe.stat_card(stats, "Invoiced", "£0.00")
-        collected_value = pe.stat_card(stats, "Collected", "£0.00")
-        outstanding_value = pe.stat_card(stats, "Outstanding", "£0.00")
+        invoiced_value = pe.StatCard(stats, "Invoiced", "£0.00")
+        collected_value = pe.StatCard(stats, "Collected", "£0.00")
+        outstanding_value = pe.StatCard(stats, "Outstanding", "£0.00")
 
         def update_summary():
             try:
-                location = self._selected_location(location_dropdown.get())
+                location = pe.normalize_location_value(location_dropdown.get())
                 summary = self.generate_financial_reports(location)
                 invoiced_value.configure(text=f"£{summary['total_invoiced']:,.2f}")
                 collected_value.configure(text=f"£{summary['total_collected']:,.2f}")
@@ -183,7 +177,7 @@ class FinanceManager(User):
 
         # Enhanced stats and analysis generators for comprehensive export
         def generate_detailed_stats(location=None):
-            loc = self._selected_location(location) if location else "all"
+            loc = pe.normalize_location_value(location) if location else "all"
             summary = finance_repo.get_financial_summary(loc)
             loc_label = location if location and location != "All Locations" else "All Locations"
             collection_rate = (summary['total_collected'] / summary['total_invoiced'] * 100) if summary['total_invoiced'] > 0 else 0
@@ -197,7 +191,7 @@ class FinanceManager(User):
             )
         
         def generate_financial_analysis(location=None):
-            loc = self._selected_location(location) if location else "all"
+            loc = pe.normalize_location_value(location) if location else "all"
             summary = finance_repo.get_financial_summary(loc)
             loc_label = location if location and location != "All Locations" else "All Locations"
             collection_rate = (summary['total_collected'] / summary['total_invoiced'] * 100) if summary['total_invoiced'] > 0 else 0
@@ -214,24 +208,24 @@ class FinanceManager(User):
             )
 
         def create_financial_pie(location=None):
-            loc = self._selected_location(location) if location else "all"
+            loc = pe.normalize_location_value(location) if location else "all"
             return finance_repo.create_financial_status_pie_chart(loc)
         
         def create_financial_bar(location=None):
-            loc = self._selected_location(location) if location else "all"
+            loc = pe.normalize_location_value(location) if location else "all"
             return finance_repo.create_financial_comparison_bar_chart(loc)
 
         # Graph popup with comprehensive export enabled
-        button, export_btn = pe.open_graph_popup(
+        button, export_btn = pe.GraphPopup().open_graph_popup(
             summary_card,
             popup_title="Finance Trends Graph",
             button_text="View Graphs",
             graph_function=finance_repo.create_collected_trend_graph,
             default_location=lambda: location_dropdown.get() or "All Locations",
             get_date_range_func=lambda location_str, grouping: finance_repo.get_finance_date_range(
-                self._selected_location(location_str), grouping=grouping
+                pe.normalize_location_value(location_str), grouping=grouping
             ),
-            location_mapper=self._selected_location,
+            location_mapper=pe.normalize_location_value,
             stats_generator=generate_detailed_stats,
             export_title="Financial Analysis Report",
             export_filename="financial_analysis_report",
@@ -246,7 +240,7 @@ class FinanceManager(User):
         update_summary()
 
     def load_invoice_content(self, row, side="left"):
-        invoices_card = pe.function_card(row, "Manage Invoices", side=side, pady=6, padx=8)
+        invoices_card = pe.FunctionCard(row, "Manage Invoices", side=side, pady=6, padx=8)
 
         def format_tenants(tenant):
             display = f"ID {tenant['tenant_ID']}: {tenant['first_name']} {tenant['last_name']}"
@@ -262,7 +256,7 @@ class FinanceManager(User):
             {"name": "Due Date", "type": "text", "subtype": "date", "placeholder": "YYYY-MM-DD", "required": True},
             {"name": "Issue Date", "type": "text", "subtype": "date", "placeholder": "YYYY-MM-DD", "required": False},
         ]
-        pe.form_element(
+        pe.Form(
             invoices_card,
             fields,
             name="",
@@ -271,7 +265,7 @@ class FinanceManager(User):
         )
 
         # Edit invoices popup
-        button, open_popup = pe.popup_card(
+        button, open_popup = pe.PopupCard(
             invoices_card,
             title="Invoices",
             button_text="View / Edit Invoices",
@@ -282,9 +276,6 @@ class FinanceManager(User):
 
         def setup_popup():
             content = open_popup()
-
-            # Filter dropdown
-            header, location_dropdown = pe.create_popup_header_with_location(content)
 
             columns = [
                 {"name": "ID", "key": "invoice_ID", "width": 40, "editable": False},
@@ -297,43 +288,27 @@ class FinanceManager(User):
                 {"name": "Paid", "key": "paid", "width": 70, "format": "boolean", "options": ["Paid", "Unpaid"]},
             ]
 
-            def get_data():
+            def get_data(location):
                 try:
-                    location = self._selected_location(location_dropdown.get())
                     return finance_repo.get_invoices(location)
                 except Exception as e:
                     print(f"Error loading invoices: {e}")
                     return []
 
-            _, refresh_table = pe.data_table(
+            pe.EditableTablePopup(
                 content,
                 columns,
-                editable=True,
-                deletable=True,
-                refresh_data=get_data,
-                on_delete=self.delete_invoice_row,
-                on_update=self.update_invoice_row,
-                show_refresh_button=False,
-                render_batch_size=20,
-                page_size=10
+                get_data_func=get_data,
+                on_delete_func=self.delete_invoice_row,
+                on_update_func=self.update_invoice_row,
+                include_location_filter=True,
+                location_mapper=pe.normalize_location_value
             )
-
-            # Top refresh button next to the dropdown
-            pe.create_refresh_button(header, refresh_table)
-
-            # Optional: auto-refresh when changing city
-            def refresh_with_reset():
-                if hasattr(refresh_table, "reset_page"):
-                    refresh_table.reset_page()
-                refresh_table()
-            
-            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, refresh_with_reset)
-            location_dropdown.configure(command=schedule_refresh)
 
         button.configure(command=setup_popup)
 
     def load_payments_content(self, row, side="top"):
-        payments_card = pe.function_card(row, "Payments", side=side, pady=6, padx=8)
+        payments_card = pe.FunctionCard(row, "Payments", side=side, pady=6, padx=8)
 
         # Define data fetcher and formatter for unpaid invoices
         def fetch_unpaid_invoices():
@@ -359,7 +334,7 @@ class FinanceManager(User):
             {"name": "Amount", "type": "text", "subtype": "currency", "required": True, "placeholder": "£0.00"},
             {"name": "Payment Date", "type": "text", "subtype": "date", "placeholder": "YYYY-MM-DD", "required": False}
         ]
-        pe.form_element(
+        pe.Form(
             payments_card,
             fields,
             name="",
@@ -378,7 +353,7 @@ class FinanceManager(User):
         actions_right.pack(side="left", fill="x", expand=True, padx=(6, 0))
 
         # View payments popup
-        pay_btn, open_pay_popup = pe.popup_card(
+        pay_btn, open_pay_popup = pe.PopupCard(
             actions_left,
             title="Payments",
             button_text="View Payments",
@@ -388,7 +363,7 @@ class FinanceManager(User):
         pe.style_secondary_button(pay_btn, font_size=15)
 
         # View late invoices popup
-        late_btn, open_late_popup = pe.popup_card(
+        late_btn, open_late_popup = pe.PopupCard(
             actions_right,
             title="Late / Unpaid Invoices",
             button_text="Late Invoices",
@@ -400,8 +375,6 @@ class FinanceManager(User):
         def setup_payments_popup():
             content = open_pay_popup()
 
-            header, location_dropdown = pe.create_popup_header_with_location(content)
-
             columns = [
                 {"name": "ID", "key": "payment_ID", "width": 80, "editable": False},
                 {"name": "Invoice ID", "key": "invoice_ID", "width": 100, "editable": False},
@@ -411,35 +384,19 @@ class FinanceManager(User):
                 {"name": "Amount", "key": "amount", "width": 120, "editable": False, "format": "currency"},
             ]
 
-            def get_data():
-                location = self._selected_location(location_dropdown.get())
+            def get_data(location):
                 return finance_repo.get_payments(location)
 
-            _, refresh_table = pe.data_table(
+            pe.ViewableTablePopup(
                 content,
                 columns,
-                editable=False,
-                deletable=False,
-                refresh_data=get_data,
-                show_refresh_button=False,
-                render_batch_size=20,
-                page_size=10
+                get_data_func=get_data,
+                include_location_filter=True,
+                location_mapper=pe.normalize_location_value,
             )
-
-            pe.create_refresh_button(header, refresh_table)
-
-            def refresh_with_reset():
-                if hasattr(refresh_table, "reset_page"):
-                    refresh_table.reset_page()
-                refresh_table()
-            
-            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, refresh_with_reset)
-            location_dropdown.configure(command=schedule_refresh)
 
         def setup_late_popup():
             content = open_late_popup()
-
-            header, location_dropdown = pe.create_popup_header_with_location(content)
 
             columns = [
                 {"name": "ID", "key": "invoice_ID", "width": 80, "editable": False},
@@ -451,30 +408,16 @@ class FinanceManager(User):
                 {"name": "Days Late", "key": "days_late", "width": 100, "editable": False, "format": "number"},
             ]
 
-            def get_data():
-                location = self._selected_location(location_dropdown.get())
+            def get_data(location):
                 return finance_repo.get_late_invoices(location)
 
-            _, refresh_table = pe.data_table(
+            pe.ViewableTablePopup(
                 content,
                 columns,
-                editable=False,
-                deletable=False,
-                refresh_data=get_data,
-                show_refresh_button=False,
-                render_batch_size=20,
-                page_size=10
+                get_data_func=get_data,
+                include_location_filter=True,
+                location_mapper=pe.normalize_location_value,
             )
-
-            pe.create_refresh_button(header, refresh_table)
-
-            def refresh_with_reset():
-                if hasattr(refresh_table, "reset_page"):
-                    refresh_table.reset_page()
-                refresh_table()
-            
-            refresh_timer, schedule_refresh = pe.create_debounced_refresh(content, refresh_with_reset)
-            location_dropdown.configure(command=schedule_refresh)
 
         pay_btn.configure(command=setup_payments_popup)
         late_btn.configure(command=setup_late_popup)

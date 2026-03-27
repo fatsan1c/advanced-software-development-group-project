@@ -1,73 +1,74 @@
-"""
-UI Containers - Basic container and layout elements.
-"""
+"""UI containers - basic container and layout elements."""
 
 import customtkinter as ctk
+
 from pages.components.auto_hide_scrollable_frame import AutoHideScrollableFrame
 
 
-def content_container(parent, anchor=None, side=None,
-                     margin=10, marginx=None, marginy=None,
-                     padding=15, paddingx=None, paddingy=None,
-                     hasBG=True, expand=False, fill=None):
-    """Create and return a container frame for page content.
-    
-    Args:
-        parent: The parent widget
-        anchor: Anchor position (n, s, e, w, ne, nw, se, sw, center)
-        side: Pack side (top, bottom, left, right)
-        margin: External spacing (default for marginx/marginy)
-        marginx: Horizontal external spacing
-        marginy: Vertical external spacing
-        padding: Internal spacing (default for paddingx/paddingy)
-        paddingx: Horizontal internal spacing
-        paddingy: Vertical internal spacing
-        hasBG: Whether to show background color
-        expand: Whether container expands to fill space
-        fill: Fill direction (x, y, both, none)
-    """
-    if marginy is None: marginy = margin
-    if marginx is None: marginx = margin
-    if paddingy is None: paddingy = padding
-    if paddingx is None: paddingx = padding
+class ContentContainer(ctk.CTkFrame):
+    """Container frame for page content with configurable margins and padding."""
 
-    container = ctk.CTkFrame(parent, fg_color="transparent" if not hasBG else None)
-    container.pack(expand=expand, fill=fill, anchor=anchor, side=side, 
-                   padx=marginx, pady=marginy, ipadx=paddingx, ipady=paddingy)
-    return container
+    def __init__(
+        self,
+        parent,
+        anchor=None,
+        side=None,
+        margin=10,
+        marginx=None,
+        marginy=None,
+        padding=15,
+        paddingx=None,
+        paddingy=None,
+        hasBG=True,
+        expand=False,
+        fill=None,
+    ):
+        if marginy is None:
+            marginy = margin
+        if marginx is None:
+            marginx = margin
+        if paddingy is None:
+            paddingy = padding
+        if paddingx is None:
+            paddingx = padding
 
-
-def scrollable_container(parent, expand=True, fill="both", pady=10, padx=10, hide_scrollbar_when_loading=False):
-    """Create a scrollable container for content that may exceed visible area.
-    
-    Automatically hides scrollbar when all content fits on screen.
-    
-    Args:
-        parent: The parent container
-        expand: Whether container expands to fill space
-        fill: Fill direction (x, y, both, none)
-        pady: Vertical padding
-        padx: Horizontal padding
-        hide_scrollbar_when_loading: Whether to hide scrollbar when loading content (default: False)
-            Use when loading content that is expected to fit within the container to prevent scrollbar flicker during load.
-    Returns:
-        The scrollable container (add widgets directly to this)
-    """
-    scrollable = AutoHideScrollableFrame(parent, fg_color="transparent", scroll_speed=2, hide_scrollbar_when_loading=hide_scrollbar_when_loading)
-    scrollable.pack(expand=expand, fill=fill, pady=pady, padx=padx)
-    return scrollable
+        super().__init__(parent, fg_color="transparent" if not hasBG else None)
+        self.pack(
+            expand=expand,
+            fill=fill,
+            anchor=anchor,
+            side=side,
+            padx=marginx,
+            pady=marginy,
+            ipadx=paddingx,
+            ipady=paddingy,
+        )
 
 
-def row_container(parent, pady=0):
-    """Create a new content row container.
-    
-    Args:
-        parent: The parent container
-        pady: Vertical padding
-        
-    Returns:
-        The row container
-    """
-    row = ctk.CTkFrame(parent, fg_color="transparent")
-    row.pack(fill="x", pady=pady, padx=10)
-    return row
+class ScrollableContainer(AutoHideScrollableFrame):
+    """Scrollable container that auto-hides the scrollbar when content fits."""
+
+    def __init__(
+        self,
+        parent,
+        expand=True,
+        fill="both",
+        pady=10,
+        padx=10,
+        hide_scrollbar_when_loading=False,
+    ):
+        super().__init__(
+            parent,
+            fg_color="transparent",
+            scroll_speed=2,
+            hide_scrollbar_when_loading=hide_scrollbar_when_loading,
+        )
+        self.pack(expand=expand, fill=fill, pady=pady, padx=padx)
+
+
+class RowContainer(ctk.CTkFrame):
+    """Single row container for horizontal page layout sections."""
+
+    def __init__(self, parent, pady=0):
+        super().__init__(parent, fg_color="transparent")
+        self.pack(fill="x", pady=pady, padx=10)

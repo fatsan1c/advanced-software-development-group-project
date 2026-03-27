@@ -14,6 +14,7 @@ venv/
 backend/
 clients/
 tests/
+agents/
 
 # Generated database (recreate with setup/seed scripts)
 paragonapartments/database/paragonapartments.db

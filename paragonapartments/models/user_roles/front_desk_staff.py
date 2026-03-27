@@ -164,18 +164,18 @@ class FrontDeskStaff(User):
         # Load base content first
         super().load_homepage_content(home_page)
 
-        container = pe.scrollable_container(parent=home_page)
+        container = pe.ScrollableContainer(parent=home_page)
         
         # First row - Tenant Management
-        row1 = pe.row_container(parent=container)
+        row1 = pe.RowContainer(parent=container)
         self.load_tenant_content(row1)
         
         # Second row - Apartment Search
-        row2 = pe.row_container(parent=container)
+        row2 = pe.RowContainer(parent=container)
         self.load_apartment_search_content(row2)
         
         # Third row - Maintenance and Complaints
-        row3 = pe.row_container(parent=container)
+        row3 = pe.RowContainer(parent=container)
         self.load_maintenance_content(row3)
         self.load_complaints_content(row3)
 
@@ -183,7 +183,7 @@ class FrontDeskStaff(User):
         from database_operations.repos import location_repository as loc_repo
         from database_operations.repos import apartment_repository as apt_repo
         
-        tenant_card = pe.function_card(row, "Tenant Management", side="left")
+        tenant_card = pe.FunctionCard(row, "Tenant Management", side="left")
         
         # Get available apartments for this location (vacant only)
         all_apartments = apt_repo.get_all_apartments()
@@ -197,7 +197,7 @@ class FrontDeskStaff(User):
         ]
         
         # Create tenant registration form with popup
-        register_button, register_popup_func = pe.popup_card(
+        register_button, register_popup_func = pe.PopupCard(
             tenant_card,
             button_text="Register New Tenant",
             title="Tenant Registration",
@@ -426,7 +426,7 @@ class FrontDeskStaff(User):
         register_button.configure(command=setup_registration_popup)
         
         # Create tenant search popup
-        search_button, search_popup_func = pe.popup_card(
+        search_button, search_popup_func = pe.PopupCard(
             tenant_card,
             button_text="Search Tenants",
             title="Tenant Information Lookup",
@@ -921,10 +921,10 @@ class FrontDeskStaff(User):
     def load_apartment_search_content(self, row):
         from database_operations.repos import apartment_repository as apt_repo
         
-        apartment_card = pe.function_card(row, "Apartment Search", side="left")
+        apartment_card = pe.FunctionCard(row, "Apartment Search", side="left")
         
         # Search apartments button with popup
-        search_apt_button, search_apt_popup_func = pe.popup_card(
+        search_apt_button, search_apt_popup_func = pe.PopupCard(
             apartment_card,
             button_text="Search Apartments",
             title="Find Available Apartments",
@@ -1171,10 +1171,10 @@ class FrontDeskStaff(User):
         search_apt_button.configure(command=setup_apartment_search_popup)
 
     def load_maintenance_content(self, row):
-        maintenance_card = pe.function_card(row, "Maintenance Requests", side="left")
+        maintenance_card = pe.FunctionCard(row, "Maintenance Requests", side="left")
         
         # Register maintenance request button with popup
-        maint_button, maint_popup_func = pe.popup_card(
+        maint_button, maint_popup_func = pe.PopupCard(
             maintenance_card,
             button_text="Register Request",
             title="Register Maintenance Request",
@@ -1321,7 +1321,7 @@ class FrontDeskStaff(User):
         maint_button.configure(command=setup_maint_popup)
         
         # View requests button
-        view_button, view_popup_func = pe.popup_card(
+        view_button, view_popup_func = pe.PopupCard(
             maintenance_card,
             button_text="View Requests",
             title="All Maintenance Requests",
@@ -1637,10 +1637,10 @@ class FrontDeskStaff(User):
         view_button.configure(command=setup_view_popup)
 
     def load_complaints_content(self, row):
-        complaints_card = pe.function_card(row, "Complaints", side="left")
+        complaints_card = pe.FunctionCard(row, "Complaints", side="left")
         
         # Register complaint button with popup
-        complaint_button, complaint_popup_func = pe.popup_card(
+        complaint_button, complaint_popup_func = pe.PopupCard(
             complaints_card,
             button_text="Register Complaint",
             title="Register Tenant Complaint",
@@ -1787,7 +1787,7 @@ class FrontDeskStaff(User):
         complaint_button.configure(command=setup_complaint_popup)
         
         # View complaints button
-        view_complaint_button, view_complaint_popup_func = pe.popup_card(
+        view_complaint_button, view_complaint_popup_func = pe.PopupCard(
             complaints_card,
             button_text="View Complaints",
             title="All Tenant Complaints",
