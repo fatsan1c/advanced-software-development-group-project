@@ -56,12 +56,9 @@ $dbPath = "paragonapartments\database\paragonapartments.db"
 if (Test-Path $dbPath) {
     Write-Host "Database already exists, skipping creation..." -ForegroundColor Cyan
     Write-Host "To recreate with full data, run: python setupfiles\tools\create_sqlite_testdata.py" -ForegroundColor Gray
-    Write-Host "For minimal DB (locations + manager only), run: python setupfiles\tools\create_sqlite_db.py" -ForegroundColor Gray
 } else {
     Write-Host "Creating SQLite database with seed data..." -ForegroundColor Yellow
     python setupfiles\tools\create_sqlite_testdata.py
-    Write-Host "Seeding finance and maintenance data..." -ForegroundColor Yellow
-    python setupfiles\tools\seed_testdata.py --reset --invoices 50 --paid 30 --maintenance 20
 }
 
 Write-Host ""
