@@ -12,7 +12,7 @@ This module provides card-style UI elements including:
 
 import customtkinter as ctk
 from pages.components.config.theme import THEME
-import database_operations.repos.location_repository as location_repo
+from database_operations.database_repositories import get_all_cities
 from pages.components.style_utils import style_secondary_dropdown
 from pages.components.ui_controls_utils import content_separator
 
@@ -169,7 +169,7 @@ class LocationDropdownWithLabel(ctk.CTkComboBox):
         ).pack(side="left", padx=(0, 10))
 
         try:
-            cities = ["All Locations"] + location_repo.get_all_cities()
+            cities = ["All Locations"] + get_all_cities()
         except Exception as e:
             print(f"Error loading cities: {e}")
             cities = ["All Locations"]

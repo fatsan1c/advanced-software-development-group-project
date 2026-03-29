@@ -1,6 +1,6 @@
 import customtkinter as ctk
 import pages.components.page_elements as pe
-import database_operations.repos.user_repository as user_repo
+from database_operations.database_repositories import users_repo
 from pages.components.config.theme import THEME
 
 
@@ -54,7 +54,7 @@ class User:
 
         try:
             # Request password change from the user repository
-            success = user_repo.change_password(self.username, old_password, new_password)
+            success = users_repo.change_password(self.username, old_password, new_password)
 
             if success:
                 return True

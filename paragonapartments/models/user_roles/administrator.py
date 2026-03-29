@@ -1,10 +1,14 @@
 import customtkinter as ctk
 import pages.components.page_elements as pe
-import database_operations.repos.user_repository as user_repo
-import database_operations.repos.location_repository as location_repo
-import database_operations.repos.apartment_repository as apartment_repo
-import database_operations.repos.lease_repository as lease_repo
+from database_operations.database_repositories import (
+    apartments_repo,
+    lease_agreements_repo,
+    get_all_cities, get_location_id_by_city,
+    users_repo,
+)
+from services import ApartmentGraphService, LeaseGraphService
 from models.user import User
+
 
 class Administrator(User):
     """Administrator with location-specific management capabilities."""
@@ -16,7 +20,7 @@ class Administrator(User):
     def view_apartment_occupancy(self):
         """View apartment occupancy for this administrator's location."""
         try:
-            occupied_count = apartment_repo.get_all_occupancy(self.location)
+            occupied_count = apartments_repo.get_all_occupancy(self.location)
             return occupied_count
         except Exception as e:
             print(f"Error retrieving occupancy data: {e}")
@@ -29,11 +33,11 @@ class Administrator(User):
         password = values.get('Password', '')
         
         # Get location ID for this administrator's location
-        location_id = location_repo.get_location_id_by_city(self.location)
+        location_id = get_location_id_by_city(self.location)
 
         try:
             # Create user with administrator's location
-            user_repo.create_user(username, password, role, location_id)
+            users_repo.create_user(username, password, role, location_id)
             return True  # Success
         except Exception as e:
             return f"Failed to create account: {str(e)}"
@@ -45,10 +49,10 @@ class Administrator(User):
         role = values.get('role', '')
         
         # Keep the location as administrator's location (cannot change)
-        location_id = location_repo.get_location_id_by_city(self.location)
+        location_id = get_location_id_by_city(self.location)
 
         try:
-            user_repo.update_user(user_id, username=username, role=role, location_ID=location_id)
+            users_repo.update_user(user_id, username=username, role=role, location_ID=location_id)
             return True  # Success
         except Exception as e:
             return f"Failed to edit account: {str(e)}"
@@ -58,7 +62,7 @@ class Administrator(User):
         try:
             # Attempt to delete by ID otherwise return error
             if user_data and 'user_ID' in user_data:
-                user_repo.delete_user(int(user_data['user_ID']))
+                users_repo.delete_user(int(user_data['user_ID']))
             else:
                 return "No valid user identifier provided."
 
@@ -78,9 +82,9 @@ class Administrator(User):
 
         try:
             # Get location ID from administrator's location
-            location_id = location_repo.get_location_id_by_city(self.location)
+            location_id = get_location_id_by_city(self.location)
             # create apartment in database
-            apartment_repo.create_apartment(location_id, apartment_address, number_of_beds, monthly_rent, occupied)
+            apartments_repo.create_apartment(location_id, apartment_address, number_of_beds, monthly_rent, occupied)
             return True  # Success
         except Exception as e:
             return f"Failed to add apartment: {str(e)}"
@@ -90,7 +94,7 @@ class Administrator(User):
         try:
             # Attempt to delete by ID otherwise return error
             if apartment_data and 'apartment_ID' in apartment_data:
-                apartment_repo.delete_apartment(int(apartment_data['apartment_ID']))
+                apartments_repo.delete_apartment(int(apartment_data['apartment_ID']))
             else:
                 return "No valid apartment identifier provided."
 
@@ -108,9 +112,9 @@ class Administrator(User):
 
         try:
             # Get location ID from administrator's location
-            location_id = location_repo.get_location_id_by_city(self.location)
+            location_id = get_location_id_by_city(self.location)
             
-            apartment_repo.update_apartment(
+            apartments_repo.update_apartment(
                 apartment_id,
                 location_ID=location_id,
                 apartment_address=apartment_address,
@@ -151,7 +155,7 @@ class Administrator(User):
             location_frame.pack(fill="x", padx=(25, 0), pady=0)
 
             try:
-                all_locations = [loc['city'] for loc in location_repo.get_all_locations()]
+                all_locations = get_all_cities()
             except Exception as e:
                 print(f"Error loading locations: {e}")
                 all_locations = []
@@ -214,7 +218,7 @@ class Administrator(User):
         def update_occupancy_display():
             try:
                 occupied_count = self.view_apartment_occupancy()
-                total_count = apartment_repo.get_total_apartments(self.location)
+                total_count = apartments_repo.get_total_apartments(self.location)
                 available_count = total_count - occupied_count
 
                 occupied_value.configure(text=str(occupied_count))
@@ -234,7 +238,7 @@ class Administrator(User):
         # Stats and analysis generators (shared by both export buttons)
         def generate_occupancy_stats():
             occupied = self.view_apartment_occupancy()
-            total = apartment_repo.get_total_apartments(self.location)
+            total = apartments_repo.get_total_apartments(self.location)
             vacant = total - occupied
             return (
                 f"Location: {self.location}\n\n"
@@ -244,8 +248,8 @@ class Administrator(User):
             )
         
         def generate_revenue_analysis():
-            actual = apartment_repo.get_monthly_revenue(self.location)
-            potential = apartment_repo.get_potential_revenue(self.location)
+            actual = apartments_repo.get_monthly_revenue(self.location)
+            potential = apartments_repo.get_potential_revenue(self.location)
             lost = potential - actual
             efficiency = (actual / potential * 100) if potential > 0 else 0
             lost_pct = (lost / potential * 100) if potential > 0 else 0
@@ -263,16 +267,16 @@ class Administrator(User):
             button_container,
             popup_title=f"Apartment Occupancy Graph - {self.location}",
             button_text="View Graphs",
-            graph_function=apartment_repo.create_occupancy_trend_graph,
+            graph_function=ApartmentGraphService.create_occupancy_trend_graph,
             include_location=False,
-            get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
+            get_date_range_func=lambda loc, grouping: lease_agreements_repo.get_lease_date_range(loc, grouping=grouping),
             date_range_params=self.location,
             fixed_location=self.location,
             stats_generator=generate_occupancy_stats,
             export_title=f"Occupancy Analysis - {self.location}",
             export_filename=f"occupancy_analysis_{self.location.lower().replace(' ', '_')}",
-            pie_chart_generator=lambda: apartment_repo.create_occupancy_pie_chart(self.location),
-            bar_chart_generator=lambda: apartment_repo.create_revenue_bar_chart(self.location),
+            pie_chart_generator=lambda: ApartmentGraphService.create_occupancy_pie_chart(self.location),
+            bar_chart_generator=lambda: ApartmentGraphService.create_revenue_bar_chart(self.location),
             bar_text_generator=generate_revenue_analysis
         )
         
@@ -320,7 +324,7 @@ class Administrator(User):
             # Function to fetch user data for the table (filtered by location)
             def get_data():
                 try:
-                    all_users = user_repo.get_all_users()
+                    all_users = users_repo.get_all_users()
                     # Filter users by administrator's location
                     return [user for user in all_users if user.get('city') == self.location]
                 except Exception as e:
@@ -357,7 +361,7 @@ class Administrator(User):
 
         def update_lease_display():
             try:
-                lease_stats = lease_repo.get_lease_statistics(self.location)
+                lease_stats = lease_agreements_repo.get_lease_statistics(self.location)
                 active_count = lease_stats.get("active_leases", 0)
                 expired_count = lease_stats.get("expired_leases", 0)
                 total_count = lease_stats.get("total_leases", 0)
@@ -375,7 +379,7 @@ class Administrator(User):
 
         # Stats generator for lease export
         def generate_lease_stats():
-            stats = lease_repo.get_lease_statistics(self.location)
+            stats = lease_agreements_repo.get_lease_statistics(self.location)
             active = stats.get('active_leases', 0)
             expired = stats.get('expired_leases', 0)
             total = stats.get('total_leases', 0)
@@ -389,7 +393,7 @@ class Administrator(User):
             )
         
         def generate_lease_analysis():
-            stats = lease_repo.get_lease_statistics(self.location)
+            stats = lease_agreements_repo.get_lease_statistics(self.location)
             active = stats.get('active_leases', 0)
             expired = stats.get('expired_leases', 0)
             expiring = stats.get('expiring_soon', 0)
@@ -408,16 +412,16 @@ class Administrator(User):
             lease_card,
             popup_title=f"Lease Trends Graph - {self.location}",
             button_text="View Graphs",
-            graph_function=lease_repo.create_lease_trend_graph,
+            graph_function=LeaseGraphService.create_lease_trend_graph,
             include_location=False,
-            get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
+            get_date_range_func=lambda loc, grouping: lease_agreements_repo.get_lease_date_range(loc, grouping=grouping),
             date_range_params=self.location,
             fixed_location=self.location,
             stats_generator=generate_lease_stats,
             export_title=f"Lease Analysis - {self.location}",
             export_filename=f"lease_analysis_{self.location.lower().replace(' ', '_')}",
-            pie_chart_generator=lambda: lease_repo.create_lease_status_pie_chart(self.location),
-            bar_chart_generator=lambda: lease_repo.create_lease_comparison_bar_chart(self.location),
+            pie_chart_generator=lambda: LeaseGraphService.create_lease_status_pie_chart(self.location),
+            bar_chart_generator=lambda: LeaseGraphService.create_lease_comparison_bar_chart(self.location),
             bar_text_generator=generate_lease_analysis
         )
 
@@ -451,7 +455,7 @@ class Administrator(User):
             # Function to fetch lease data for the table (filtered by location)
             def get_data():
                 try:
-                    return lease_repo.get_all_leases(location=self.location)
+                    return lease_agreements_repo.get_all_leases(location=self.location)
                 except Exception as e:
                     print(f"Error loading leases: {e}")
                     return []
@@ -480,10 +484,10 @@ class Administrator(User):
 
         def update_performance_display():
             try:
-                actual_revenue = apartment_repo.get_monthly_revenue(self.location)
-                potential_revenue = apartment_repo.get_potential_revenue(self.location)
-                total = apartment_repo.get_total_apartments(self.location)
-                occupied = apartment_repo.get_all_occupancy(self.location)
+                actual_revenue = apartments_repo.get_monthly_revenue(self.location)
+                potential_revenue = apartments_repo.get_potential_revenue(self.location)
+                total = apartments_repo.get_total_apartments(self.location)
+                occupied = apartments_repo.get_all_occupancy(self.location)
                 vacant = total - occupied
 
                 actual_value.configure(text=f"£{actual_revenue:,.2f}")
@@ -497,10 +501,10 @@ class Administrator(User):
 
         # Stats and analysis generators for performance export
         def generate_performance_stats():
-            actual = apartment_repo.get_monthly_revenue(self.location)
-            potential = apartment_repo.get_potential_revenue(self.location)
-            total = apartment_repo.get_total_apartments(self.location)
-            occupied = apartment_repo.get_all_occupancy(self.location)
+            actual = apartments_repo.get_monthly_revenue(self.location)
+            potential = apartments_repo.get_potential_revenue(self.location)
+            total = apartments_repo.get_total_apartments(self.location)
+            occupied = apartments_repo.get_all_occupancy(self.location)
             vacant = total - occupied
             return (
                 f"Location: {self.location}\n\n"
@@ -512,8 +516,8 @@ class Administrator(User):
             )
         
         def generate_performance_analysis():
-            actual = apartment_repo.get_monthly_revenue(self.location)
-            potential = apartment_repo.get_potential_revenue(self.location)
+            actual = apartments_repo.get_monthly_revenue(self.location)
+            potential = apartments_repo.get_potential_revenue(self.location)
             lost = potential - actual
             efficiency = (actual / potential * 100) if potential > 0 else 0
             return (
@@ -529,16 +533,16 @@ class Administrator(User):
             reports_card,
             popup_title=f"Performance Report Graph - {self.location}",
             button_text="View Graphs",
-            graph_function=apartment_repo.create_revenue_trend_graph,
+            graph_function=ApartmentGraphService.create_revenue_trend_graph,
             include_location=False,
-            get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
+            get_date_range_func=lambda loc, grouping: lease_agreements_repo.get_lease_date_range(loc, grouping=grouping),
             date_range_params=self.location,
             fixed_location=self.location,
             stats_generator=generate_performance_stats,
             export_title=f"Performance Report - {self.location}",
             export_filename=f"performance_report_{self.location.lower().replace(' ', '_')}",
-            pie_chart_generator=lambda: apartment_repo.create_occupancy_pie_chart(self.location),
-            bar_chart_generator=lambda: apartment_repo.create_revenue_bar_chart(self.location),
+            pie_chart_generator=lambda: ApartmentGraphService.create_occupancy_pie_chart(self.location),
+            bar_chart_generator=lambda: ApartmentGraphService.create_revenue_bar_chart(self.location),
             bar_text_generator=generate_performance_analysis
         )
 
@@ -588,7 +592,7 @@ class Administrator(User):
             # Function to fetch apartment data for the table (filtered by location)
             def get_data():
                 try:
-                    return apartment_repo.get_all_apartments(location=self.location)
+                    return apartments_repo.get_all_apartments(location=self.location)
                 except Exception as e:
                     print(f"Error loading apartments: {e}")
                     return []

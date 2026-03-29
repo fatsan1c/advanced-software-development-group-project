@@ -1,7 +1,12 @@
 import customtkinter as ctk
 import pages.components.page_elements as pe
-import database_operations.repos.tenants_repository as tenant_repo
-import pages.components.input_validation as input_validation
+from database_operations.database_repositories import (
+    get_all_apartments, set_apartment_as_occupied,
+    complaints_repo,
+    lease_agreements_repo,
+    maintenance_requests_repo,
+    tenants_repo,
+)
 from models.user import User
 
 
@@ -13,9 +18,7 @@ class FrontDeskStaff(User):
 
 # ============================= v Front Desk functions v  =====================================
     def register_tenant(self, values):
-        """Register a new tenant with their details and create lease agreement."""
-        from database_operations.repos import apartment_repository as apt_repo
-        
+        """Register a new tenant with their details and create lease agreement."""        
         first_name = values.get('First Name', '')
         last_name = values.get('Last Name', '')
         date_of_birth = values.get('Date of Birth', '')
@@ -40,17 +43,17 @@ class FrontDeskStaff(User):
             salary_value = float(annual_salary) if annual_salary and annual_salary.strip() else None
             
             # Create tenant record
-            tenant_repo.create_tenant(
+            tenants_repo.create_tenant(
                 first_name, last_name, date_of_birth, ni_number, email, phone,
                 occupation, salary_value, pets, right_to_rent, credit_check
             )
             
             # Get the newly created tenant's ID
-            tenant_id = tenant_repo.get_last_tenant_id()
+            tenant_id = tenants_repo.get_last_tenant_id()
             
             if tenant_id and apartment:
                 # Get apartment_id from apartment address
-                all_apartments = apt_repo.get_all_apartments()
+                all_apartments = get_all_apartments()
                 apartment_id = None
                 monthly_rent = 0
                 
@@ -62,12 +65,12 @@ class FrontDeskStaff(User):
                 
                 if apartment_id:
                     # Create lease agreement
-                    tenant_repo.create_lease_agreement(
+                    lease_agreements_repo.create_lease_agreement(
                         tenant_id, apartment_id, start_date, end_date, monthly_rent
                     )
                     
                     # Update apartment occupied status
-                    apt_repo.update_apartment(apartment_id, occupied=1)
+                    set_apartment_as_occupied(apartment_id)
             
             return True  # Success
         except Exception as e:
@@ -75,7 +78,7 @@ class FrontDeskStaff(User):
 
     def get_tenant_info(self, tenant_id: int = None):
         """Retrieve information for a specific tenant from the user's location."""
-        result = tenant_repo.get_tenant_by_id(tenant_id, location=self.location) if tenant_id else None
+        result = tenants_repo.get_tenant_by_id(tenant_id, location=self.location) if tenant_id else None
         if result:
             info = (
                 f"Tenant ID: {result['tenant_ID']}\n"
@@ -123,7 +126,7 @@ class FrontDeskStaff(User):
                 update_fields['credit_check'] = values['Credit Check']
             
             # Update tenant
-            tenant_repo.update_tenant(tenant_id, **update_fields)
+            tenants_repo.update_tenant(tenant_id, **update_fields)
             return True
         except Exception as e:
             return f"Failed to update tenant: {str(e)}"
@@ -137,7 +140,7 @@ class FrontDeskStaff(User):
             priority_level = values.get('priority_level', 2)
             reported_date = values.get('reported_date')
             
-            tenant_repo.create_maintenance_request(
+            maintenance_requests_repo.create_maintenance_request(
                 apartment_id, tenant_id, issue_description, 
                 priority_level, reported_date
             )
@@ -152,7 +155,7 @@ class FrontDeskStaff(User):
             description = values.get('description')
             date_submitted = values.get('date_submitted')
             
-            tenant_repo.create_complaint(tenant_id, description, date_submitted)
+            complaints_repo.create_complaint(tenant_id, description, date_submitted)
             return True
         except Exception as e:
             return f"Failed to register complaint: {str(e)}"
@@ -180,13 +183,11 @@ class FrontDeskStaff(User):
         self.load_complaints_content(row3)
 
     def load_tenant_content(self, row):
-        from database_operations.repos import location_repository as loc_repo
-        from database_operations.repos import apartment_repository as apt_repo
         
         tenant_card = pe.FunctionCard(row, "Tenant Management", side="left")
         
         # Get available apartments for this location (vacant only)
-        all_apartments = apt_repo.get_all_apartments()
+        all_apartments = get_all_apartments()
         location_apartments_list = [apt for apt in all_apartments 
                               if apt['city'] == self.location and apt['occupied'] == 0]
         
@@ -890,18 +891,18 @@ class FrontDeskStaff(User):
                 
                 # Search by ID if numeric
                 if search_term.isdigit():
-                    result = tenant_repo.get_tenant_by_id(int(search_term), location=self.location)
+                    result = tenants_repo.get_tenant_by_id(int(search_term), location=self.location)
                     results = [result] if result else []
                 else:
                     # Search by name, email, etc.
-                    results = tenant_repo.search_tenants(search_term, location=self.location)
+                    results = tenants_repo.search_tenants(search_term, location=self.location)
                 
                 display_tenant_results(results, search_term)
             
             def view_all_tenants():
                 """View all tenants in this location"""
                 search_entry.delete(0, 'end')  # Clear search box
-                results = tenant_repo.get_all_tenants(location=self.location)
+                results = tenants_repo.get_all_tenants(location=self.location)
                 display_tenant_results(results, "")
             
             # Bind Enter key to search
@@ -919,8 +920,6 @@ class FrontDeskStaff(User):
         search_button.configure(command=setup_search_popup)
 
     def load_apartment_search_content(self, row):
-        from database_operations.repos import apartment_repository as apt_repo
-        
         apartment_card = pe.FunctionCard(row, "Apartment Search", side="left")
         
         # Search apartments button with popup
@@ -1129,7 +1128,7 @@ class FrontDeskStaff(User):
             def perform_apartment_search():
                 """Execute apartment search with filters"""
                 # Get all apartments
-                all_apartments = apt_repo.get_all_apartments()
+                all_apartments = get_all_apartments()
                 
                 # Apply filters
                 filtered = all_apartments
@@ -1403,7 +1402,7 @@ class FrontDeskStaff(User):
                 for widget in scrollable.winfo_children():
                     widget.destroy()
 
-                all_requests = tenant_repo.get_all_maintenance_requests(location=self.location)
+                all_requests = maintenance_requests_repo.get_maintenance_requests(location=self.location)
                 all_requests = _apply_maint_filter(all_requests)
                 total = len(all_requests)
                 total_pages = max(1, (total + _MAINT_PAGE_SIZE - 1) // _MAINT_PAGE_SIZE)
@@ -1620,14 +1619,14 @@ class FrontDeskStaff(User):
             def handle_flag_request(request_id, current_status):
                 try:
                     new_status = 0 if current_status else 1
-                    tenant_repo.update_maintenance_request_status(request_id, new_status)
+                    maintenance_requests_repo.update_maintenance_request(request_id, completed=new_status)
                     refresh_requests(_maint_page["n"])
                 except Exception as e:
                     print(f"Error flagging request: {e}")
 
             def handle_delete_request(request_id):
                 try:
-                    tenant_repo.delete_maintenance_request(request_id)
+                    maintenance_requests_repo.delete_maintenance_request(request_id)
                     refresh_requests(_maint_page["n"])
                 except Exception as e:
                     print(f"Error deleting request: {e}")
@@ -1868,7 +1867,7 @@ class FrontDeskStaff(User):
                 for widget in scrollable.winfo_children():
                     widget.destroy()
 
-                all_complaints = tenant_repo.get_all_complaints(location=self.location)
+                all_complaints = complaints_repo.get_all_complaints(location=self.location)
                 all_complaints = _apply_comp_filter(all_complaints)
                 total = len(all_complaints)
                 total_pages = max(1, (total + _COMP_PAGE_SIZE - 1) // _COMP_PAGE_SIZE)
@@ -2060,14 +2059,14 @@ class FrontDeskStaff(User):
             def handle_flag_complaint(complaint_id, current_status):
                 try:
                     new_status = 0 if current_status else 1
-                    tenant_repo.update_complaint_status(complaint_id, new_status)
+                    complaints_repo.update_complaint_status(complaint_id, new_status)
                     refresh_complaints(_comp_page["n"])
                 except Exception as e:
                     print(f"Error flagging complaint: {e}")
 
             def handle_delete_complaint(complaint_id):
                 try:
-                    tenant_repo.delete_complaint(complaint_id)
+                    complaints_repo.delete_complaint(complaint_id)
                     refresh_complaints(_comp_page["n"])
                 except Exception as e:
                     print(f"Error deleting complaint: {e}")

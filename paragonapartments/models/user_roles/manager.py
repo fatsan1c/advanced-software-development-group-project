@@ -1,10 +1,14 @@
 import customtkinter as ctk
 import pages.components.page_elements as pe
-import database_operations.repos.user_repository as user_repo
-import database_operations.repos.location_repository as location_repo
-import database_operations.repos.apartment_repository as apartment_repo
-import database_operations.repos.lease_repository as lease_repo
+from database_operations.database_repositories import (
+    apartments_repo,
+    lease_agreements_repo,
+    locations_repo,
+    users_repo,
+)
+from services import ApartmentGraphService
 from models.user import User
+
 
 class Manager(User):
     """Manager user with business-wide access and control."""
@@ -24,7 +28,7 @@ class Manager(User):
             int: Number of occupied apartments
         """
         try:
-            occupied_count = apartment_repo.get_all_occupancy(location)
+            occupied_count = apartments_repo.get_all_occupancy(location)
             return occupied_count
         except Exception as e:
             print(f"Error retrieving occupancy data: {e}")
@@ -39,13 +43,13 @@ class Manager(User):
         
         # Handle "None" string from dropdown
         if location and location != "None":
-            location_id = location_repo.get_location_id_by_city(location)
+            location_id = locations_repo.get_location_id_by_city(location)
         else:
             location_id = None
 
         try:
             # Database operation
-            user_repo.create_user(username, password, role, location_id)
+            users_repo.create_user(username, password, role, location_id)
             return True  # Success
         except Exception as e:
             return f"Failed to create account: {str(e)}"
@@ -60,12 +64,12 @@ class Manager(User):
         
         # Handle "None" string from dropdown
         if location and location != "None":
-            location_id = location_repo.get_location_id_by_city(location)
+            location_id = locations_repo.get_location_id_by_city(location)
         else:
             location_id = None
 
         try:
-            user_repo.update_user(user_id, username=username, role=role, location_ID=location_id)
+            users_repo.update_user(user_id, username=username, role=role, location_ID=location_id)
             return True  # Success
         except Exception as e:
             return f"Failed to edit account: {str(e)}"
@@ -76,7 +80,7 @@ class Manager(User):
         try:
             # Attempt to delete by ID otherwise return error
             if user_data and 'user_ID' in user_data:
-                user_repo.delete_user(int(user_data['user_ID']))
+                users_repo.delete_user(int(user_data['user_ID']))
             else:
                 return "No valid user identifier provided."
 
@@ -91,7 +95,7 @@ class Manager(User):
         address = new_location.get('Address', '')
 
         try:
-            location_repo.create_location(city, address)
+            locations_repo.create_location(city, address)
             return True  # Success
         except Exception as e:
             return f"Failed to add location: {str(e)}"
@@ -104,7 +108,7 @@ class Manager(User):
         address = values.get('address', '')
 
         try:
-            location_repo.update_location(location_id, city=city, address=address)
+            locations_repo.update_location(location_id, city=city, address=address)
             return True  # Success
         except Exception as e:
             return f"Failed to edit location: {str(e)}"
@@ -115,7 +119,7 @@ class Manager(User):
         try:
             # Attempt to delete by ID otherwise return error
             if location_data and 'location_ID' in location_data:
-                location_repo.delete_location(int(location_data['location_ID']))
+                locations_repo.delete_location(int(location_data['location_ID']))
             else:
                 return "No valid location identifier provided."
 
@@ -136,9 +140,9 @@ class Manager(User):
 
         try:
             # Get location ID from city name
-            location_id = location_repo.get_location_id_by_city(location)
+            location_id = locations_repo.get_location_id_by_city(location)
             # create apartment in database
-            apartment_repo.create_apartment(location_id, apartment_address, number_of_beds, monthly_rent, occupied)
+            apartments_repo.create_apartment(location_id, apartment_address, number_of_beds, monthly_rent, occupied)
             return True  # Success
         except Exception as e:
             return f"Failed to add apartment: {str(e)}"
@@ -149,7 +153,7 @@ class Manager(User):
         try:
             # Attempt to delete by ID otherwise return error
             if apartment_data and 'apartment_ID' in apartment_data:
-                apartment_repo.delete_apartment(int(apartment_data['apartment_ID']))
+                apartments_repo.delete_apartment(int(apartment_data['apartment_ID']))
             else:
                 return "No valid apartment identifier provided."
 
@@ -169,12 +173,12 @@ class Manager(User):
 
         try:
             # Get location ID from city name
-            location_id = location_repo.get_location_id_by_city(location)
+            location_id = locations_repo.get_location_id_by_city(location)
             # handle case where location is not found
             if location_id is None:
                 return "Invalid location specified."
             
-            apartment_repo.update_apartment(
+            apartments_repo.update_apartment(
                 apartment_id,
                 location_ID=location_id,
                 apartment_address=apartment_address,
@@ -229,7 +233,7 @@ class Manager(User):
         def update_occupancy_display(choice=None):
             location = pe.normalize_location_value(location_dropdown.get())
             occupied_count = self.view_apartment_occupancy(location)
-            total_count = apartment_repo.get_total_apartments(location)
+            total_count = apartments_repo.get_total_apartments(location)
             available_count = total_count - occupied_count
 
             occupied_value.configure(text=str(occupied_count))
@@ -244,8 +248,8 @@ class Manager(User):
         # Stats and analysis generators for occupancy export
         def generate_occupancy_stats(location=None):
             loc = pe.normalize_location_value(location) if location else "all"
-            occupied = apartment_repo.get_all_occupancy(loc)
-            total = apartment_repo.get_total_apartments(loc)
+            occupied = apartments_repo.get_all_occupancy(loc)
+            total = apartments_repo.get_total_apartments(loc)
             vacant = total - occupied
             loc_label = location if location and location != "All Locations" else "All Locations"
             return (
@@ -257,8 +261,8 @@ class Manager(User):
         
         def generate_revenue_analysis(location=None):
             loc = pe.normalize_location_value(location) if location else "all"
-            actual = apartment_repo.get_monthly_revenue(loc)
-            potential = apartment_repo.get_potential_revenue(loc)
+            actual = apartments_repo.get_monthly_revenue(loc)
+            potential = apartments_repo.get_potential_revenue(loc)
             lost = potential - actual
             efficiency = (actual / potential * 100) if potential > 0 else 0
             lost_pct = (lost / potential * 100) if potential > 0 else 0
@@ -274,20 +278,20 @@ class Manager(User):
 
         def create_occupancy_pie(location=None):
             loc = pe.normalize_location_value(location) if location else "all"
-            return apartment_repo.create_occupancy_pie_chart(loc)
+            return ApartmentGraphService.create_occupancy_pie_chart(loc)
         
         def create_revenue_bar(location=None):
             loc = pe.normalize_location_value(location) if location else "all"
-            return apartment_repo.create_revenue_bar_chart(loc)
+            return ApartmentGraphService.create_revenue_bar_chart(loc)
 
         # Graph popup button with comprehensive export
         pe.GraphPopup().open_graph_popup(
             occupancy_card,
             popup_title="Apartment Occupancy Graph",
             button_text="View Graphs",
-            graph_function=apartment_repo.create_occupancy_trend_graph,
+            graph_function=ApartmentGraphService.create_occupancy_trend_graph,
             default_location=lambda: location_dropdown.get() or "All Locations",
-            get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
+            get_date_range_func=lambda loc, grouping: lease_agreements_repo.get_lease_date_range(loc, grouping=grouping),
             location_mapper=pe.normalize_location_value,
             stats_generator=generate_occupancy_stats,
             export_title="Occupancy Analysis Report",
@@ -301,7 +305,7 @@ class Manager(User):
         accounts_card = pe.FunctionCard(row, "Manage Accounts", side="left", pady=6, padx=8)
 
         try:
-            location_options = ['None'] + location_repo.get_all_cities()
+            location_options = ['None'] + locations_repo.get_all_cities()
         except Exception as e:
             print(f"Error loading locations: {e}")
             location_options = ['None']
@@ -336,13 +340,13 @@ class Manager(User):
             columns = [
                 {'name': 'ID', 'key': 'user_ID', 'width': 80, 'editable': False},
                 {'name': 'Username', 'key': 'username', 'width': 200},
-                {'name': 'Location', 'key': 'city', 'width': 200, 'format': 'dropdown', 'options': ['None'] + location_repo.get_all_cities()},
+                {'name': 'Location', 'key': 'city', 'width': 200, 'format': 'dropdown', 'options': ['None'] + locations_repo.get_all_cities()},
                 {'name': 'Role', 'key': 'role', 'width': 150, 'format': 'dropdown', 'options': ['Admin', 'Manager', 'Finance Manager', 'Frontdesk', 'Maintenance']}
             ]
 
             def get_data():
                 try:
-                    return user_repo.get_all_users()
+                    return users_repo.get_all_users()
                 except Exception as e:
                     print(f"Error loading users: {e}")
                     return []
@@ -374,10 +378,10 @@ class Manager(User):
 
         def update_performance_display(choice=None):
             location = pe.normalize_location_value(location_dropdown.get())
-            actual_revenue = apartment_repo.get_monthly_revenue(location)
-            potential_revenue = apartment_repo.get_potential_revenue(location)
-            total = apartment_repo.get_total_apartments(location)
-            occupied = apartment_repo.get_all_occupancy(location)
+            actual_revenue = apartments_repo.get_monthly_revenue(location)
+            potential_revenue = apartments_repo.get_potential_revenue(location)
+            total = apartments_repo.get_total_apartments(location)
+            occupied = apartments_repo.get_all_occupancy(location)
             vacant = total - occupied
 
             actual_value.configure(text=f"£{actual_revenue:,.2f}")
@@ -391,10 +395,10 @@ class Manager(User):
         # Stats and analysis generators for performance export
         def generate_performance_stats(location=None):
             loc = pe.normalize_location_value(location) if location else "all"
-            actual = apartment_repo.get_monthly_revenue(loc)
-            potential = apartment_repo.get_potential_revenue(loc)
-            total = apartment_repo.get_total_apartments(loc)
-            occupied = apartment_repo.get_all_occupancy(loc)
+            actual = apartments_repo.get_monthly_revenue(loc)
+            potential = apartments_repo.get_potential_revenue(loc)
+            total = apartments_repo.get_total_apartments(loc)
+            occupied = apartments_repo.get_all_occupancy(loc)
             vacant = total - occupied
             loc_label = location if location and location != "All Locations" else "All Locations"
             return (
@@ -408,8 +412,8 @@ class Manager(User):
         
         def generate_performance_analysis(location=None):
             loc = pe.normalize_location_value(location) if location else "all"
-            actual = apartment_repo.get_monthly_revenue(loc)
-            potential = apartment_repo.get_potential_revenue(loc)
+            actual = apartments_repo.get_monthly_revenue(loc)
+            potential = apartments_repo.get_potential_revenue(loc)
             lost = potential - actual
             efficiency = (actual / potential * 100) if potential > 0 else 0
             loc_label = location if location and location != "All Locations" else "All Locations"
@@ -424,19 +428,19 @@ class Manager(User):
 
         def create_occupancy_pie_report(location=None):
             loc = pe.normalize_location_value(location) if location else "all"
-            return apartment_repo.create_occupancy_pie_chart(loc)
+            return ApartmentGraphService.create_occupancy_pie_chart(loc)
         
         def create_revenue_bar_report(location=None):
             loc = pe.normalize_location_value(location) if location else "all"
-            return apartment_repo.create_revenue_bar_chart(loc)
+            return ApartmentGraphService.create_revenue_bar_chart(loc)
 
         pe.GraphPopup().open_graph_popup(
             reports_card,
             popup_title="Performance Report Graph",
             button_text="View Graphs",
-            graph_function=apartment_repo.create_revenue_trend_graph,
+            graph_function=ApartmentGraphService.create_revenue_trend_graph,
             default_location=lambda: location_dropdown.get() or "All Locations",
-            get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
+            get_date_range_func=lambda loc, grouping: lease_agreements_repo.get_lease_date_range(loc, grouping=grouping),
             location_mapper=pe.normalize_location_value,
             stats_generator=generate_performance_stats,
             export_title="Performance Analysis Report",
@@ -492,7 +496,7 @@ class Manager(User):
 
             def get_data():
                 try:
-                    return location_repo.get_all_locations()
+                    return locations_repo.get_all_locations()
                 except Exception as e:
                     print(f"Error loading locations: {e}")
                     return []
@@ -508,7 +512,7 @@ class Manager(User):
         loc_btn.configure(command=setup_loc_popup)
 
         try:
-            location_options = location_repo.get_all_cities()
+            location_options = locations_repo.get_all_cities()
         except Exception as e:
             print(f"Error loading locations: {e}")
             location_options = []
@@ -552,7 +556,7 @@ class Manager(User):
 
             def get_data(location):
                 try:
-                    return apartment_repo.get_all_apartments(location=location)
+                    return apartments_repo.get_all_apartments(location=location)
                 except Exception as e:
                     print(f"Error loading apartments: {e}")
                     return []

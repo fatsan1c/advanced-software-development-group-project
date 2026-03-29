@@ -5,7 +5,7 @@ import customtkinter as ctk
 from pages.components.config.theme import THEME
 from pages.components.scrollable_option_menu import ScrollableDropdown
 from pages.components.style_utils import style_secondary_dropdown
-
+from database_operations.database_repositories import get_all_cities
 
 def normalize_location_value(location_value: str | None, all_value: str = "all") -> str:
     """Normalize UI location values to repository-friendly values."""
@@ -47,8 +47,6 @@ def create_debounced_refresh(widget, callback, delay_ms=150):
 
 def create_popup_header_with_location(content):
     """Create a popup header with location dropdown."""
-    from database_operations.repos import location_repository as location_repo
-
     header = ctk.CTkFrame(content, fg_color="transparent")
     header.pack(fill="x", padx=10, pady=(5, 10))
 
@@ -57,7 +55,7 @@ def create_popup_header_with_location(content):
     )
 
     try:
-        cities = ["All Locations"] + location_repo.get_all_cities()
+        cities = ["All Locations"] + get_all_cities()
     except Exception as e:
         print(f"Error loading cities: {e}")
         cities = ["All Locations"]

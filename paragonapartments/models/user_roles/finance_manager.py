@@ -1,9 +1,14 @@
 import customtkinter as ctk
 import pages.components.page_elements as pe
 import pages.components.input_validation as input_validation
-import database_operations.repos.finance_repository as finance_repo
-import database_operations.repos.tenants_repository as tenant_repo
+from database_operations.database_repositories import (
+    invoices_repo, 
+    payments_repo, 
+    get_all_tenant_names
+)
+from services import FinanceGraphService
 from models.user import User
+
 
 class FinanceManager(User):
     """Finance manager with financial reporting and payment processing capabilities."""
@@ -14,7 +19,7 @@ class FinanceManager(User):
 # ============================= v Finance Manager functions v  =====================================
     def generate_financial_reports(self, location: str = "all"):
         """Return financial summary data (used by the dashboard)."""
-        return finance_repo.get_financial_summary(location)
+        return invoices_repo.get_financial_summary(location)
     
     def format_financial_stats(self, location: str = "all") -> str:
         """Format financial summary as stats text string for reports.
@@ -56,7 +61,7 @@ class FinanceManager(User):
             if amount_due <= 0:
                 return "Amount Due must be greater than 0."
 
-            invoice_id = finance_repo.create_invoice(
+            invoice_id = invoices_repo.create_invoice(
                 tenant_id=tenant_id,
                 amount_due=amount_due,
                 due_date=due_date,
@@ -84,7 +89,7 @@ class FinanceManager(User):
             if "paid" in updated_data:
                 kwargs["paid"] = int(updated_data["paid"])
 
-            success = finance_repo.update_invoice(invoice_id, **kwargs)
+            success = invoices_repo.update_invoice(invoice_id, **kwargs)
             return True if success else "Update failed."
         except Exception as e:
             return f"Failed to update invoice: {str(e)}"
@@ -93,7 +98,7 @@ class FinanceManager(User):
         """Delete an invoice row from the table."""
         try:
             invoice_id = int(row_data.get("invoice_ID"))
-            success = finance_repo.delete_invoice(invoice_id)
+            success = invoices_repo.delete_invoice(invoice_id)
             return True if success else "Delete failed."
         except Exception as e:
             return f"Failed to delete invoice: {str(e)}"
@@ -112,13 +117,13 @@ class FinanceManager(User):
             if amount <= 0:
                 return "Amount must be greater than 0."
 
-            invoice = finance_repo.get_invoice_by_id(invoice_id)
+            invoice = invoices_repo.get_invoice_by_id(invoice_id)
             if not invoice:
                 return f"Invoice ID {invoice_id} does not exist."
             if int(invoice.get("paid") or 0) == 1:
                 return f"Invoice {invoice_id} is already marked as paid."
 
-            payment_id = finance_repo.record_payment(
+            payment_id = payments_repo.record_payment(
                 invoice_id=invoice_id,
                 amount=amount,
                 payment_date=payment_date,
@@ -178,7 +183,7 @@ class FinanceManager(User):
         # Enhanced stats and analysis generators for comprehensive export
         def generate_detailed_stats(location=None):
             loc = pe.normalize_location_value(location) if location else "all"
-            summary = finance_repo.get_financial_summary(loc)
+            summary = invoices_repo.get_financial_summary(loc)
             loc_label = location if location and location != "All Locations" else "All Locations"
             collection_rate = (summary['total_collected'] / summary['total_invoiced'] * 100) if summary['total_invoiced'] > 0 else 0
             return (
@@ -192,7 +197,7 @@ class FinanceManager(User):
         
         def generate_financial_analysis(location=None):
             loc = pe.normalize_location_value(location) if location else "all"
-            summary = finance_repo.get_financial_summary(loc)
+            summary = invoices_repo.get_financial_summary(loc)
             loc_label = location if location and location != "All Locations" else "All Locations"
             collection_rate = (summary['total_collected'] / summary['total_invoiced'] * 100) if summary['total_invoiced'] > 0 else 0
             outstanding_rate = (summary['outstanding'] / summary['total_invoiced'] * 100) if summary['total_invoiced'] > 0 else 0
@@ -209,20 +214,20 @@ class FinanceManager(User):
 
         def create_financial_pie(location=None):
             loc = pe.normalize_location_value(location) if location else "all"
-            return finance_repo.create_financial_status_pie_chart(loc)
+            return FinanceGraphService.create_financial_status_pie_chart(loc)
         
         def create_financial_bar(location=None):
             loc = pe.normalize_location_value(location) if location else "all"
-            return finance_repo.create_financial_comparison_bar_chart(loc)
+            return FinanceGraphService.create_financial_comparison_bar_chart(loc)
 
         # Graph popup with comprehensive export enabled
         button, export_btn = pe.GraphPopup().open_graph_popup(
             summary_card,
             popup_title="Finance Trends Graph",
             button_text="View Graphs",
-            graph_function=finance_repo.create_collected_trend_graph,
+            graph_function=FinanceGraphService.create_collected_trend_graph,
             default_location=lambda: location_dropdown.get() or "All Locations",
-            get_date_range_func=lambda location_str, grouping: finance_repo.get_finance_date_range(
+            get_date_range_func=lambda location_str, grouping: invoices_repo.get_finance_date_range(
                 pe.normalize_location_value(location_str), grouping=grouping
             ),
             location_mapper=pe.normalize_location_value,
@@ -248,7 +253,7 @@ class FinanceManager(User):
 
         fields = [
             {"name": "Tenant", "type": "dropdown", "subtype": "dynamic", 'options': {
-                    'data_fetcher': tenant_repo.get_all_tenant_names,
+                    'data_fetcher': get_all_tenant_names,
                     'display_formatter': format_tenants,
                     'empty_message': 'No tenants available'
                 }, "required": True},
@@ -290,7 +295,7 @@ class FinanceManager(User):
 
             def get_data(location):
                 try:
-                    return finance_repo.get_invoices(location)
+                    return invoices_repo.get_invoices(location)
                 except Exception as e:
                     print(f"Error loading invoices: {e}")
                     return []
@@ -313,7 +318,7 @@ class FinanceManager(User):
         # Define data fetcher and formatter for unpaid invoices
         def fetch_unpaid_invoices():
             location = self.location if self.location else "all"
-            return finance_repo.get_invoices(location=location, paid=0)
+            return invoices_repo.get_invoices(location=location, paid=0)
 
         def format_invoice(inv):
             display = f"Invoice #{inv['invoice_ID']} - {inv['tenant_name']} - £{inv['amount_due']:.2f} (Due: {inv['due_date']})"
@@ -385,7 +390,7 @@ class FinanceManager(User):
             ]
 
             def get_data(location):
-                return finance_repo.get_payments(location)
+                return payments_repo.get_payments(location)
 
             pe.ViewableTablePopup(
                 content,
@@ -409,7 +414,7 @@ class FinanceManager(User):
             ]
 
             def get_data(location):
-                return finance_repo.get_late_invoices(location)
+                return invoices_repo.get_late_invoices(location)
 
             pe.ViewableTablePopup(
                 content,

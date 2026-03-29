@@ -1,7 +1,6 @@
 import customtkinter as ctk
 import pages.components.page_elements as pe
-import database_operations.repos.maintenance_repository as maintenance_repo
-import database_operations.repos.location_repository as location_repo
+from database_operations.database_repositories import get_all_cities, maintenance_requests_repo
 from models.user import User
 
 
@@ -15,7 +14,7 @@ class MaintenanceStaff(User):
     
     def get_maintenance_stats(self, location: str = "all"):
         """Return maintenance statistics (used by the dashboard)."""
-        return maintenance_repo.get_maintenance_stats(location)
+        return maintenance_requests_repo.get_maintenance_stats(location)
 
     def create_maintenance_request(self, values):
         """Create a new maintenance request."""
@@ -38,7 +37,7 @@ class MaintenanceStaff(User):
 
             cost = float(cost_estimate) if cost_estimate else None
 
-            request_id = maintenance_repo.create_maintenance_request(
+            request_id = maintenance_requests_repo.create_maintenance_request(
                 apartment_id=apartment_id,
                 tenant_id=tenant_id,
                 issue_description=issue_description,
@@ -75,7 +74,7 @@ class MaintenanceStaff(User):
             if "completed" in updated_data:
                 kwargs["completed"] = int(updated_data["completed"])
 
-            success = maintenance_repo.update_maintenance_request(request_id, **kwargs)
+            success = maintenance_requests_repo.update_maintenance_request(request_id, **kwargs)
             return True if success else "Update failed."
         except Exception as e:
             return f"Failed to update request: {str(e)}"
@@ -84,7 +83,7 @@ class MaintenanceStaff(User):
         """Delete a maintenance request row from the table."""
         try:
             request_id = int(row_data.get("request_ID"))
-            success = maintenance_repo.delete_maintenance_request(request_id)
+            success = maintenance_requests_repo.delete_maintenance_request(request_id)
             return True if success else "Delete failed."
         except Exception as e:
             return f"Failed to delete request: {str(e)}"
@@ -99,14 +98,14 @@ class MaintenanceStaff(User):
                 return "Request ID is required."
 
             # Verify request exists and is not already completed
-            request = maintenance_repo.get_maintenance_request_by_id(request_id)
+            request = maintenance_requests_repo.get_maintenance_request_by_id(request_id)
             if not request:
                 return f"Maintenance request ID {request_id} does not exist."
             if int(request.get("completed", 0)) == 1:
                 return f"Request {request_id} is already marked as completed."
 
             cost = float(final_cost) if final_cost else None
-            success = maintenance_repo.mark_maintenance_completed(request_id, cost)
+            success = maintenance_requests_repo.mark_maintenance_completed(request_id, cost)
             
             return True if success else "Failed to mark request as completed."
         except Exception as e:
@@ -124,13 +123,13 @@ class MaintenanceStaff(User):
                 return "Scheduled Date is required (YYYY-MM-DD)."
 
             # Verify request exists
-            request = maintenance_repo.get_maintenance_request_by_id(request_id)
+            request = maintenance_requests_repo.get_maintenance_request_by_id(request_id)
             if not request:
                 return f"Maintenance request ID {request_id} does not exist."
             if int(request.get("completed", 0)) == 1:
                 return f"Cannot schedule completed request {request_id}."
 
-            success = maintenance_repo.update_maintenance_request(
+            success = maintenance_requests_repo.update_maintenance_request(
                 request_id,
                 scheduled_date=scheduled_date
             )
@@ -233,7 +232,7 @@ class MaintenanceStaff(User):
             ctk.CTkLabel(header, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
 
             try:
-                cities = ["All Locations"] + location_repo.get_all_cities()
+                cities = ["All Locations"] + get_all_cities()
             except Exception as e:
                 print(f"Error loading cities: {e}")
                 cities = ["All Locations"]
@@ -271,7 +270,7 @@ class MaintenanceStaff(User):
                     priority = None
                     if priority_val != "All":
                         priority = int(priority_val.split(" ")[0])
-                    return maintenance_repo.get_maintenance_requests(location, completed=0, priority=priority)
+                    return maintenance_requests_repo.get_maintenance_requests(location, completed=0, priority=priority)
                 except Exception as e:
                     print(f"Error loading pending requests: {e}")
                     return []
@@ -326,7 +325,7 @@ class MaintenanceStaff(User):
 
         # Define data fetcher and formatter for request dropdown
         def fetch_requests():
-            return maintenance_repo.get_maintenance_requests(
+            return maintenance_requests_repo.get_maintenance_requests(
                 location=self.location if self.location else "all",
                 completed=0
             )
@@ -387,7 +386,7 @@ class MaintenanceStaff(User):
 
         # Define data fetcher and formatter for request dropdown
         def fetch_requests():
-            return maintenance_repo.get_maintenance_requests(
+            return maintenance_requests_repo.get_maintenance_requests(
                 location=self.location if self.location else "all",
                 completed=0
             )
@@ -449,7 +448,7 @@ class MaintenanceStaff(User):
 
         # Define data fetcher and formatter for apartment dropdown
         def fetch_apartments():
-            return maintenance_repo.get_apartments_with_tenants(self.location)
+            return maintenance_requests_repo.get_apartments_with_tenants(self.location)
 
         def format_apartment(apt):
             display = f"{apt['apartment_address']} - {apt['tenant_name']} ({apt['city']})"
@@ -560,7 +559,7 @@ class MaintenanceStaff(User):
 
             def get_data(location):
                 try:
-                    return maintenance_repo.get_scheduled_maintenance(location)
+                    return maintenance_requests_repo.get_scheduled_maintenance(location)
                 except Exception as e:
                     print(f"Error loading scheduled maintenance: {e}")
                     return []
@@ -600,7 +599,7 @@ class MaintenanceStaff(User):
             ctk.CTkLabel(header, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
 
             try:
-                cities = ["All Locations"] + location_repo.get_all_cities()
+                cities = ["All Locations"] + get_all_cities()
             except Exception as e:
                 print(f"Error loading cities: {e}")
                 cities = ["All Locations"]
@@ -642,7 +641,7 @@ class MaintenanceStaff(User):
                         completed = 0
                     elif status_val == "Completed":
                         completed = 1
-                    return maintenance_repo.get_maintenance_requests(location, completed=completed, compact=True)
+                    return maintenance_requests_repo.get_maintenance_requests(location, completed=completed, compact=True)
                 except Exception as e:
                     print(f"Error loading maintenance requests: {e}")
                     return []

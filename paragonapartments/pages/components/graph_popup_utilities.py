@@ -1,7 +1,7 @@
 """Graph popup utilities using a class-based API."""
 
 import customtkinter as ctk
-import database_operations.repos.location_repository as location_repo
+from database_operations.database_repositories import get_all_cities
 
 from .config.theme import THEME
 from .date_utils import open_date_picker
@@ -87,7 +87,7 @@ class GraphPopup:
         popup_location_dropdown = None
         if include_location:
             ctk.CTkLabel(row_top, text="Location:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
-            popup_cities = ["All Locations"] + location_repo.get_all_cities()
+            popup_cities = ["All Locations"] + get_all_cities()
             popup_location_dropdown = ctk.CTkComboBox(row_top, values=popup_cities, width=220, font=("Arial", 13))
             popup_location_dropdown.set(default_location or "All Locations")
             popup_location_dropdown.pack(side="left")
