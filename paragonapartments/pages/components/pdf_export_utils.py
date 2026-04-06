@@ -349,7 +349,7 @@ class PDFExportUI:
             return None
 
         try:
-            icons_dir = Path(__file__).parent.parent / "icons"
+            icons_dir = Path(__file__).resolve().parents[2] / "icons"
             upload_icon_path_light = icons_dir / "upload_icon.png"
             upload_icon_path_dark = icons_dir / "upload_icon_dark.png"
             icon_size = (18, 18) if variant == "inline" else (16, 16)
