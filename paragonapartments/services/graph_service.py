@@ -24,42 +24,6 @@ class ApartmentGraphService:
     """Chart/report generation for apartment and occupancy visuals."""
 
     @staticmethod
-    def create_occupancy_graph(parent, location=None):
-        apartment_repo = ApartmentsRepository()
-        occupied_count = apartment_repo.get_all_occupancy(location)
-        total_count = apartment_repo.get_total_apartments(location)
-        vacant_count = total_count - occupied_count
-        title_location = location if location and str(location).lower() != "all" else "All Locations"
-        return BarChart.create(
-            parent,
-            labels=["Occupied", "Vacant"],
-            values=[occupied_count, vacant_count],
-            colors=[THEME.charts.accent_green, THEME.charts.accent_red],
-            title=f"Apartment Occupancy in {title_location}",
-            y_label="Number of Apartments",
-            value_formatter="count",
-            y_padding=0.5,
-        )
-
-    @staticmethod
-    def create_performance_graph(parent, location=None):
-        apartment_repo = ApartmentsRepository()
-        actual_revenue = apartment_repo.get_monthly_revenue(location)
-        potential_revenue = apartment_repo.get_potential_revenue(location)
-        lost_revenue = potential_revenue - actual_revenue
-        title_location = _title_location(location)
-        return BarChart.create(
-            parent,
-            labels=["Actual Revenue", "Lost Revenue"],
-            values=[actual_revenue, lost_revenue],
-            colors=[THEME.charts.accent_green, THEME.charts.accent_orange],
-            title=f"Monthly Revenue Performance in {title_location}",
-            y_label="Revenue (GBP)",
-            value_formatter="currency",
-            y_padding=50,
-        )
-
-    @staticmethod
     def create_occupancy_trend_graph(parent, location=None, start_date=None, end_date=None, grouping="month"):
         lease_repo = LeaseAgreementsRepository()
         data = lease_repo.get_occupancy_timeseries(
@@ -123,7 +87,7 @@ class ApartmentGraphService:
                 periods=[],
                 series=[],
                 title=f"Revenue Trends - {title_loc}",
-                y_label="Revenue (GBP)",
+                y_label="Revenue (£)",
                 y_formatter="currency",
             )
 
@@ -135,7 +99,7 @@ class ApartmentGraphService:
                 ("Potential Revenue", potential, THEME.charts.accent_orange),
             ],
             title=f"Revenue Trends - {title_loc}",
-            y_label="Revenue (GBP)",
+            y_label="Revenue (£)",
             y_formatter="currency",
             fill_primary=True,
             fill_secondary=True,
@@ -185,7 +149,7 @@ class ApartmentGraphService:
             values=values,
             colors=colors,
             title=f"Revenue Comparison - {title_loc}",
-            y_label="Revenue (GBP)",
+            y_label="Revenue (£)",
             value_formatter="currency_decimal",
             return_figure=True,
         )
@@ -280,28 +244,6 @@ class FinanceGraphService:
     """Chart/report generation for finance visuals."""
 
     @staticmethod
-    def create_financial_summary_graph(parent, location=None):
-        invoices_repo = InvoicesRepository()
-        summary = invoices_repo.get_financial_summary(location)
-        total_invoiced = float(summary.get("total_invoiced", 0) or 0)
-        total_collected = float(summary.get("total_collected", 0) or 0)
-        outstanding = float(summary.get("outstanding", 0) or 0)
-        late_count = int(summary.get("late_invoice_count", 0) or 0)
-
-        title_location = _title_location(location)
-        return BarChart.create(
-            parent,
-            labels=["Invoiced", "Collected", "Outstanding"],
-            values=[total_invoiced, total_collected, outstanding],
-            colors=[THEME.charts.accent_blue, THEME.charts.accent_green, THEME.charts.accent_orange],
-            title=f"Financial Summary - {title_location}",
-            y_label="Amount (GBP)",
-            value_formatter="currency_decimal",
-            overlay_text=f"Late invoices: {late_count}",
-            bar_label_fontsize=10,
-        )
-
-    @staticmethod
     def create_collected_trend_graph(parent, location=None, start_date=None, end_date=None, grouping="month"):
         invoices_repo = InvoicesRepository()
         data = invoices_repo.get_collected_amount_timeseries(
@@ -325,7 +267,7 @@ class FinanceGraphService:
                 ("Payments", collected_values, "#6B7080"),
             ],
             title=f"Finance Trends - {title_location}",
-            y_label="Amount (GBP)",
+            y_label="Amount (£)",
             y_formatter="currency",
             fill_primary=True,
             fill_secondary=True,
@@ -344,7 +286,7 @@ class FinanceGraphService:
         outstanding = summary["outstanding"]
         title_loc = _title_location(location)
 
-        labels = [f"Collected\\nGBP {collected:,.2f}", f"Outstanding\\nGBP {outstanding:,.2f}"]
+        labels = [f"Collected\\n£{collected:,.2f}", f"Outstanding\\n£{outstanding:,.2f}"]
         values = [collected, outstanding]
         colors = [THEME.charts.accent_green, THEME.charts.accent_orange]
 
@@ -377,7 +319,7 @@ class FinanceGraphService:
             values=values,
             colors=colors,
             title=f"Financial Comparison - {title_loc}",
-            y_label="Amount (GBP)",
+            y_label="Amount (£)",
             value_formatter="currency_decimal",
             return_figure=True,
         )

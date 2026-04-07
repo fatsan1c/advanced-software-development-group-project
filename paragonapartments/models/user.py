@@ -1,41 +1,44 @@
 import customtkinter as ctk
 import pages.components.page_elements as pe
-from database_operations.database_repositories import users_repo
+from models.role_types import RoleType, parse_role, role_label
 from pages.components.config.theme import THEME
+from services.account_service import AccountService
 
 
-def create_user(username: str, user_type: str, location: str = ""):
-    """Factory function to create the appropriate user class based on user type"""
+def _build_user_factory_registry():
+    """Build role-to-class factory registry lazily to avoid import cycles."""
     from models.user_roles.administrator import Administrator
     from models.user_roles.manager import Manager
     from models.user_roles.finance_manager import FinanceManager
     from models.user_roles.front_desk_staff import FrontDeskStaff
     from models.user_roles.maintenance_staff import MaintenanceStaff
-    
-    # Normalize user type for comparison
-    user_type_lower = user_type.lower().replace(" ", "")
-    
-    # Check user type and return the corresponding user class instance
-    if user_type_lower == "administrator" or user_type_lower == "admin":
-        return Administrator(username, location)
-    elif user_type_lower == "manager":
-        return Manager(username, location)
-    elif user_type_lower == "financemanager" or user_type_lower == "finance":
-        return FinanceManager(username, location)
-    elif user_type_lower == "frontdeskstaff" or user_type_lower == "frontdesk":
-        return FrontDeskStaff(username, location)
-    elif user_type_lower == "maintenancestaff" or user_type_lower == "maintenance":
-        return MaintenanceStaff(username, location)
-    else:
-        return User(username, user_type, location)
+
+    return {
+        RoleType.ADMINISTRATOR: Administrator,
+        RoleType.MANAGER: Manager,
+        RoleType.FINANCE_MANAGER: FinanceManager,
+        RoleType.FRONT_DESK_STAFF: FrontDeskStaff,
+        RoleType.MAINTENANCE_STAFF: MaintenanceStaff,
+    }
+
+
+def create_user(username: str, user_type: str, location: str = ""):
+    """Factory function to create the appropriate user class based on user type."""
+    role_type = parse_role(user_type)
+    user_factory = _build_user_factory_registry().get(role_type)
+    if user_factory is not None:
+        return user_factory(username, location)
+
+    return User(username, role_label(user_type), location)
 
 
 class User:
     """Base user class for all user types in the system."""
     
-    def __init__(self, username: str, role: str, location: str = ""):
+    def __init__(self, username: str, role: str | RoleType, location: str = ""):
         self.username = username
-        self.role = role
+        self.role = role_label(role)
+        self.role_type = parse_role(role)
         self.location = location
     
     def view_profile(self):
@@ -53,8 +56,7 @@ class User:
         new_password = values.get('New Password', '')
 
         try:
-            # Request password change from the user repository
-            success = users_repo.change_password(self.username, old_password, new_password)
+            success = AccountService.change_password(self.username, old_password, new_password)
 
             if success:
                 return True

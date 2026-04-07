@@ -1,9 +1,8 @@
 import customtkinter as ctk
 from PIL import Image
 from pathlib import Path
-from database_operations.database_repositories import users_repo
 import pages.components.page_elements as pe
-
+from services.account_service import AccountService
 
 class LoginPage(ctk.CTkToplevel):
     """Login page window for user authentication."""
@@ -82,7 +81,7 @@ class LoginPage(ctk.CTkToplevel):
     def authenticate(self, container, username: str, password: str) -> bool:
         """Authenticate user credentials."""
         # Authenticate against database
-        user = users_repo.authenticate_user(username, password)
+        user = AccountService.authenticate_user(username, password)
         
         # If authentication is successful, complete login process
         if user:
