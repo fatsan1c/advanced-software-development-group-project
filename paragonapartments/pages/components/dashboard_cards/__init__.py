@@ -7,7 +7,6 @@ from .apartment_cards import (
 )
 from .business_cards import (
     load_manager_business_expansion_card,
-    load_manager_dashboards_launcher_card,
 )
 from .complaint_cards import load_front_desk_complaints_card
 from .dashboard_loader import (
@@ -56,5 +55,4 @@ __all__ = [
     "load_maintenance_schedule_request_card",
     "load_maintenance_create_request_card",
     "load_manager_business_expansion_card",
-    "load_manager_dashboards_launcher_card",
 ]

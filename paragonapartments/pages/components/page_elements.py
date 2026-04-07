@@ -57,9 +57,7 @@ from .pdf_export_utils import (
 )
 
 # Graph popup utilities: specialized functions for graph popups
-from .graph_popup_utilities import (
-    GraphPopup,
-)
+from .graph_popup_utilities import GraphPopup
 
 # Containers: layout and scrolling
 from .ui_containers import (
@@ -79,10 +77,11 @@ from .ui_cards import (
     StatsGrid,
 )
 
+# Tabs: top navigation selectors
+from .ui_tabs import DashboardTabsMenu
+
 # Forms: form builder with validation
-from .ui_forms import (
-    Form
-)
+from .ui_forms import Form
 
 # Tables: data tables with CRUD
 from .ui_tables import (
@@ -126,6 +125,7 @@ __all__ = [
     'LocationDropdownWithLabel',
     'StatCard',
     'StatsGrid',
+    'DashboardTabsMenu',
     # Forms
     'Form',
     # Tables

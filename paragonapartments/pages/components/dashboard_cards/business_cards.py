@@ -1,4 +1,4 @@
-"""Business and cross-dashboard card builders."""
+"""Business management dashboard card builders."""
 
 from __future__ import annotations
 
@@ -138,60 +138,3 @@ def load_manager_business_expansion_card(self, row):
         )
 
     apt_btn.configure(command=setup_apt_popup)
-
-
-def load_manager_dashboards_launcher_card(self, row):
-    access_card = pe.FunctionCard(row, "All Dashboards", side="top", pady=6, padx=8)
-
-    ctk.CTkLabel(
-        access_card,
-        text="Open any role dashboard from one place.",
-        font=("Arial", 13),
-    ).pack(anchor="w", pady=(0, 10))
-
-    controls = ctk.CTkFrame(access_card, fg_color="transparent")
-    controls.pack(fill="x", pady=(0, 8))
-
-    ctk.CTkLabel(controls, text="Location context:", font=("Arial", 13, "bold")).pack(
-        side="left", padx=(0, 8)
-    )
-
-    try:
-        location_options = ["All Locations"] + self.get_all_cities()
-    except Exception as e:
-        print(f"Error loading locations: {e}")
-        location_options = ["All Locations"]
-
-    location_dropdown = ctk.CTkComboBox(controls, values=location_options, width=210, font=("Arial", 13))
-    if self.location and self.location in location_options:
-        location_dropdown.set(self.location)
-    else:
-        location_dropdown.set("All Locations")
-    pe.style_secondary_dropdown(location_dropdown)
-    location_dropdown.pack(side="left")
-
-    launcher_grid = ctk.CTkFrame(access_card, fg_color="transparent")
-    launcher_grid.pack(fill="x", pady=(6, 0))
-    launcher_grid.grid_columnconfigure(0, weight=1)
-    launcher_grid.grid_columnconfigure(1, weight=1)
-
-    dashboard_launchers = [
-        ("Administrator Dashboard", "administrator"),
-        ("Finance Dashboard", "finance"),
-        ("Front Desk Dashboard", "front_desk"),
-        ("Maintenance Dashboard", "maintenance"),
-    ]
-
-    for index, (label, key) in enumerate(dashboard_launchers):
-        button = ctk.CTkButton(
-            launcher_grid,
-            text=label,
-            height=36,
-            command=lambda dashboard_key=key: self._open_cross_role_dashboard(
-                dashboard_key,
-                location_dropdown.get(),
-            ),
-        )
-        button.grid(row=index // 2, column=index % 2, sticky="ew", padx=6, pady=6)
-        if index > 0:
-            pe.style_secondary_button(button)

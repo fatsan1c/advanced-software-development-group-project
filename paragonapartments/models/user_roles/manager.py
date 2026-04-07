@@ -1,8 +1,7 @@
-import customtkinter as ctk
+import pages.components.page_elements as pe
 from pages.components.dashboard_cards import (
     load_manager_account_card,
     load_manager_business_expansion_card,
-    load_manager_dashboards_launcher_card,
     load_manager_occupancy_card,
     load_manager_report_card,
     render_dashboard_cards,
@@ -24,16 +23,53 @@ class Manager(User):
         {"row": 2, "builder": load_manager_occupancy_card},
         {"row": 2, "builder": load_manager_account_card},
         {"row": 3, "builder": load_manager_business_expansion_card},
-        {"row": 4, "builder": load_manager_dashboards_launcher_card},
+    ]
+
+    DASHBOARD_TABS = [
+        ("Manager", "manager"),
+        ("Administrator", "administrator"),
+        ("Finance", "finance"),
+        ("Front Desk", "front_desk"),
+        ("Maintenance", "maintenance"),
     ]
     
     def __init__(self, username: str, location: str | None = None):
         super().__init__(username, role="Manager", location=location)
 
     def load_homepage_content(self, home_page):
-        """Render manager dashboard cards in configured order."""
+        """Render manager dashboard with top tab selector and cards."""
         super().load_homepage_content(home_page)
-        render_dashboard_cards(home_page, self, self.CARD_SEQUENCE)
+
+        state = {"container": None}
+
+        def show_dashboard(tab_key: str, selected_location: str):
+            if state["container"] is not None:
+                state["container"].pack_forget()
+                state["container"].destroy()
+
+            if tab_key == "manager":
+                dashboard_user, card_sequence = self, self.CARD_SEQUENCE
+            else:
+                location_context = self._resolve_dashboard_location(selected_location)
+                dashboard_user, card_sequence = self._build_cross_role_dashboard(tab_key, location_context)
+
+            if dashboard_user is None or card_sequence is None:
+                return "Unable to load dashboard."
+
+            state["container"] = render_dashboard_cards(home_page, dashboard_user, card_sequence)
+            return True
+
+        dashboard_tabs = pe.DashboardTabsMenu(
+            home_page,
+            tabs=self.DASHBOARD_TABS,
+            on_tab_selected=show_dashboard,
+            on_location_changed=show_dashboard,
+            title="All Dashboards",
+            get_locations=self.get_all_cities,
+            initial_location=self.location or "All Locations",
+            default_tab_key="manager",
+        )
+        dashboard_tabs.select_tab("manager", invoke_callback=True)
 
     def view_apartment_occupancy(self, location: str = "all"):
         """Return occupied apartment count for the selected location scope."""
@@ -142,31 +178,3 @@ class Manager(User):
             return MaintenanceDashboardAdapter(self.username, location_context), MaintenanceStaff.CARD_SEQUENCE
 
         return None, None
-
-    def _open_cross_role_dashboard(self, dashboard_key: str, selected_location: str | None):
-        """Open the selected role dashboard in a popup using service-backed adapters."""
-        location_context = self._resolve_dashboard_location(selected_location)
-        dashboard_user, card_sequence = self._build_cross_role_dashboard(dashboard_key, location_context)
-        if dashboard_user is None:
-            return "Unable to load dashboard."
-
-        popup = ctk.CTkToplevel()
-        popup.title(f"{dashboard_user.role} Dashboard")
-        popup.geometry("1220x780")
-        popup.minsize(1024, 680)
-
-        class _RoleDashboardContainer(ctk.CTkFrame):
-            def __init__(self, parent):
-                super().__init__(parent, fg_color="transparent")
-                self._window = parent
-
-            def close_page(self):
-                self._window.destroy()
-
-        container = _RoleDashboardContainer(popup)
-        container.pack(fill="both", expand=True)
-        render_dashboard_cards(container, dashboard_user, card_sequence)
-
-        popup.lift()
-        popup.focus_force()
-        return True
