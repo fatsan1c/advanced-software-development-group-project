@@ -51,6 +51,8 @@ class Manager(User):
                 dashboard_user, card_sequence = self, self.CARD_SEQUENCE
             else:
                 location_context = self._resolve_dashboard_location(selected_location)
+                print(tab_key == "administrator", location_context == None)
+                if tab_key == "administrator" and location_context == None: location_context = "Bristol"
                 dashboard_user, card_sequence = self._build_cross_role_dashboard(tab_key, location_context)
 
             if dashboard_user is None or card_sequence is None:
@@ -144,17 +146,10 @@ class Manager(User):
         return ManagerService.edit_apartment(apartment_data, values)
 
     def _resolve_dashboard_location(self, selected_location: str | None) -> str:
-        if selected_location and selected_location not in {"All Locations", "None"}:
-            return selected_location
-
-        if self.location:
-            return self.location
-
-        try:
-            locations = ManagerService.get_all_cities()
-            return locations[0] if locations else ""
-        except Exception:
-            return ""
+        if selected_location in {"All Locations", "all", "None"}:
+            return None
+        
+        return selected_location
 
     def _build_cross_role_dashboard(self, dashboard_key: str, location_context: str):
         if dashboard_key == "administrator":

@@ -294,11 +294,27 @@ class GraphPopup:
         export_parent = export_btn.master
         export_btn.destroy()
 
+        popup_pie_chart_generator = self._create_location_aware_generator(
+            pie_chart_generator,
+            fixed_location,
+            location_dropdown,
+            None,
+            location_mapper,
+        )
+
+        popup_bar_chart_generator = self._create_location_aware_generator(
+            bar_chart_generator,
+            fixed_location,
+            location_dropdown,
+            None,
+            location_mapper,
+        )
+
         self.pdf_export_ui.create_export_button(
             export_parent,
             chart_generator=get_current_chart,
-            pie_chart_generator=pie_chart_generator,
-            bar_chart_generator=bar_chart_generator,
+            pie_chart_generator=popup_pie_chart_generator,
+            bar_chart_generator=popup_bar_chart_generator,
             stats_generator=stats_generator,
             bar_text_generator=bar_text_generator,
             export_title=export_title,
@@ -416,11 +432,27 @@ class GraphPopup:
                 location_mapper,
             )
 
+            inline_pie_chart_generator = self._create_location_aware_generator(
+                pie_chart_generator,
+                fixed_location,
+                None,
+                default_location,
+                location_mapper,
+            )
+
+            inline_bar_chart_generator = self._create_location_aware_generator(
+                bar_chart_generator,
+                fixed_location,
+                None,
+                default_location,
+                location_mapper,
+            )
+
             export_btn = self.pdf_export_ui.create_export_button(
                 button_container,
                 chart_generator=generate_graph_for_export,
-                pie_chart_generator=pie_chart_generator,
-                bar_chart_generator=bar_chart_generator,
+                pie_chart_generator=inline_pie_chart_generator,
+                bar_chart_generator=inline_bar_chart_generator,
                 stats_generator=inline_stats_generator,
                 bar_text_generator=inline_bar_text_generator,
                 export_title=export_title,

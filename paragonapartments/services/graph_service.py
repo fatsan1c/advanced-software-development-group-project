@@ -117,7 +117,7 @@ class ApartmentGraphService:
         vacant = total - occupied
         title_loc = _title_location(location)
 
-        labels = [f"Occupied\\n{occupied} units", f"Vacant\\n{vacant} units"]
+        labels = [f"Occupied\n{occupied} units", f"Vacant\n{vacant} units"]
         values = [occupied, vacant]
         colors = [THEME.charts.accent_green, THEME.charts.accent_orange]
 
@@ -201,7 +201,7 @@ class LeaseGraphService:
         expired = stats.get("expired_leases", 0)
         title_loc = _title_location(location)
 
-        labels = [f"Active\\n{active} leases", f"Expired\\n{expired} leases"]
+        labels = [f"Active\n{active} leases", f"Expired\n{expired} leases"]
         values = [active, expired]
         colors = [THEME.charts.accent_green, THEME.charts.accent_red]
 
@@ -286,7 +286,7 @@ class FinanceGraphService:
         outstanding = summary["outstanding"]
         title_loc = _title_location(location)
 
-        labels = [f"Collected\\n£{collected:,.2f}", f"Outstanding\\n£{outstanding:,.2f}"]
+        labels = [f"Collected\n£{collected:,.2f}", f"Outstanding\n£{outstanding:,.2f}"]
         values = [collected, outstanding]
         colors = [THEME.charts.accent_green, THEME.charts.accent_orange]
 
