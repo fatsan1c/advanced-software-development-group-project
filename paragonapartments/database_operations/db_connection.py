@@ -1,3 +1,4 @@
+"""Contributors: Aaron Antal-Bento (23013693)"""
 import sqlite3
 from pathlib import Path
 

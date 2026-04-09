@@ -1,4 +1,6 @@
-"""Finance business operations extracted from UI-facing role classes."""
+"""Contributors: Ahmed AlShamy (24045361)
+
+Finance business operations extracted from UI-facing role classes."""
 
 from __future__ import annotations
 

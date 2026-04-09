@@ -1,4 +1,6 @@
-"""Reporting dashboard card builders."""
+"""Contributors: Aaron Antal-Bento (23013693), Ahmed AlShamy (24045361)
+
+Reporting dashboard card builders."""
 
 from __future__ import annotations
 

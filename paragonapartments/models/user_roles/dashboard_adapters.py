@@ -1,4 +1,7 @@
-"""Service-backed dashboard adapters used for cross-role manager dashboard views."""
+"""
+Contributors: Aaron Antal-Bento (23013693)
+
+Service-backed dashboard adapters used for cross-role manager dashboard views."""
 
 from __future__ import annotations
 

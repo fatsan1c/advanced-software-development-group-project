@@ -1,4 +1,7 @@
-"""Role typing and normalization helpers for the user domain."""
+"""
+Contributors: Aaron Antal-Bento (23013693)
+
+Role typing and normalization helpers for the user domain."""
 
 from __future__ import annotations
 

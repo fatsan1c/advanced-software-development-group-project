@@ -1,4 +1,6 @@
-"""Image helper functions."""
+"""Contributors: Aaron Antal-Bento (23013693)
+
+Image helper functions."""
 
 from PIL import Image, ImageDraw
 

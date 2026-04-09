@@ -1,3 +1,5 @@
+"""Contributors: Ahmed AlShamy (24045361)"""
+
 from pages.components.dashboard_cards import (
     load_finance_invoice_card,
     load_finance_payments_card,

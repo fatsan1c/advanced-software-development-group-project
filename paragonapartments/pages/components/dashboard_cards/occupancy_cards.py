@@ -1,4 +1,6 @@
-"""Occupancy-related dashboard card builders."""
+"""Contributors: Aaron Antal-Bento (23013693), Ollie Churchley (23020494)
+
+Occupancy-related dashboard card builders."""
 
 from __future__ import annotations
 

@@ -1,4 +1,6 @@
-"""Tenant-management dashboard card builders."""
+"""Contributors: Oliver Mercer (24026901), Nickolas Greiner (24018357)
+
+Tenant-management dashboard card builders."""
 
 from __future__ import annotations
 

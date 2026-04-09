@@ -1,4 +1,6 @@
 """
+Contributors: Aaron Antal-Bento (23013693), Ollie Churchley (23020494), Ahmed AlShamy (24045361)
+
 Apartment Repository - All apartment-related database operations.
 Handles apartment queries, occupancy tracking, and apartment management.
 """

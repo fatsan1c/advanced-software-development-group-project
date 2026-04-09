@@ -1,3 +1,5 @@
+"""Contributors: Aaron Antal-Bento (23013693)"""
+
 import customtkinter as ctk
 from pages.home_page import HomePage
 from pages.login_page import LoginPage

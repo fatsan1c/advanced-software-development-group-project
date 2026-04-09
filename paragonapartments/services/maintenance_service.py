@@ -1,4 +1,6 @@
-"""Maintenance business operations extracted from UI-facing role classes."""
+"""Contributors: Ollie Churchley (23020494)
+
+Maintenance business operations extracted from UI-facing role classes."""
 
 from __future__ import annotations
 

@@ -1,4 +1,6 @@
-"""Reporting services for chart generation outside repository modules."""
+"""Contributors: Aaron Antal-Bento (23013693), Ahmed AlShamy (24045361)
+
+Reporting services for chart generation outside repository modules."""
 
 from __future__ import annotations
 

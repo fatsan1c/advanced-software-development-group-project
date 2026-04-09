@@ -1,4 +1,6 @@
-"""Lease-related dashboard card builders."""
+"""Contributors: Aaron Antal-Bento (23013693)
+
+Lease-related dashboard card builders."""
 
 from __future__ import annotations
 

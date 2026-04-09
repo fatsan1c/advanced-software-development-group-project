@@ -1,4 +1,6 @@
-"""Class-based PDF export service and UI helpers."""
+"""Contributors: Aaron Antal-Bento (23013693)
+
+Class-based PDF export service and UI helpers."""
 
 from __future__ import annotations
 

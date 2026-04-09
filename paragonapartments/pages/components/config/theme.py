@@ -1,4 +1,6 @@
 """
+Contributors: Aaron Antal-Bento (23013693), Ahmed AlShamy (24045361)
+
 Central theme configuration for the Paragon Apartments application.
 
 This module provides a structured theme token system for colors, typography,

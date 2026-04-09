@@ -1,4 +1,7 @@
-"""UI card components for displaying organized content.
+"""
+Contributors: Aaron Antal-Bento (23013693), Ahmed AlShamy (24045361)
+
+UI card components for displaying organized content.
 
 This module provides card-style UI elements including:
 - FunctionCard: Main card content container for role-based functions

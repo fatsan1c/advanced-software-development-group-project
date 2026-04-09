@@ -1,4 +1,6 @@
-"""Maintenance dashboard card builders."""
+"""Contributors: Oliver Mercer (24026901), Nickolas Greiner (24018357), Ollie Churchley (23020494)
+
+Maintenance dashboard card builders."""
 
 from __future__ import annotations
 

@@ -1,4 +1,6 @@
-"""Complaint dashboard card builders."""
+"""Contributors: Oliver Mercer (24026901), Nickolas Greiner (24018357)
+
+Complaint dashboard card builders."""
 
 from __future__ import annotations
 

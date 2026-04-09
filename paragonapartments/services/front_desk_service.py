@@ -1,4 +1,6 @@
-"""Front desk business operations extracted from UI-facing role classes."""
+"""Contributors: Oliver Mercer (24026901), Nickolas Greiner (24018357)
+
+Front desk business operations extracted from UI-facing role classes."""
 
 from __future__ import annotations
 

@@ -1,4 +1,6 @@
-"""Date helper functions, including calendar popup integration."""
+"""Contributors: Ahmed AlShamy (24045361)
+
+Date helper functions, including calendar popup integration."""
 
 from datetime import datetime
 

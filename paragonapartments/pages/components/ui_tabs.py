@@ -1,4 +1,6 @@
-"""Tab-style menu components for dashboard navigation."""
+"""Contributors: Aaron Antal-Bento (23013693)
+
+Tab-style menu components for dashboard navigation."""
 
 from __future__ import annotations
 

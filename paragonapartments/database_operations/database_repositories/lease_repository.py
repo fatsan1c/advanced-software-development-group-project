@@ -1,3 +1,5 @@
+"""Contributors: Aaron Antal-Bento (23013693), Ahmed AlShamy (24045361)"""
+
 from __future__ import annotations
 
 import calendar

@@ -1,4 +1,6 @@
-"""UI containers - basic container and layout elements."""
+"""Contributors: Aaron Antal-Bento (23013693)
+
+UI containers - basic container and layout elements."""
 
 import customtkinter as ctk
 

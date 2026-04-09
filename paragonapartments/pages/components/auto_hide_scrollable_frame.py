@@ -1,3 +1,5 @@
+"""Contributors: Aaron Antal-Bento (23013693)"""
+
 import sys
 from typing import Union, Tuple, Optional, Any
 from customtkinter import CTkScrollableFrame

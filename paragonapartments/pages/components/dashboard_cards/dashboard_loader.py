@@ -1,4 +1,6 @@
-"""Shared role-driven dashboard card loader."""
+"""Contributors: Aaron Antal-Bento (23013693)
+
+Shared role-driven dashboard card loader."""
 
 from __future__ import annotations
 

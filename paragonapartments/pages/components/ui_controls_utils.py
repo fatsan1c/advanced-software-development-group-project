@@ -1,4 +1,6 @@
-"""UI controls helpers for reusable widgets and layout elements."""
+"""Contributors: Aaron Antal-Bento (23013693), Ahmed AlShamy (24045361)
+
+UI controls helpers for reusable widgets and layout elements."""
 
 import customtkinter as ctk
 

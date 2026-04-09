@@ -1,3 +1,4 @@
+"""Contributors: Oliver Mercer (24026901), Nickolas Greiner (24018357)"""
 from __future__ import annotations
 
 from database_operations.database_repositories.base_repository import BaseRepository

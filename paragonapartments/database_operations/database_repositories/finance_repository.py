@@ -1,8 +1,9 @@
 """
+Contributors: Ahmed AlShamy (24045361)
+
 Finance Repository - All finance-related database operations.
 Handles invoices, payments, late payment tracking, and financial summaries.
 """
-
 from __future__ import annotations
 
 from database_operations.database_repositories.base_repository import BaseRepository

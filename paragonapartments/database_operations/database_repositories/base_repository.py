@@ -1,4 +1,7 @@
-"""Shared base helpers for repository classes."""
+"""
+Contributors: Aaron Antal-Bento (23013693)
+
+Shared base helpers for repository classes."""
 
 from __future__ import annotations
 

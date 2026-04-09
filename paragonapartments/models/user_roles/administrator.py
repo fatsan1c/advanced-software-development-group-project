@@ -1,3 +1,5 @@
+"""Contributors: Aaron Antal-Bento (23013693)"""
+
 from pages.components.dashboard_cards import (
     load_admin_account_card,
     load_admin_apartment_card,

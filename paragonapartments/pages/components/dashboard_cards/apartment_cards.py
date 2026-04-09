@@ -1,4 +1,6 @@
-"""Apartment-related dashboard card builders."""
+"""Contributors: Aaron Antal-Bento (23013693), Oliver Mercer (24026901), Nickolas Greiner (24018357)
+
+Apartment-related dashboard card builders."""
 
 from __future__ import annotations
 

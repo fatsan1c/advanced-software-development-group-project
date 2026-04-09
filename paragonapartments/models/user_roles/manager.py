@@ -1,3 +1,4 @@
+"""Contributors: Aaron Antal-Bento (23013693), Ollie Churchley (23020494)"""
 import pages.components.page_elements as pe
 from pages.components.dashboard_cards import (
     load_manager_account_card,

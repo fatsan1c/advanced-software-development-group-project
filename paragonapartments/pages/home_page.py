@@ -1,3 +1,5 @@
+"""Contributors: Aaron Antal-Bento (23013693)"""
+
 from pathlib import Path
 from PIL import Image
 import customtkinter as ctk

@@ -1,4 +1,6 @@
 """
+Contributors: Aaron Antal-Bento (23013693), Ahmed AlShamy (24045361)
+
 Repository Utilities - Shared utility functions for repository modules.
 """
 

@@ -1,4 +1,5 @@
-"""
+"""Contributors: Aaron Antal-Bento (23013693), Ahmed AlShamy (24045361)
+
 Shared chart utilities for Paragon Apartments.
 Provides class-based chart builders used by Finance, Manager, and other dashboards.
 """

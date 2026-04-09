@@ -1,3 +1,5 @@
+"""Contributors: Aaron Antal-Bento (23013693)"""
+
 import customtkinter as ctk
 import pages.components.page_elements as pe
 from models.role_types import RoleType, parse_role, role_label

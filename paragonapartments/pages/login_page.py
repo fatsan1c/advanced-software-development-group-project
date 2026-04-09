@@ -1,3 +1,5 @@
+"""Contributors: Aaron Antal-Bento (23013693), Ollie Churchley (23020494)"""
+
 import customtkinter as ctk
 from PIL import Image
 from pathlib import Path

@@ -1,4 +1,6 @@
-"""Account-related use-case service."""
+"""Contributors: Aaron Antal-Bento (23013693)
+
+Account-related use-case service."""
 
 from __future__ import annotations
 

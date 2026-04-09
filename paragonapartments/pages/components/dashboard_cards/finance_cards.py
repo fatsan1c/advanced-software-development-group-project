@@ -1,4 +1,6 @@
-"""Finance dashboard card builders."""
+"""Contributors: Ahmed AlShamy (24045361)
+
+Finance dashboard card builders."""
 
 from __future__ import annotations
 

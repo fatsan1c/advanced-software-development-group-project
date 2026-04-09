@@ -1,4 +1,6 @@
-"""Drop-in CTkOptionMenu replacement with a ttk-like scrollable popup list."""
+"""Contributors: Aaron Antal-Bento (23013693)
+
+Drop-in CTkOptionMenu replacement with a ttk-like scrollable popup list."""
 
 from __future__ import annotations
 

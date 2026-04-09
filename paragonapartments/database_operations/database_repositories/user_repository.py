@@ -1,4 +1,6 @@
 """
+Contributors: Aaron Antal-Bento (23013693), Ollie Churchley (23020494)
+
 User Repository - All user-related database operations.
 Handles authentication, user CRUD operations, and role management.
 """

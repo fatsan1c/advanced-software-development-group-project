@@ -1,4 +1,5 @@
-"""Styling helper functions for CTk widgets."""
+"""Contributors: Aaron Antal-Bento (23013693), Ahmed AlShamy (24045361)
+Styling helper functions for CTk widgets."""
 
 from customtkinter import ThemeManager
 

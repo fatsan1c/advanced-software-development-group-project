@@ -1,4 +1,6 @@
-"""Manager business operations extracted from UI-facing role classes."""
+"""Contributors: Aaron Antal-Bento (23013693), Ollie Churchley (23020494)
+
+Manager business operations extracted from UI-facing role classes."""
 
 from __future__ import annotations
 

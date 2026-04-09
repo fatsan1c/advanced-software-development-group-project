@@ -1,4 +1,6 @@
 """
+Contributors: Olliver Mercer (24026901)
+
 Generates comprehensive 10-year test data for Paragon Apartments.
 
 Replaces any existing database with a full realistic UK dataset spanning

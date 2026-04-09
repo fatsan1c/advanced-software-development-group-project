@@ -1,3 +1,5 @@
+"""Contributors: Oliver Mercer (24026901), Nickolas Greiner (24018357)"""
+
 from models.user import User
 from pages.components.dashboard_cards import (
     load_front_desk_apartment_search_card,

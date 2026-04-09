@@ -1,4 +1,6 @@
 """
+Contributors: Aaron Antal-Bento (23013693), Ollie Churchley (23020494)
+
 Location Repository - All location-related database operations.
 Handles location CRUD operations and location information retrieval.
 """

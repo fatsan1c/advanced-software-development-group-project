@@ -1,4 +1,5 @@
-"""Popup helper functions."""
+"""Contributors: Aaron Antal-Bento (23013693)
+Popup helper functions."""
 
 
 def enable_click_outside_to_close(popup, parent_window):

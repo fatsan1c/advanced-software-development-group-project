@@ -1,4 +1,6 @@
 """
+Contributors: Aaron Antal-Bento (23013693), Olliver Mercer (24026901)
+
 Creates empty SQLite database with seed data (locations and manager user only).
 For comprehensive test data, use create_sqlite_testdata.py instead.
 """

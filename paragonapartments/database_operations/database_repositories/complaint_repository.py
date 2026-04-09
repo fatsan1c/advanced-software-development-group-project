@@ -1,4 +1,7 @@
-"""Complaint repository for complaint-specific database operations."""
+"""
+Contributors: Oliver Mercer (24026901), Nickolas Greiner (24018357)
+
+Complaint repository for complaint-specific database operations."""
 
 from __future__ import annotations
 

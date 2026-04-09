@@ -1,4 +1,6 @@
-"""Shared CRUD helpers for administrator and manager services."""
+"""Contributors: Aaron Antal-Bento (23013693), Ollie Churchley (23020494)
+
+Shared CRUD helpers for administrator and manager services."""
 
 from __future__ import annotations
 

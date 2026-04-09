@@ -1,4 +1,6 @@
-"""Graph popup utilities using a class-based API."""
+"""Contributors: Aaron Antal-Bento (23013693), Ahmed AlShamy (24045361)
+
+Graph popup utilities using a class-based API."""
 
 import customtkinter as ctk
 from database_operations.database_repositories import get_all_cities

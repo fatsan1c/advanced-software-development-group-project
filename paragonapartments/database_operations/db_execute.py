@@ -1,4 +1,6 @@
 """
+Contributors: Aaron Antal-Bento (23013693)
+
 Database Helper - Centralized database query execution.
 Provides a single function for executing all database queries with proper connection handling.
 """

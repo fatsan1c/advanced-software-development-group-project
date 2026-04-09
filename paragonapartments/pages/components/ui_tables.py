@@ -1,4 +1,7 @@
-"""Data table UI components for displaying and managing tabular data.
+"""
+Contributors: Ahmed AlShamy (24045361)
+
+Data table UI components for displaying and managing tabular data.
 
 This module provides class-based table building functionality including:
 - DataTable: Full-featured table with CRUD operations and pagination

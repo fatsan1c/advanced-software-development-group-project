@@ -1,4 +1,7 @@
-"""Form UI components for data entry and user input.
+"""
+Contributors: Aaron Antal-Bento (23013693), Ahmed AlShamy (24045361)
+
+Form UI components for data entry and user input.
 
 This module provides comprehensive form building functionality including:
 - Field types: text, dropdown, checkbox
