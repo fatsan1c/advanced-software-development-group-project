@@ -1,8 +1,10 @@
+"""Contributors: Aaron Antal-Bento (23013693), Ollie Churchley (23020494)"""
+
 import customtkinter as ctk
 from PIL import Image
 from pathlib import Path
-from database_operations.repos.user_repository import authenticate_user
 import pages.components.page_elements as pe
+from services.account_service import AccountService
 
 class LoginPage(ctk.CTkToplevel):
     """Login page window for user authentication."""
@@ -33,7 +35,7 @@ class LoginPage(ctk.CTkToplevel):
 
     def loginpage_content(self, container):
         # Create inner frame for centered content
-        inner_frame = pe.content_container(parent=container)
+        inner_frame = pe.ContentContainer(parent=container)
         inner_frame.place(relx=0.5, rely=0.5, anchor="center")
         
         # Title label
@@ -81,7 +83,7 @@ class LoginPage(ctk.CTkToplevel):
     def authenticate(self, container, username: str, password: str) -> bool:
         """Authenticate user credentials."""
         # Authenticate against database
-        user = authenticate_user(username, password)
+        user = AccountService.authenticate_user(username, password)
         
         # If authentication is successful, complete login process
         if user:

@@ -1,612 +1,97 @@
-import customtkinter as ctk
-import pages.components.page_elements as pe
-import database_operations.repos.user_repository as user_repo
-import database_operations.repos.location_repository as location_repo
-import database_operations.repos.apartment_repository as apartment_repo
-import database_operations.repos.lease_repository as lease_repo
+"""Contributors: Aaron Antal-Bento (23013693)"""
+
+from pages.components.dashboard_cards import (
+    load_admin_account_card,
+    load_admin_apartment_card,
+    load_admin_lease_card,
+    load_admin_occupancy_card,
+    load_admin_report_card,
+    render_dashboard_with_location_selector,
+)
 from models.user import User
+from services.admin_service import AdminService
+
 
 class Administrator(User):
     """Administrator with location-specific management capabilities."""
+
+    CARD_SEQUENCE = [
+        {"row": 1, "builder": load_admin_occupancy_card},
+        {"row": 1, "builder": load_admin_account_card},
+        {"row": 2, "builder": load_admin_lease_card},
+        {"row": 2, "builder": load_admin_report_card},
+        {"row": 3, "builder": load_admin_apartment_card},
+    ]
     
     def __init__(self, username: str, location: str = ""):
         super().__init__(username, role="Administrator", location=location)
+    
+    def load_homepage_content(self, home_page):
+        """Render administrator dashboard cards in configured order."""
+        super().load_homepage_content(home_page)
+        render_dashboard_with_location_selector(
+            home_page,
+            self,
+            self.CARD_SEQUENCE,
+            get_locations=AdminService.get_all_cities,
+        )
 
-# ============================= v Admin functions v  =====================================
     def view_apartment_occupancy(self):
-        """View apartment occupancy for this administrator's location."""
-        try:
-            occupied_count = apartment_repo.get_all_occupancy(self.location)
-            return occupied_count
-        except Exception as e:
-            print(f"Error retrieving occupancy data: {e}")
-            return 0
+        """Return occupied apartment count for this administrator location."""
+        return AdminService.view_apartment_occupancy(self.location)
+
+    def get_total_apartments(self, location: str | None = None):
+        """Return apartment unit count for this administrator location."""
+        return AdminService.get_total_apartments(location or self.location)
+
+    def get_monthly_revenue(self, location: str | None = None):
+        """Return monthly revenue for this administrator location."""
+        return AdminService.get_monthly_revenue(location or self.location)
+
+    def get_potential_revenue(self, location: str | None = None):
+        """Return potential revenue for this administrator location."""
+        return AdminService.get_potential_revenue(location or self.location)
+
+    def get_lease_date_range(self, location: str | None = None, grouping: str = "month"):
+        """Return lease graph date range for this administrator location."""
+        return AdminService.get_lease_date_range(location or self.location, grouping=grouping)
+
+    def get_lease_statistics(self, location: str | None = None):
+        """Return lease statistics for this administrator location."""
+        return AdminService.get_lease_statistics(location or self.location)
+
+    def get_all_leases(self, location: str | None = None):
+        """Return all leases for this administrator location."""
+        return AdminService.get_all_leases(location or self.location)
+
+    def get_all_users(self, location: str | None = None):
+        """Return users scoped to this administrator location."""
+        return AdminService.get_all_users(location or self.location)
+
+    def get_all_apartments(self, location: str | None = None):
+        """Return apartments scoped to this administrator location."""
+        return AdminService.get_all_apartments(location or self.location)
 
     def create_account(self, values):
-        """Create a new user account at this administrator's location."""
-        username = values.get('Username', '')
-        role = values.get('Role', '')
-        password = values.get('Password', '')
-        
-        # Get location ID for this administrator's location
-        location_id = location_repo.get_location_id_by_city(self.location)
-
-        try:
-            # Create user with administrator's location
-            user_repo.create_user(username, password, role, location_id)
-            return True  # Success
-        except Exception as e:
-            return f"Failed to create account: {str(e)}"
+        """Create a user account scoped to this administrator location."""
+        return AdminService.create_account(self.location, values)
 
     def edit_account(self, user_data, values):
-        """Edit an existing user account at this administrator's location."""
-        user_id = user_data.get('user_ID', None)
-        username = values.get('username', '')
-        role = values.get('role', '')
-        
-        # Keep the location as administrator's location (cannot change)
-        location_id = location_repo.get_location_id_by_city(self.location)
-
-        try:
-            user_repo.update_user(user_id, username=username, role=role, location_ID=location_id)
-            return True  # Success
-        except Exception as e:
-            return f"Failed to edit account: {str(e)}"
+        """Edit a user account scoped to this administrator location."""
+        return AdminService.edit_account(self.location, user_data, values)
 
     def delete_account(self, user_data):
-        """Delete an existing user account by username or ID."""
-        try:
-            # Attempt to delete by ID otherwise return error
-            if user_data and 'user_ID' in user_data:
-                user_repo.delete_user(int(user_data['user_ID']))
-            else:
-                return "No valid user identifier provided."
-
-            return True  # Success
-        except Exception as e:
-            return f"Failed to delete account: {str(e)}"
+        """Delete a user account."""
+        return AdminService.delete_account(user_data)
 
     def add_apartment(self, apartment_data):
-        """Add a new apartment at this administrator's location."""
-        apartment_address = apartment_data.get('Apartment Address', '')
-        number_of_beds = apartment_data.get('Number of Beds', 0)
-        monthly_rent = apartment_data.get('Monthly Rent', 0)
-        status = apartment_data.get('Status', 'Vacant')
-
-        # Convert status to occupied flag
-        occupied = 1 if status.lower() == "occupied" else 0
-
-        try:
-            # Get location ID from administrator's location
-            location_id = location_repo.get_location_id_by_city(self.location)
-            # create apartment in database
-            apartment_repo.create_apartment(location_id, apartment_address, number_of_beds, monthly_rent, occupied)
-            return True  # Success
-        except Exception as e:
-            return f"Failed to add apartment: {str(e)}"
+        """Add an apartment in this administrator location."""
+        return AdminService.add_apartment(self.location, apartment_data)
 
     def delete_apartment(self, apartment_data):
-        """Delete an existing apartment by ID."""
-        try:
-            # Attempt to delete by ID otherwise return error
-            if apartment_data and 'apartment_ID' in apartment_data:
-                apartment_repo.delete_apartment(int(apartment_data['apartment_ID']))
-            else:
-                return "No valid apartment identifier provided."
+        """Delete an apartment."""
+        return AdminService.delete_apartment(apartment_data)
 
-            return True  # Success
-        except Exception as e:
-            return f"Failed to delete apartment: {str(e)}"
-        
     def edit_apartment(self, apartment_data, values):
-        """Edit an existing apartment's details at this location."""
-        apartment_id = apartment_data.get('apartment_ID', None)
-        apartment_address = values.get('apartment_address', '')
-        number_of_beds = values.get('number_of_beds', 0)
-        monthly_rent = values.get('monthly_rent', 0)
-        occupied = values.get('occupied', 0)
-
-        try:
-            # Get location ID from administrator's location
-            location_id = location_repo.get_location_id_by_city(self.location)
-            
-            apartment_repo.update_apartment(
-                apartment_id,
-                location_ID=location_id,
-                apartment_address=apartment_address,
-                number_of_beds=number_of_beds,
-                monthly_rent=monthly_rent,
-                occupied=occupied
-            )
-            return True  # Success
-        except Exception as e:
-            return f"Failed to edit apartment: {str(e)}"
-# ============================= ^ Admin functions ^ =====================================
-    
-# ============================= v Homepage UI Content v =====================================
-    def load_homepage_content(self, home_page):
-        """Load Administrator-specific homepage content."""
-        # Load base content first
-        super().load_homepage_content(home_page)
-
-        # Store reference to container for reloading
-        self._current_container = None
-
-        def reload_content(selected_location):
-            """Reload the container content when location changes."""
-            self.location = selected_location
-            
-            # Destroy old container if it exists
-            if self._current_container:
-                self._current_container.pack_forget()
-                self._current_container.destroy()
-            
-            # Create new container with updated location
-            self._current_container = pe.scrollable_container(parent=home_page)
-            self._load_all_cards(self._current_container)
-
-        if not self.location:
-            # Create location selector dropdown
-            location_frame = ctk.CTkFrame(home_page, fg_color="transparent")
-            location_frame.pack(fill="x", padx=(25, 0), pady=0)
-
-            try:
-                all_locations = [loc['city'] for loc in location_repo.get_all_locations()]
-            except Exception as e:
-                print(f"Error loading locations: {e}")
-                all_locations = []
-
-            location_dropdown = ctk.CTkOptionMenu(
-                location_frame,
-                values=all_locations,
-                command=reload_content
-            )
-            location_dropdown.pack(side="left")
-            pe.style_secondary_dropdown(location_dropdown)
-            self.location = location_dropdown.get()  # Set initial location from dropdown
-
-        container = pe.scrollable_container(parent=home_page)
-        self._current_container = container
-        self._load_all_cards(container)
-
-    def _load_all_cards(self, container):
-        """Load all content cards into the container."""
-        # First row - 2 cards
-        row1 = pe.row_container(parent=container)
-        
-        # Display apartment occupancy for this location
-        self.load_occupancy_content(row1)
-
-        # Manage staff user accounts at this location
-        self.load_account_content(row1)
-
-        # Second row - 2 cards
-        row2 = pe.row_container(parent=container)
-        
-        # Display lease agreements tracking
-        self.load_lease_content(row2)
-
-        # Display financial performance reports for this location
-        self.load_reports_content(row2)
-
-        # Third row - full width card
-        row3 = pe.row_container(parent=container)
-        
-        # Manage apartments at this location
-        self.load_apartment_content(row3)
-
-    def load_occupancy_content(self, row):
-        occupancy_card = pe.function_card(row, f"Apartment Occupancy - {self.location}", side="left", pady=6, padx=8)
-
-        # Top info row: occupancy badge
-        info_row = ctk.CTkFrame(occupancy_card, fg_color="transparent")
-        info_row.pack(fill="x", pady=(0, 6))
-
-        occupancy_badge = pe.info_badge(info_row, "Total units: 0")
-
-        # Stat grid
-        stats = pe.stats_grid(occupancy_card)
-
-        occupied_value = pe.stat_card(stats, "Occupied")
-        available_value = pe.stat_card(stats, "Available")
-        total_value = pe.stat_card(stats, "Total")
-
-        def update_occupancy_display():
-            try:
-                occupied_count = self.view_apartment_occupancy()
-                total_count = apartment_repo.get_total_apartments(self.location)
-                available_count = total_count - occupied_count
-
-                occupied_value.configure(text=str(occupied_count))
-                available_value.configure(text=str(available_count))
-                total_value.configure(text=str(total_count))
-                occupancy_badge.configure(text=f"Total units: {total_count}")
-            except Exception as e:
-                print(f"Error loading occupancy data: {e}")
-
-        update_occupancy_display()
-        refresh_timer, schedule_refresh = pe.create_debounced_refresh(occupancy_card, update_occupancy_display)
-
-        # Button container for graph and comprehensive export
-        button_container = ctk.CTkFrame(occupancy_card, fg_color="transparent")
-        button_container.pack(fill="x", pady=(5, 0))
-
-        # Stats and analysis generators (shared by both export buttons)
-        def generate_occupancy_stats():
-            occupied = self.view_apartment_occupancy()
-            total = apartment_repo.get_total_apartments(self.location)
-            vacant = total - occupied
-            return (
-                f"Location: {self.location}\n\n"
-                f"Total Apartments: {total}\n\n"
-                f"Occupied: {occupied} ({(occupied/total*100):.1f}%)\n\n"
-                f"Vacant: {vacant} ({(vacant/total*100):.1f}%)"
-            )
-        
-        def generate_revenue_analysis():
-            actual = apartment_repo.get_monthly_revenue(self.location)
-            potential = apartment_repo.get_potential_revenue(self.location)
-            lost = potential - actual
-            efficiency = (actual / potential * 100) if potential > 0 else 0
-            lost_pct = (lost / potential * 100) if potential > 0 else 0
-            return (
-                f"Location: {self.location}\n\n"
-                f"Actual Revenue: £{actual:,.2f}\n\n"
-                f"Potential Revenue: £{potential:,.2f}\n\n"
-                f"Lost Revenue: £{lost:,.2f}\n\n"
-                f"Revenue Efficiency: {efficiency:.1f}%\n\n"
-                f"Revenue Gap: {lost_pct:.1f}% of potential"
-            )
-
-        # Graph popup button with comprehensive export enabled
-        pe.open_graph_popup(
-            button_container,
-            popup_title=f"Apartment Occupancy Graph - {self.location}",
-            button_text="View Graphs",
-            graph_function=apartment_repo.create_occupancy_trend_graph,
-            include_location=False,
-            get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
-            date_range_params=self.location,
-            fixed_location=self.location,
-            stats_generator=generate_occupancy_stats,
-            export_title=f"Occupancy Analysis - {self.location}",
-            export_filename=f"occupancy_analysis_{self.location.lower().replace(' ', '_')}",
-            pie_chart_generator=lambda: apartment_repo.create_occupancy_pie_chart(self.location),
-            bar_chart_generator=lambda: apartment_repo.create_revenue_bar_chart(self.location),
-            bar_text_generator=generate_revenue_analysis
-        )
-        
-    def load_account_content(self, row):
-        accounts_card = pe.function_card(row, f"Manage Accounts - {self.location}", side="left", pady=6, padx=8)
-
-        # Choose fields for creating new account form 
-        # Only username, role, and password (location is fixed to administrator's location)
-        fields = [
-            {'name': 'Username', 'type': 'text', 'required': True, 'placeholder': 'Unique username'},
-            {'name': 'Role', 'type': 'dropdown', 'options': ['Admin', 'Frontdesk', 'Maintenance'], 'required': True},
-            {'name': 'Password', 'type': 'text', 'required': True, 'placeholder' : 'Secure password'}
-        ]
-
-        # create form for creating new accounts with above fields
-        pe.form_element(
-            accounts_card,
-            fields,
-            name="Create Account",
-            submit_text="Create Account",
-            on_submit=self.create_account,
-        )
-
-        # Create a popup with a button to edit existing accounts
-        button, open_popup_func = pe.popup_card(
-            accounts_card, 
-            button_text="Edit Accounts", 
-            title=f"Edit Accounts - {self.location}",
-            small=False,
-            button_size="full"
-        )
-        pe.style_secondary_button(button)
-
-        def setup_popup():
-            content = open_popup_func()
-
-            # Define columns for user data table
-            columns = [
-                {'name': 'ID', 'key': 'user_ID', 'width': 80, 'editable': False},
-                {'name': 'Username', 'key': 'username', 'width': 200},
-                {'name': 'Location', 'key': 'city', 'width': 200, 'editable': False},
-                {'name': 'Role', 'key': 'role', 'width': 150, 'format': 'dropdown', 'options': ['Admin', 'Frontdesk', 'Maintenance']}
-            ]
-
-            # Function to fetch user data for the table (filtered by location)
-            def get_data():
-                try:
-                    all_users = user_repo.get_all_users()
-                    # Filter users by administrator's location
-                    return [user for user in all_users if user.get('city') == self.location]
-                except Exception as e:
-                    print(f"Error loading users: {e}")
-                    return []
-
-            # Create editable and deletable data table for user accounts
-            pe.create_edit_popup_with_table(
-                content,
-                columns,
-                get_data_func=get_data,
-                on_delete_func=self.delete_account,
-                on_update_func=self.edit_account
-            )
-
-        # Set the button command to open the popup with the user accounts table
-        button.configure(command=setup_popup)
-
-    def load_lease_content(self, row):
-        lease_card = pe.function_card(row, f"Lease Agreements - {self.location}", side="left", pady=6, padx=8)
-
-        # Top info row: expiring soon badge
-        info_row = ctk.CTkFrame(lease_card, fg_color="transparent")
-        info_row.pack(fill="x", pady=(0, 6))
-
-        expiring_badge = pe.info_badge(info_row, "Expiring soon: 0")
-
-        # Stat grid
-        stats = pe.stats_grid(lease_card)
-
-        active_value = pe.stat_card(stats, "Active")
-        expired_value = pe.stat_card(stats, "Expired")
-        total_value = pe.stat_card(stats, "Total")
-
-        def update_lease_display():
-            try:
-                lease_stats = lease_repo.get_lease_statistics(self.location)
-                active_count = lease_stats.get("active_leases", 0)
-                expired_count = lease_stats.get("expired_leases", 0)
-                total_count = lease_stats.get("total_leases", 0)
-                expiring_count = lease_stats.get("expiring_soon", 0)
-
-                active_value.configure(text=str(active_count))
-                expired_value.configure(text=str(expired_count))
-                total_value.configure(text=str(total_count))
-                expiring_badge.configure(text=f"Expiring soon: {expiring_count}")
-            except Exception as e:
-                print(f"Error loading lease data: {e}")
-
-        update_lease_display()
-        refresh_timer, schedule_refresh = pe.create_debounced_refresh(lease_card, update_lease_display)
-
-        # Stats generator for lease export
-        def generate_lease_stats():
-            stats = lease_repo.get_lease_statistics(self.location)
-            active = stats.get('active_leases', 0)
-            expired = stats.get('expired_leases', 0)
-            total = stats.get('total_leases', 0)
-            expiring = stats.get('expiring_soon', 0)
-            return (
-                f"Location: {self.location}\n\n"
-                f"Total Leases: {total}\n\n"
-                f"Active: {active} ({(active/total*100):.1f}% of total)\n\n"
-                f"Expired: {expired} ({(expired/total*100):.1f}% of total)\n\n"
-                f"Expiring Soon (30 days): {expiring}"
-            )
-        
-        def generate_lease_analysis():
-            stats = lease_repo.get_lease_statistics(self.location)
-            active = stats.get('active_leases', 0)
-            expired = stats.get('expired_leases', 0)
-            expiring = stats.get('expiring_soon', 0)
-            total = stats.get('total_leases', 0)
-            return (
-                f"Location: {self.location}\n\n"
-                f"Active Leases: {active}\n\n"
-                f"Expired Leases: {expired}\n\n"
-                f"Expiring Soon: {expiring}\n\n"
-                f"Total Leases: {total}\n\n"
-                f"Renewal Rate Needed: {(expiring/active*100):.1f}% of active leases" if active > 0 else "N/A"
-            )
-
-        # Graph popup button with comprehensive export
-        pe.open_graph_popup(
-            lease_card,
-            popup_title=f"Lease Trends Graph - {self.location}",
-            button_text="View Graphs",
-            graph_function=lease_repo.create_lease_trend_graph,
-            include_location=False,
-            get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
-            date_range_params=self.location,
-            fixed_location=self.location,
-            stats_generator=generate_lease_stats,
-            export_title=f"Lease Analysis - {self.location}",
-            export_filename=f"lease_analysis_{self.location.lower().replace(' ', '_')}",
-            pie_chart_generator=lambda: lease_repo.create_lease_status_pie_chart(self.location),
-            bar_chart_generator=lambda: lease_repo.create_lease_comparison_bar_chart(self.location),
-            bar_text_generator=generate_lease_analysis
-        )
-
-        # View Data button for lease agreements table
-        data_button, open_data_popup_func = pe.popup_card(
-            lease_card,
-            title=f"View Lease Agreements - {self.location}",
-            button_text="View Leases",
-            small=False,
-            button_size="full"
-        )
-        pe.style_secondary_button(data_button)
-        data_button.pack(pady=(10, 0))  # Add some padding to separate from graph button
-
-        def setup_data_popup():
-            content = open_data_popup_func()
-
-            # Define columns for lease agreements data table
-            columns = [
-                {'name': 'ID', 'key': 'lease_ID', 'width': 50, 'editable': False},
-                {'name': 'Tenant', 'key': 'tenant_name', 'width': 120, 'editable': False},
-                {'name': 'Apartment', 'key': 'apartment_address', 'width': 120, 'editable': False},
-                {'name': 'Location', 'key': 'city', 'width': 100, 'editable': False},
-                {'name': 'Start Date', 'key': 'start_date', 'width': 110, 'editable': False},
-                {'name': 'End Date', 'key': 'end_date', 'width': 110, 'editable': False},
-                {'name': 'Monthly Rent', 'key': 'monthly_rent', 'format': 'currency', 'width': 120, 'editable': False},
-                {'name': 'Status', 'key': 'active', 'width': 100, 'format': 'boolean', 'options': ["Active", "Inactive"], 'editable': False},
-                {'name': 'Expired', 'key': 'expired', 'width': 80, 'format': 'boolean', 'options': ["Yes", "No"], 'editable': False}
-            ]
-
-            # Function to fetch lease data for the table (filtered by location)
-            def get_data():
-                try:
-                    return lease_repo.get_all_leases(location=self.location)
-                except Exception as e:
-                    print(f"Error loading leases: {e}")
-                    return []
-                
-            table, refresh_table = pe.data_table(
-                content,
-                columns,
-                editable=False,
-                deletable=False,
-                refresh_data=get_data,
-                show_refresh_button=True,
-                render_batch_size=20,
-                page_size=10,
-            )
-
-        data_button.configure(command=setup_data_popup)
-
-    def load_reports_content(self, row):
-        reports_card = pe.function_card(row, f"Performance Report - {self.location}", side="left", pady=6, padx=8)
-
-        # Top info row: vacant badge
-        info_row = ctk.CTkFrame(reports_card, fg_color="transparent")
-        info_row.pack(fill="x", pady=(0, 6))
-
-        vacant_badge = pe.info_badge(info_row, "Vacant units: 0")
-
-        # Stat grid
-        stats = pe.stats_grid(reports_card)
-        actual_value = pe.stat_card(stats, "Actual Revenue", "£0.00")
-        potential_value = pe.stat_card(stats, "Potential Revenue", "£0.00")
-
-        def update_performance_display():
-            try:
-                actual_revenue = apartment_repo.get_monthly_revenue(self.location)
-                potential_revenue = apartment_repo.get_potential_revenue(self.location)
-                total = apartment_repo.get_total_apartments(self.location)
-                occupied = apartment_repo.get_all_occupancy(self.location)
-                vacant = total - occupied
-
-                actual_value.configure(text=f"£{actual_revenue:,.2f}")
-                potential_value.configure(text=f"£{potential_revenue:,.2f}")
-                vacant_badge.configure(text=f"Vacant units: {vacant}")
-            except Exception as e:
-                print(f"Error loading revenue data: {e}")
-
-        update_performance_display()
-        refresh_timer, schedule_refresh = pe.create_debounced_refresh(reports_card, update_performance_display)
-
-        # Stats and analysis generators for performance export
-        def generate_performance_stats():
-            actual = apartment_repo.get_monthly_revenue(self.location)
-            potential = apartment_repo.get_potential_revenue(self.location)
-            total = apartment_repo.get_total_apartments(self.location)
-            occupied = apartment_repo.get_all_occupancy(self.location)
-            vacant = total - occupied
-            return (
-                f"Location: {self.location}\n\n"
-                f"Total Apartments: {total}\n\n"
-                f"Occupied: {occupied} ({(occupied/total*100):.1f}%)\n\n"
-                f"Vacant: {vacant} ({(vacant/total*100):.1f}%)\n\n"
-                f"Actual Revenue: £{actual:,.2f}\n\n"
-                f"Potential Revenue: £{potential:,.2f}"
-            )
-        
-        def generate_performance_analysis():
-            actual = apartment_repo.get_monthly_revenue(self.location)
-            potential = apartment_repo.get_potential_revenue(self.location)
-            lost = potential - actual
-            efficiency = (actual / potential * 100) if potential > 0 else 0
-            return (
-                f"Location: {self.location}\n\n"
-                f"Actual Revenue: £{actual:,.2f}\n\n"
-                f"Potential Revenue: £{potential:,.2f}\n\n"
-                f"Lost Revenue: £{lost:,.2f}\n\n"
-                f"Revenue Efficiency: {efficiency:.1f}%\n\n"
-                f"Performance Rating: {'Excellent' if efficiency >= 90 else 'Good' if efficiency >= 75 else 'Fair' if efficiency >= 60 else 'Needs Improvement'}"
-            )
-
-        pe.open_graph_popup(
-            reports_card,
-            popup_title=f"Performance Report Graph - {self.location}",
-            button_text="View Graphs",
-            graph_function=apartment_repo.create_revenue_trend_graph,
-            include_location=False,
-            get_date_range_func=lambda loc, grouping: lease_repo.get_lease_date_range(loc, grouping=grouping),
-            date_range_params=self.location,
-            fixed_location=self.location,
-            stats_generator=generate_performance_stats,
-            export_title=f"Performance Report - {self.location}",
-            export_filename=f"performance_report_{self.location.lower().replace(' ', '_')}",
-            pie_chart_generator=lambda: apartment_repo.create_occupancy_pie_chart(self.location),
-            bar_chart_generator=lambda: apartment_repo.create_revenue_bar_chart(self.location),
-            bar_text_generator=generate_performance_analysis
-        )
-
-    def load_apartment_content(self, row):
-        apartment_card = pe.function_card(row, f"Manage Apartments - {self.location}", side="top", pady=6, padx=8)
-
-        # Define fields for adding a new apartment (location is fixed)
-        fields = [
-            {'name': 'Apartment Address', 'type': 'text', 'required': True, 'placeholder' : 'Apartment 123'},
-            {'name': 'Number of Beds', 'type': 'text', 'subtype': 'number', 'required': True, 'placeholder': '0'},
-            {'name': 'Monthly Rent', 'type': 'text', 'subtype': 'currency', 'required': True, 'placeholder': '£0.00'},
-            {'name': 'Status', 'type': 'dropdown', 'options': ["Vacant", "Occupied"], 'required': True},
-        ]
-
-        pe.form_element(
-            apartment_card,
-            fields,
-            name="Add Apartment",
-            submit_text="Add Apartment",
-            on_submit=self.add_apartment,
-            field_per_row=4,
-        )
-
-        # Create a popup to edit existing apartments with a data table
-        button, open_popup_func = pe.popup_card(
-            apartment_card, 
-            button_text="Edit Apartments", 
-            title=f"Edit Apartments - {self.location}",
-            small=False,
-            button_size="full"
-        )
-        pe.style_secondary_button(button)
-
-        def setup_popup():
-            content = open_popup_func()
-
-            # Define columns for apartment data table
-            columns = [
-                {'name': 'ID', 'key': 'apartment_ID', 'width': 80, 'editable': False},
-                {'name': 'Address', 'key': 'apartment_address', 'width': 200},
-                {'name': 'Beds', 'key': 'number_of_beds', 'format': 'number', 'width': 80},
-                {'name': 'Monthly Rent', 'key': 'monthly_rent', 'format': 'currency', 'width': 120},
-                {'name': 'Status', 'key': 'occupied', 'width': 100, 'format': 'boolean', 'options': ["Occupied", "Vacant"]},
-                {'name': 'Location', 'key': 'city', 'width': 150, 'editable': False}
-            ]
-
-            # Function to fetch apartment data for the table (filtered by location)
-            def get_data():
-                try:
-                    return apartment_repo.get_all_apartments(location=self.location)
-                except Exception as e:
-                    print(f"Error loading apartments: {e}")
-                    return []
-
-            # Create editable and deletable data table for apartments
-            pe.create_edit_popup_with_table(
-                content,
-                columns,
-                get_data_func=get_data,
-                on_delete_func=self.delete_apartment,
-                on_update_func=self.edit_apartment
-            )
-
-        # Set the button command to open the popup with the apartments table
-        button.configure(command=setup_popup)
-# ============================= ^ Homepage UI Content ^ =====================================
+        """Edit an apartment in this administrator location."""
+        return AdminService.edit_apartment(self.location, apartment_data, values)
