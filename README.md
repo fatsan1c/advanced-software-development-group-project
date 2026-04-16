@@ -1,153 +1,81 @@
 # Paragon Apartment Management System (PAMS)
 
-## Overview
-Paragon Apartment Management System (PAMS) is a Python-based desktop application designed to improve operational efficiency for a multi-location apartment management company. It consolidates tenant, apartment, payment, and maintenance data into a secure, scalable system with role-based access control and reporting capabilities.
+PAMS is a desktop apartment management app built with Python, CustomTkinter, and SQLite.
 
-## Features
-- User and role management (Admin, Finance, Maintenance, Manager, Front Desk)
-- Tenant registration, lease tracking, and early exit handling
-- Apartment management with location and occupancy details
-- Payment and billing simulation with late payment notifications
-- Maintenance request tracking and resolution logging
-- Dynamic reporting for occupancy, financials, and maintenance costs
-- Integrated database with mock data for testing and demonstration
+## Core Features
+- Role-based login for Manager, Admin, Finance, Front Desk, and Maintenance users
+- Apartment, tenant, lease, invoice, payment, maintenance, and complaint management
+- Multi-location support (Bristol, Cardiff, London, Manchester)
+- Finance summaries and graphs by location
 
-## Tech Stack
-- **Language:** Python 3.x  
-- **Database:** SQLite
-- **GUI Framework:** CustomTkinter
-- **Version Control:** Git and GitHub  
+## Requirements
+- Python 3.x available on PATH
 
-## Installation
-
-### Quick Setup
-
-1. Clone this repository:
+## Setup
+1. Clone the repository:
    ```bash
    git clone https://github.com/fatsan1c/advanced-software-development-group-project.git
    cd advanced-software-development-group-project
    ```
 
-2. Set up the virtual environment 
-   > **Windows:**
-   > ```powershell
-   > cd setupfiles
-   > powershell -ExecutionPolicy Bypass -File .\setup.ps1
-   > ```
-   
-   > **Linux/Mac:**
-   > ```bash
-   > cd setupfiles
-   > chmod +x setup.sh
-   > ./setup.sh
-   > ```
-   
-   - The setup script will automatically:
-      - Create a virtual environment
-      - Install all dependencies
+2. Run the setup script:
 
-3. Run the Application:
-   ```bash
-   python paragonapartments/main.py
+   Windows (PowerShell):
+   ```powershell
+   cd setupfiles
+   powershell -ExecutionPolicy Bypass -File .\setup.ps1
    ```
 
-## Database
+   Linux/macOS:
+   ```bash
+   cd setupfiles
+   chmod +x setup.sh
+   ./setup.sh
+   ```
 
-The database includes pre-populated sample data:
-- 4 locations (Bristol, Cardiff, London, Manchester)
-- 32 apartments across all locations
-- 20 tenants with active leases
-- 15 user accounts with various roles
+The setup script creates `.venv`, installs dependencies from `setupfiles/requirements.txt`, and creates the SQLite database if it does not already exist.
 
-To recreate or reset the database, run:
+## Run
+From the project root:
 ```bash
-python setupfiles/tools/create_sqlite_db.py
+python paragonapartments/main.py
 ```
 
-### Finance (Invoices & Payments)
+## Database Utilities
+Database file location:
+- `paragonapartments/database/paragonapartments.db`
 
-The Finance area was expanded to support realistic testing and faster UI performance:
-
-- **Finance Manager dashboard**
-  - **Financial Summary** by location (auto-refresh on dropdown change) + **View Graphs** popup (Matplotlib + NumPy)
-  - **Manage Invoices**: create invoice + view/edit invoices (location filter, £ formatting, pagination)
-  - **Late / Unpaid Invoices**: view overdue unpaid invoices (location filter, £ formatting, pagination)
-  - **Record Payment**: records a payment and marks the linked invoice as paid
-  - **View Payments**: table view of payments (location filter, £ formatting, pagination)
-
-- **Data-table improvements**
-  - **Pagination (10 rows/page)** to avoid rendering all rows at once
-  - Top refresh buttons next to filters for quicker workflow
-  - £ currency formatting in finance tables
-
-- **Safety: duplicate-payment prevention**
-  - `record_payment` blocks payments when the invoice is already paid or already has a payment recorded, and returns a clear message.
-
-### Performance: SQLite Indexes
-
-For larger datasets, SQLite indexes were added to speed up the common finance queries (late/unpaid filtering, joins, and invoice/payment lookups):
-
-- `invoices(tenant_ID)`
-- `invoices(paid, due_date)`
-- `payments(invoice_ID)`
-- `lease_agreements(tenant_ID, active)`
-
-Indexes are created automatically when you run the DB creation scripts, and can be applied to an existing DB using:
-
-```bash
-python setupfiles/tools/create_sqlite_indexes.py
-```
-
-### Finance Test Data Seeding (for UI / performance testing)
-
-You can generate repeatable invoice/payment datasets across all locations using:
-
-```bash
-python setupfiles/tools/seed_finance_testdata.py --reset --invoices 500 --paid 300 --late-unpaid 120
-```
-This will create:
-- **500 invoices** total
-- **300 payments** (paid invoices)
-- A guaranteed set of **late/unpaid** invoices distributed across locations (so filters like Cardiff are never empty)
-
-After seeding, you can validate performance in the app by opening:
-- Finance Manager → **View / Edit Invoices**
-- Finance Manager → **Late / Unpaid Invoices**
-- Finance Manager → **View Payments**
+Available scripts:
+- Full test dataset (replaces existing DB):
+  ```bash
+  python setupfiles/tools/create_sqlite_testdata.py
+  ```
+- Empty schema + minimal seed data (4 locations + manager account):
+  ```bash
+  python setupfiles/tools/create_empty_sqlite_db.py
+  ```
 
 ## Default Login Credentials
+Common accounts:
 
 | Username | Password | Role | Location |
 |----------|----------|------|----------|
 | manager | paragon1 | Manager | All |
-| bristol_admin | admin1 | Admin | Bristol |
 | finance | finance1 | Finance | All |
-| bristol_frontdesk | front1 | Frontdesk | Bristol |
+| bristol_admin | admin1 | Admin | Bristol |
+| bristol_frontdesk | front1 | Front Desk | Bristol |
 | bristol_maintenance | maint1 | Maintenance | Bristol |
 
-### Permission Matrix:
+Other seeded city accounts follow the same pattern:
+- `cardiff_admin`, `london_admin`, `manchester_admin` use `admin1`
+- `cardiff_frontdesk`, `london_frontdesk`, `manchester_frontdesk` use `front1`
+- `cardiff_maintenance`, `london_maintenance`, `manchester_maintenance` use `maint1`
 
-| Role | Users | Apartments | Tenants | Leases | Invoices | Payments | Maintenance |
-|------|-------|------------|---------|--------|----------|----------|-------------|
-| **Manager** | Full | Full | Full | Full | Full | Full | Full |
-| **Admin** | CRU | Full | Full | Full | CRU | CRU | Full |
-| **Finance** | - | Read | Read | Read | Full | Full | - |
-| **Frontdesk** | - | Read | CRU | CR | Read | Read | CR |
-| **Maintenance** | - | Read | Read | - | - | - | RU |
-
-**Legend:**
-- **Full (CRUD)** = Create, Read, Update, Delete
-- **CRU** = Create, Read, Update
-- **CR** = Create, Read
-- **RU** = Read, Update
-- **Read** = Read only
-- **-** = No access
-
-## Documentation
-   - Use Case, Class, and Sequence diagrams
-   - Agile methodology report
-   - Test case documentation and screenshots
-
-### Assessment Context:
-
-Developed as part of the Advanced Software Development (UFCF8S-30-2) module at UWE Bristol. This project demonstrates full software lifecycle implementation — from requirements analysis and design to coding, testing, and evaluation.
+## Tech Stack
+- Python
+- CustomTkinter
+- SQLite
+- Pillow
+- passlib
+- matplotlib, numpy, scipy
+- tkcalendar
